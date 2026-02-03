@@ -83,7 +83,7 @@ backend/dist/
 backend/build/
 *.spec
 
-# 零时文档
-docs/项目提示词.md
-docs/base/*
+# 临时文档
+**/项目提示词.md
+docs/base/
 
