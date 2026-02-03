@@ -13,12 +13,12 @@ import {
 import { BRAND_COLORS } from '../types/video';
 
 // 弹簧动画配置预设
-export const SPRING_PRESETS = {
+export const SPRING_PRESETS: Record<string, SpringConfig> = {
   smooth: { damping: 200 },                    // 平滑，无弹跳（微妙展示）
   snappy: { damping: 20, stiffness: 200 },     // 清脆，最小弹跳（UI元素）
   bouncy: { damping: 8 },                      // 弹性入场（趣味动画）
   heavy: { damping: 15, stiffness: 80, mass: 2 }, // 沉重，慢速，小弹跳
-} as const satisfies Record<string, SpringConfig>;
+};
 
 /**
  * 淡入动画
