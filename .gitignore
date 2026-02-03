@@ -77,3 +77,13 @@ test-dir/
 
 # 发布版应用
 release/
+
+# PyInstaller 打包输出
+backend/dist/
+backend/build/
+*.spec
+
+# 零时文档
+docs/项目提示词.md
+docs/base/*
+
