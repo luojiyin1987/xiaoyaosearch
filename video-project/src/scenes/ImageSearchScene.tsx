@@ -3,7 +3,7 @@
  * 展示图片上传和视觉理解搜索
  */
 
-import { AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Img, staticFile, useCurrentFrame } from 'remotion';
 import { BRAND_COLORS, TIME } from '../types/video';
 import { fadeIn, slideIn, typewriter, GradientBackground, TextCard } from '../components/animations';
 

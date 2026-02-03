@@ -3,7 +3,7 @@
  * 展示语义理解和跨文件类型搜索
  */
 
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useCurrentFrame } from 'remotion';
 import { BRAND_COLORS, TIME } from '../types/video';
 import { fadeIn, slideIn, typewriter, GradientBackground, TextCard } from '../components/animations';
 

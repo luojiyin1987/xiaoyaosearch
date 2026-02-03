@@ -3,13 +3,12 @@
  * 展示语音输入搜索功能
  */
 
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useCurrentFrame } from 'remotion';
 import { BRAND_COLORS, TIME } from '../types/video';
 import { fadeIn, fadeOut, slideIn, typewriter, GradientBackground, TextCard, pulse } from '../components/animations';
 
 export const VoiceSearchScene: React.FC = () => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
   const sceneStart = 0; // 这个场景在自己的序列中从0开始
 
   // 时间点（帧）

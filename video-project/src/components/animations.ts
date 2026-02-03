@@ -2,18 +2,23 @@
  * Remotion动画辅助函数和组件
  */
 
+import React from 'react';
 import {
   interpolate,
   spring,
-  useCurrentFrame,
-  useVideoConfig,
   Easing,
-  type SpringConfig,
 } from 'remotion';
 import { BRAND_COLORS } from '../types/video';
 
+// 弹簧动画配置类型
+export interface SpringConfigType {
+  damping?: number;
+  stiffness?: number;
+  mass?: number;
+}
+
 // 弹簧动画配置预设
-export const SPRING_PRESETS: Record<string, SpringConfig> = {
+export const SPRING_PRESETS: Record<string, SpringConfigType> = {
   smooth: { damping: 200 },                    // 平滑，无弹跳（微妙展示）
   snappy: { damping: 20, stiffness: 200 },     // 清脆，最小弹跳（UI元素）
   bouncy: { damping: 8 },                      // 弹性入场（趣味动画）
@@ -72,7 +77,7 @@ export const scaleIn = (
   frame: number,
   fps: number,
   startFrame: number,
-  config: SpringConfig = SPRING_PRESETS.smooth
+  config: SpringConfigType = SPRING_PRESETS.smooth
 ): number => {
   return spring({
     frame: frame - startFrame,
@@ -211,25 +216,20 @@ interface AnimatedContainerProps {
   className?: string;
 }
 
-export const AnimatedContainer: React.FC<AnimatedContainerProps> = ({
+export function AnimatedContainer({
   children,
   style,
   className,
-}) => {
-  return (
-    <div
-      className={className}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-};
+}: AnimatedContainerProps): React.ReactElement {
+  const containerStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...style,
+  };
+
+  return React.createElement('div', { className, style: containerStyle }, children);
+}
 
 /**
  * 背景渐变容器
@@ -240,34 +240,29 @@ interface GradientBackgroundProps {
   className?: string;
 }
 
-export const GradientBackground: React.FC<GradientBackgroundProps> = ({
+export function GradientBackground({
   children,
   variant = 'primary',
   className = '',
-}) => {
+}: GradientBackgroundProps): React.ReactElement {
   const gradients = {
     primary: `linear-gradient(135deg, ${BRAND_COLORS.darkBg} 0%, ${BRAND_COLORS.background} 100%)`,
     dark: `linear-gradient(180deg, ${BRAND_COLORS.darkBg} 0%, ${BRAND_COLORS.background} 100%)`,
     accent: `linear-gradient(135deg, ${BRAND_COLORS.primary} 0%, ${BRAND_COLORS.background} 100%)`,
   };
 
-  return (
-    <div
-      className={className}
-      style={{
-        background: gradients[variant],
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-      }}
-    >
-      {children}
-    </div>
-  );
-};
+  const bgStyle: React.CSSProperties = {
+    background: gradients[variant],
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  };
+
+  return React.createElement('div', { className, style: bgStyle }, children);
+}
 
 /**
  * 文字卡片组件
@@ -279,12 +274,12 @@ interface TextCardProps {
   variant?: 'default' | 'glow' | 'border';
 }
 
-export const TextCard: React.FC<TextCardProps> = ({
+export function TextCard({
   children,
   style,
   className = '',
   variant = 'default',
-}) => {
+}: TextCardProps): React.ReactElement {
   const baseStyle: React.CSSProperties = {
     padding: '20px 40px',
     borderRadius: '12px',
@@ -297,9 +292,5 @@ export const TextCard: React.FC<TextCardProps> = ({
     ...style,
   };
 
-  return (
-    <div className={className} style={baseStyle}>
-      {children}
-    </div>
-  );
-};
+  return React.createElement('div', { className, style: baseStyle }, children);
+}

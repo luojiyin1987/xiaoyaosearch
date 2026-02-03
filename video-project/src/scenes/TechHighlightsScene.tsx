@@ -5,7 +5,7 @@
 
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
 import { BRAND_COLORS, TIME } from '../types/video';
-import { fadeIn, slideIn, scaleIn, SPRING_PRESETS, typewriter, GradientBackground, TextCard } from '../components/animations';
+import { fadeIn, fadeOut, slideIn, scaleIn, SPRING_PRESETS, typewriter, GradientBackground, TextCard } from '../components/animations';
 
 export const TechHighlightsScene: React.FC = () => {
   const frame = useCurrentFrame();
