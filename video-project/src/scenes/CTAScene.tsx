@@ -5,7 +5,7 @@
 
 import { AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { BRAND_COLORS, TIME } from '../types/video';
-import { fadeIn, scaleIn, slideIn, SPRING_PRESETS, typewriter, GradientBackground, TextCard, pulse } from '../components/animations';
+import { fadeIn, scaleIn, SPRING_PRESETS, typewriter, GradientBackground, pulse } from '../components/animations';
 
 export const CTAScene: React.FC = () => {
   const frame = useCurrentFrame();

@@ -4,7 +4,7 @@
  */
 
 import { AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
-import { BRAND_COLORS, TIME, SCENE_DURATIONS } from '../types/video';
+import { BRAND_COLORS, TIME } from '../types/video';
 import { fadeIn, fadeOut, scaleIn, SPRING_PRESETS, typewriter, GradientBackground, TextCard } from '../components/animations';
 
 export const OpeningScene: React.FC = () => {

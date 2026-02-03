@@ -5,11 +5,10 @@
 
 import { AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { BRAND_COLORS, TIME } from '../types/video';
-import { fadeIn, slideIn, SPRING_PRESETS, typewriter, GradientBackground, TextCard, scaleIn } from '../components/animations';
+import { fadeIn, slideIn, typewriter, GradientBackground, TextCard } from '../components/animations';
 
 export const ImageSearchScene: React.FC = () => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
   const sceneStart = 0;
 
   // 时间点（帧）

@@ -3,9 +3,9 @@
  * 展示语音输入搜索功能
  */
 
-import { AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
 import { BRAND_COLORS, TIME } from '../types/video';
-import { fadeIn, fadeOut, slideIn, SPRING_PRESETS, typewriter, GradientBackground, TextCard, scaleIn, pulse } from '../components/animations';
+import { fadeIn, fadeOut, slideIn, typewriter, GradientBackground, TextCard, pulse } from '../components/animations';
 
 export const VoiceSearchScene: React.FC = () => {
   const frame = useCurrentFrame();

@@ -13,7 +13,7 @@ import { ImageSearchScene } from '../scenes/ImageSearchScene';
 import { TechHighlightsScene } from '../scenes/TechHighlightsScene';
 import { CTAScene } from '../scenes/CTAScene';
 import { FullAudioTrack } from '../components/AudioTrack';
-import { SCENE_DURATIONS, VIDEO_CONFIG } from '../types/video';
+import { SCENE_DURATIONS } from '../types/video';
 
 /**
  * 产品宣传视频主组合

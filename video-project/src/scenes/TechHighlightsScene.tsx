@@ -3,7 +3,7 @@
  * 展示本地AI引擎、隐私安全等核心优势
  */
 
-import { AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
 import { BRAND_COLORS, TIME } from '../types/video';
 import { fadeIn, slideIn, scaleIn, SPRING_PRESETS, typewriter, GradientBackground, TextCard } from '../components/animations';
 

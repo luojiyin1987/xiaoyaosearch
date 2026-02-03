@@ -66,8 +66,6 @@ export const BackgroundMusic: React.FC = () => {
  * 关键时刻的音效提示
  */
 export const SoundEffects: React.FC = () => {
-  const { fps } = useVideoConfig();
-
   return (
     <>
       {/* Logo展示音效 (7-8秒) */}
