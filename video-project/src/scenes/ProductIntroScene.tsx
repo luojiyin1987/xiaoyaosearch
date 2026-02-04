@@ -92,7 +92,10 @@ export const ProductIntroScene: React.FC = () => {
 					borderRadius: 12,
 					padding: 24,
 					boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-					minWidth: 420,
+					width: 480,
+					height: 280,
+					display: 'flex',
+					flexDirection: 'column',
 					...style,
 				}}
 			>
@@ -115,10 +118,11 @@ export const ProductIntroScene: React.FC = () => {
 						paddingLeft: 20,
 						color: COLORS.textSecondary,
 						fontSize: FONTS.body,
+						flex: 1,
 					}}
 				>
 					{feature.items.map((item, index) => (
-						<li key={index} style={{marginBottom: 4}}>
+						<li key={index} style={{marginBottom: 6}}>
 							{item}
 						</li>
 					))}

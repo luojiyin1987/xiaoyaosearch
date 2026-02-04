@@ -130,3 +130,21 @@ export const useTypewriterValue = (
 
 	return text.slice(0, charactersToShow);
 };
+
+/**
+ * 手指点头动画 - 上下移动并缩放
+ */
+export const usePointingAnimation = (delay = 0, duration = 60) => {
+	const frame = useCurrentFrame();
+
+	// 使用正弦波创建上下循环移动
+	const progress = ((frame - delay) % duration) / duration;
+	const translateY = Math.sin(progress * Math.PI * 2) * 10;
+
+	// 缩放效果配合移动
+	const scale = 1 + Math.sin(progress * Math.PI * 2) * 0.1;
+
+	return {
+		transform: `translateY(${translateY}px) scale(${scale})`,
+	};
+};

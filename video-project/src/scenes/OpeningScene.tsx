@@ -3,7 +3,7 @@
  * 时长：10秒 (300帧)
  */
 
-import {AbsoluteFill} from 'remotion';
+import {AbsoluteFill, Img, staticFile} from 'remotion';
 import {useScaleIn, useFadeIn} from '../components/animations';
 import {TypewriterText} from '../components/TypewriterText';
 import {COLORS, FONTS} from '../types/video';
@@ -23,12 +23,18 @@ export const OpeningScene: React.FC = () => {
 			{/* Logo */}
 			<div
 				style={{
-					fontSize: 120,
 					marginBottom: 40,
 					transform: logoTransform,
 				}}
 			>
-				🔍
+				<Img
+					src={staticFile('images/logo_256x256.png')}
+					style={{
+						width: 200,
+						height: 200,
+						objectFit: 'contain',
+					}}
+				/>
 			</div>
 
 			{/* 标题 */}
@@ -52,6 +58,7 @@ export const OpeningScene: React.FC = () => {
 					color: COLORS.textSecondary,
 					opacity: subtitleOpacity,
 					textAlign: 'center',
+					marginBottom: 16,
 				}}
 			>
 				本地AI搜索，今天正式开源！
@@ -60,15 +67,14 @@ export const OpeningScene: React.FC = () => {
 			{/* GitHub 地址 */}
 			<div
 				style={{
-					position: 'absolute',
-					bottom: 60,
 					fontSize: FONTS.body,
 					color: COLORS.primary,
 					fontWeight: 500,
 					opacity: subtitleOpacity,
+					textAlign: 'center',
 				}}
 			>
-				github.com/dtsola/xiaoyaosearch
+				https://github.com/dtsola/xiaoyaosearch
 			</div>
 		</AbsoluteFill>
 	);

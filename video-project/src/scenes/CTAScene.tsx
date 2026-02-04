@@ -3,8 +3,8 @@
  * 时长：10秒 (300帧)
  */
 
-import {AbsoluteFill} from 'remotion';
-import {useScaleIn, useBounceIn, useFadeIn} from '../components/animations';
+import {AbsoluteFill, Img, staticFile} from 'remotion';
+import {useScaleIn, useBounceIn, useFadeIn, usePointingAnimation} from '../components/animations';
 import {COLORS, FONTS} from '../types/video';
 
 const githubButtons = [
@@ -24,8 +24,14 @@ export const CTAScene: React.FC = () => {
 	// 主标题缩放进入
 	const {transform: titleTransform} = useScaleIn(0, 40);
 
+	// Logo 缩放进入
+	const {transform: logoTransform} = useScaleIn(0, 40);
+
 	// GitHub 地址淡入
 	const {opacity: urlOpacity} = useFadeIn(30, 30);
+
+	// 手指指引动画
+	const {transform: pointingTransform} = usePointingAnimation(60, 45);
 
 	// GitHub 按钮依次弹入
 	const {transform: btn1Transform} = useBounceIn(60);
@@ -58,6 +64,26 @@ export const CTAScene: React.FC = () => {
 					今天正式开源！
 				</h1>
 
+				{/* Logo */}
+				<div
+					style={{
+						marginBottom: 30,
+						transform: logoTransform,
+						display: 'flex',
+						justifyContent: 'center',
+						alignItems: 'center',
+					}}
+				>
+					<Img
+						src={staticFile('images/logo_256x256.png')}
+						style={{
+							width: 120,
+							height: 120,
+							objectFit: 'contain',
+						}}
+					/>
+				</div>
+
 				{/* GitHub 地址 */}
 				<div
 					style={{
@@ -66,9 +92,22 @@ export const CTAScene: React.FC = () => {
 						fontWeight: 500,
 						marginBottom: 40,
 						opacity: urlOpacity,
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						gap: 12,
 					}}
 				>
-					github.com/dtsola/xiaoyaosearch
+					https://github.com/dtsola/xiaoyaosearch
+					{/* 手指指引 */}
+					<span
+						style={{
+							fontSize: 32,
+							transform: pointingTransform,
+						}}
+					>
+						👆
+					</span>
 				</div>
 
 				{/* GitHub 按钮组 */}
