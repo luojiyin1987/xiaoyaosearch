@@ -242,6 +242,112 @@ npm install
 npm run dev
 ```
 
+## 🤝 如何共享代码
+
+感谢你对小遥搜索的关注！我们欢迎任何形式的贡献，无论是代码、文档、Bug 修复还是新功能建议。
+
+### 贡献方式
+
+#### 方式一：提交 Pull Request（推荐）
+
+**步骤 1：Fork 项目**
+1. 访问 [xiaoyaosearch](https://github.com/dtsola/xiaoyaosearch) 仓库
+2. 点击右上角的 "Fork" 按钮，将项目 Fork 到你的 GitHub 账户
+
+**步骤 2：克隆到本地**
+```bash
+git clone https://github.com/<你的用户名>/xiaoyaosearch.git
+cd xiaoyaosearch
+```
+
+**步骤 3：创建功能分支**
+```bash
+git checkout -b feature/你的功能名称
+# 或
+git checkout -b fix/问题描述
+```
+
+**步骤 4：进行开发**
+- 按照项目代码规范进行开发
+- 确保代码有适当的注释
+- 运行测试确保功能正常
+
+**步骤 5：提交代码**
+```bash
+git add .
+git commit -m "feat(scope): 简洁描述你的改动"
+```
+提交格式规范：
+- `feat`: 新功能
+- `fix`: Bug 修复
+- `docs`: 文档更新
+- `style`: 代码格式调整
+- `refactor`: 代码重构
+- `perf`: 性能优化
+- `test`: 测试相关
+- `chore`: 构建/工具链相关
+
+**步骤 6：推送到 GitHub**
+```bash
+git push origin feature/你的功能名称
+```
+
+**步骤 7：创建 Pull Request**
+1. 访问你 Fork 的仓库页面
+2. 点击 "Compare & pull request" 按钮
+3. 填写 PR 描述：
+   - 标题：简洁说明改动内容
+   - 描述：详细说明改动原因、实现方式、测试结果
+4. 等待维护者审核
+
+#### 方式二：提交 Issue
+
+如果你发现了 Bug 或有功能建议：
+1. 访问 [Issues](https://github.com/dtsola/xiaoyaosearch/issues) 页面
+2. 点击 "New Issue"
+3. 选择合适的 Issue 模板
+4. 详细描述问题或建议
+
+### 代码规范
+
+#### 前端规范
+- 组件命名：PascalCase（如 `SearchPanel.vue`）
+- 变量/函数：camelCase（如 `searchResults`）
+- 常量：UPPER_SNAKE_CASE（如 `MAX_FILE_SIZE`）
+- 代码注释：使用中文
+
+#### 后端规范
+- 文件命名：snake_case（如 `search_service.py`）
+- 类名：PascalCase（如 `SearchService`）
+- 函数/变量：snake_case（如 `search_files`）
+- 常量：UPPER_SNAKE_CASE（如 `MAX_RESULTS`）
+- 代码注释：使用中文
+
+### 贡献指南
+
+- ✅ 遵循项目的代码规范
+- ✅ 保持代码简洁，避免过度设计
+- ✅ 添加适当的错误处理
+- ✅ 确保代码有适当的测试
+- ✅ 更新相关文档
+
+### 获取帮助
+
+- 💬 微信：dtsola（请备注 "小遥搜索贡献"）
+- 📧 邮件：通过官网 https://www.dtsola.com 联系
+- 📺 B站：https://space.bilibili.com/736015
+
+### 贡献者权益
+
+- 📝 你的名字将出现在项目贡献者列表中
+- 🌟 你的改动将帮助成千上万的用户
+- 🤝 加入独立开发者社区，交流学习
+- 🎁 优秀贡献者可获得项目周边礼品
+
+---
+
+**让我们一起打造更好的本地搜索体验！** 🚀
+
 ## 产品路线图
 [产品路线图](ROADMAP.md)
 

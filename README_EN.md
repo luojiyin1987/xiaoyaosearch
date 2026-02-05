@@ -242,6 +242,112 @@ npm install
 npm run dev
 ```
 
+## 🤝 How to Contribute
+
+Thank you for your interest in XiaoyaoSearch! We welcome contributions in any form, whether it's code, documentation, bug fixes, or new feature suggestions.
+
+### Contribution Methods
+
+#### Method 1: Submit a Pull Request (Recommended)
+
+**Step 1: Fork the Project**
+1. Visit the [xiaoyaosearch](https://github.com/dtsola/xiaoyaosearch) repository
+2. Click the "Fork" button in the upper right corner to fork the project to your GitHub account
+
+**Step 2: Clone to Local**
+```bash
+git clone https://github.com/<your-username>/xiaoyaosearch.git
+cd xiaoyaosearch
+```
+
+**Step 3: Create a Feature Branch**
+```bash
+git checkout -b feature/your-feature-name
+# or
+git checkout -b fix/bug-description
+```
+
+**Step 4: Make Changes**
+- Follow the project coding standards
+- Ensure your code has appropriate comments
+- Run tests to ensure functionality works correctly
+
+**Step 5: Commit Your Changes**
+```bash
+git add .
+git commit -m "feat(scope): brief description of your changes"
+```
+Commit format conventions:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation update
+- `style`: Code formatting changes
+- `refactor`: Code refactoring
+- `perf`: Performance optimization
+- `test`: Testing related
+- `chore`: Build/toolchain related
+
+**Step 6: Push to GitHub**
+```bash
+git push origin feature/your-feature-name
+```
+
+**Step 7: Create a Pull Request**
+1. Visit your forked repository page
+2. Click the "Compare & pull request" button
+3. Fill in the PR description:
+   - Title: Briefly describe the changes
+   - Description: Detailed explanation of the reason, implementation, and test results
+4. Wait for maintainer review
+
+#### Method 2: Submit an Issue
+
+If you find a bug or have a feature suggestion:
+1. Visit the [Issues](https://github.com/dtsola/xiaoyaosearch/issues) page
+2. Click "New Issue"
+3. Select an appropriate issue template
+4. Describe the problem or suggestion in detail
+
+### Code Standards
+
+#### Frontend Standards
+- Component naming: PascalCase (e.g., `SearchPanel.vue`)
+- Variables/Functions: camelCase (e.g., `searchResults`)
+- Constants: UPPER_SNAKE_CASE (e.g., `MAX_FILE_SIZE`)
+- Code comments: Use Chinese
+
+#### Backend Standards
+- File naming: snake_case (e.g., `search_service.py`)
+- Class names: PascalCase (e.g., `SearchService`)
+- Functions/Variables: snake_case (e.g., `search_files`)
+- Constants: UPPER_SNAKE_CASE (e.g., `MAX_RESULTS`)
+- Code comments: Use Chinese
+
+### Contribution Guidelines
+
+- ✅ Follow project coding standards
+- ✅ Keep code simple, avoid over-engineering
+- ✅ Add appropriate error handling
+- ✅ Ensure proper test coverage
+- ✅ Update relevant documentation
+
+### Get Help
+
+- 💬 WeChat: dtsola (please note "XiaoyaoSearch Contribution")
+- 📧 Email: Contact via https://www.dtsola.com
+- 📺 Bilibili: https://space.bilibili.com/736015
+
+### Contributor Benefits
+
+- 📝 Your name will appear in the project contributors list
+- 🌟 Your changes will help thousands of users
+- 🤝 Join the indie developer community for exchange and learning
+- 🎁 Outstanding contributors may receive project merchandise
+
+---
+
+**Let's build a better local search experience together!** 🚀
+
 ## Product Roadmap
 [Product Roadmap](ROADMAP_EN.md)
 
