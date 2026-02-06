@@ -493,7 +493,11 @@ class AppConfig(BaseSettings):
 
 
 # 全局配置实例
-settings = AppConfig()
+# 获取 backend 目录的绝对路径，确保 .env 文件能被正确找到
+# 无论从哪里运行，都从 backend/ 目录加载 .env 配置
+_backend_dir = Path(__file__).parent.parent.parent
+_env_file = _backend_dir / ".env"
+settings = AppConfig(_env_file=str(_env_file) if _env_file.exists() else None)
 
 
 def get_settings() -> AppConfig:
@@ -504,5 +508,8 @@ def get_settings() -> AppConfig:
 def reload_settings():
     """重新加载配置"""
     global settings
-    settings = AppConfig()
+    # 从 backend 目录加载 .env 配置
+    _backend_dir = Path(__file__).parent.parent.parent
+    _env_file = _backend_dir / ".env"
+    settings = AppConfig(_env_file=str(_env_file) if _env_file.exists() else None)
     return settings

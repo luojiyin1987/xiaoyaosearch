@@ -181,7 +181,11 @@ class I18N:
 
 
 # 全局i18n实例
-i18n = I18N()
+# 使用绝对路径查找 locales 目录，确保无论从哪里运行都能正确加载
+# backend/app/core/i18n.py -> backend/app/ -> backend/app/locales
+_backend_dir = Path(__file__).parent.parent
+_locale_dir = _backend_dir / "locales"
+i18n = I18N(locale_dir=str(_locale_dir))
 
 
 def get_locale_from_header(accept_language: Optional[str] = None) -> str:

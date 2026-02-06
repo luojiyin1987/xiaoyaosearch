@@ -125,23 +125,91 @@ xiaoyaosearch/
 
 ## 🚀 快速开始
 
-### 环境要求
+### 方式一：整合包部署（推荐普通用户）
 
-- **操作系统**: Windows/MAC OS/Linux
+> **适用人群**：非开发者、希望快速体验小遥搜索的用户
+> **支持平台**：仅支持 Windows
+> **部署难度**：⭐ 简单（一键安装）
+
+#### 下载整合包
+
+从 [Releases](https://github.com/dtsola/xiaoyaosearch/releases) 页面下载最新的 Windows 整合包：
+```
+XiaoyaoSearch-Windows-v1.x.x.zip
+```
+
+#### 安装步骤
+
+**1. 解压整合包**
+
+将下载的压缩包解压到任意目录（建议不要包含中文路径）
+
+**2. 运行环境准备脚本**
+
+双击运行 `scripts/setup.bat`，脚本会自动完成以下操作：
+- 解压 Python 嵌入式运行时
+- 安装后端 Python 依赖
+- 安装前端 Node 依赖
+- 生成配置文件
+- 创建数据目录
+
+**3. 安装 Ollama**
+
+双击运行 `runtime\ollama\OllamaSetup.exe`，按提示完成安装。
+
+安装完成后，打开命令行运行：
+```bash
+ollama serve
+ollama pull qwen2.5:1.5b
+```
+
+**4. 下载 AI 模型**
+
+从百度网盘下载默认模型：
+- 链接：https://pan.baidu.com/s/1jRcTztvjf8aiExUh6oayVg
+- 提取码：ycr5
+
+将模型解压到对应目录：
+- `data\models\embedding\BAAI\bge-m3\` - 嵌入模型
+- `data\models\cn-clip\` - 视觉模型
+- `data\models\faster-whisper\` - 语音识别模型
+
+**5. 启动应用**
+
+双击运行 `scripts/startup.bat`，脚本会：
+- 启动后端服务
+- 启动前端服务
+- 自动打开浏览器
+
+访问：http://127.0.0.1:5173
+
+**详细文档**：[整合包部署指南](docs/部署文档/整合包部署指南.md)
+
+---
+
+### 方式二：开发者部署
+
+> **适用人群**：开发者、希望参与项目贡献的用户
+> **支持平台**：Windows / macOS / Linux
+> **部署难度**：⭐⭐⭐ 需要开发环境
+
+#### 环境要求
+
+- **操作系统**: Windows / macOS / Linux
 - **Python**: 3.10.11+（https://www.python.org/downloads/）
 - **Node.js**: 21.x+（https://nodejs.org/en/download）
 - **内存**: 建议16GB 以上
 - **显卡**: 建议RTX3060 6GB以上
 
-### 安装步骤
+#### 安装步骤
 
-#### 1. 克隆项目
+**1. 克隆项目**
 ```bash
 git clone https://github.com/dtsola/xiaoyaosearch.git
 cd xiaoyaosearch
 ```
 
-#### 2. 后端部署
+**2. 后端部署**
 
 ```shell
 # 进入后端目录

@@ -3,6 +3,15 @@
 启动FastAPI应用并配置所有必要的组件
 """
 import os
+import sys
+from pathlib import Path
+
+# 将 backend 目录添加到 Python 模块搜索路径
+# 这样无论从哪里运行 main.py，都能正确找到 app 模块
+backend_dir = Path(__file__).parent.absolute()
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

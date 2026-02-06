@@ -3,6 +3,7 @@ AI模型配置API路由
 提供AI模型配置和测试相关的API接口
 """
 import json
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
@@ -21,6 +22,11 @@ from app.utils.enum_helpers import get_enum_value, is_embedding_model, is_speech
 
 router = APIRouter(prefix="/api/config", tags=["AI模型配置"])
 logger = get_logger(__name__)
+
+# 获取项目根目录（用于定位测试数据文件）
+# backend/app/api/config.py -> backend/app/api -> backend/app -> backend -> project_root
+_project_root = Path(__file__).parent.parent.parent.parent
+_TEST_DATA_DIR = _project_root / "data" / "test-data"
 
 
 def get_locale(accept_language: Optional[str] = Header(None)) -> str:
@@ -300,7 +306,7 @@ async def test_ai_model(
 
             elif is_speech_model(model_config.model_type):
                 # 测试语音识别模型（使用真实音频文件）
-                test_audio_path = "../data/test-data/test.mp3"  # 真实音频文件路径
+                test_audio_path = str(_TEST_DATA_DIR / "test.mp3")  # 真实音频文件路径
                 try:
                     # 读取音频文件
                     with open(test_audio_path, 'rb') as f:
@@ -322,7 +328,7 @@ async def test_ai_model(
 
             elif is_vision_model(model_config.model_type):
                 # 测试图像理解模型（使用真实图片文件）
-                test_image_path = "../data/test-data/pokemon.jpeg"  # 真实图片文件路径
+                test_image_path = str(_TEST_DATA_DIR / "pokemon.jpeg")  # 真实图片文件路径
                 test_texts = ["描述这张图片的内容", "这张图片展示了什么", "这是一张宝可梦图片"]
                 try:
                     vision_result = await ai_model_service.image_understanding(test_image_path, test_texts)

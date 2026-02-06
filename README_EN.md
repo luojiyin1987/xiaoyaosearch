@@ -125,23 +125,91 @@ xiaoyaosearch/
 
 ## 🚀 Quick Start
 
-### Environment Requirements
+### Method 1: Integrated Package Deployment (Recommended for General Users)
 
-- **Operating System**: Windows/MAC OS/Linux
+> **Target Audience**: Non-developers who want to quickly experience XiaoyaoSearch
+> **Supported Platform**: Windows only
+> **Deployment Difficulty**: ⭐ Simple (One-click installation)
+
+#### Download Integrated Package
+
+Download the latest Windows integrated package from [Releases](https://github.com/dtsola/xiaoyaosearch/releases):
+```
+XiaoyaoSearch-Windows-v1.x.x.zip
+```
+
+#### Installation Steps
+
+**1. Extract the Package**
+
+Extract the downloaded archive to any directory (paths without Chinese characters are recommended)
+
+**2. Run Environment Setup Script**
+
+Double-click `scripts/setup.bat`, which will automatically:
+- Extract Python embedded runtime
+- Install backend Python dependencies
+- Install frontend Node dependencies
+- Generate configuration files
+- Create data directories
+
+**3. Install Ollama**
+
+Double-click `runtime\ollama\OllamaSetup.exe` and follow the prompts.
+
+After installation, open a command line and run:
+```bash
+ollama serve
+ollama pull qwen2.5:1.5b
+```
+
+**4. Download AI Models**
+
+Download default models from Baidu Drive:
+- Link: https://pan.baidu.com/s/1jRcTztvjf8aiExUh6oayVg
+- Extraction code: ycr5
+
+Extract models to corresponding directories:
+- `data\models\embedding\BAAI\bge-m3\` - Embedding model
+- `data\models\cn-clip\` - Vision model
+- `data\models\faster-whisper\` - Speech recognition model
+
+**5. Launch the Application**
+
+Double-click `scripts/startup.bat`, which will:
+- Start backend service
+- Start frontend service
+- Automatically open browser
+
+Visit: http://127.0.0.1:5173
+
+**Detailed Documentation**: [Integrated Package Deployment Guide](docs/部署文档/整合包部署指南.md)
+
+---
+
+### Method 2: Developer Deployment
+
+> **Target Audience**: Developers who want to contribute to the project
+> **Supported Platform**: Windows / macOS / Linux
+> **Deployment Difficulty**: ⭐⭐⭐ Requires development environment
+
+#### Environment Requirements
+
+- **Operating System**: Windows / macOS / Linux
 - **Python**: 3.10.11+ (https://www.python.org/downloads/)
 - **Node.js**: 21.x+ (https://nodejs.org/en/download)
 - **Memory**: 16GB or more recommended
 - **Graphics Card**: RTX3060 6GB or more recommended
 
-### Installation Steps
+#### Installation Steps
 
-#### 1. Clone the Project
+**1. Clone the Project**
 ```bash
 git clone https://github.com/dtsola/xiaoyaosearch.git
 cd xiaoyaosearch
 ```
 
-#### 2. Backend Deployment
+**2. Backend Deployment**
 
 ```shell
 # Enter backend directory

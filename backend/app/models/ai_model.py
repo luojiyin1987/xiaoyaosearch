@@ -113,11 +113,15 @@ class AIModelModel(Base):
         # 从 app/models/ai_model.py 向上查找项目根目录
         # 当前路径: .../xiaoyaosearch/backend/app/models/ai_model.py
         # 需要找到: .../xiaoyaosearch/
-        project_root = current_path.parent.parent.parent  # 回退3级目录
+        # backend/app/models -> backend/app -> backend -> 项目根目录
+        project_root = current_path.parent.parent.parent.parent  # 回退4级目录
 
-        # 验证是否是正确的项目根目录（检查是否包含 data 目录）
-        if not project_root.joinpath("data").exists():
-            # 如果没有找到，尝试其他方法
+        # 验证是否是正确的项目根目录（检查项目特征目录）
+        # 检查是否有 frontend 或 scripts 目录（项目根目录的标志）
+        if not (project_root.joinpath("frontend").exists() or
+                project_root.joinpath("scripts").exists() or
+                project_root.joinpath(".git").exists()):
+            # 如果没找到，尝试其他方法
             # 查找包含 .git 目录的父目录
             search_path = current_path
             while search_path.parent != search_path:  # 避免到达根目录
@@ -127,7 +131,7 @@ class AIModelModel(Base):
                 search_path = search_path.parent
             else:
                 # 如果还是没找到，使用默认的计算方式
-                project_root = current_path.parent.parent.parent
+                project_root = current_path.parent.parent.parent.parent
 
         return project_root
 
