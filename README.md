@@ -128,9 +128,10 @@ xiaoyaosearch/
 ### 环境要求
 
 - **操作系统**: Windows/MAC OS/Linux
-- **Python**: 3.10.11+
-- **Node.js**: 21.x+
-- **内存**: 建议8GB以上
+- **Python**: 3.10.11+（https://www.python.org/downloads/）
+- **Node.js**: 21.x+（https://nodejs.org/en/download）
+- **内存**: 建议16GB 以上
+- **显卡**: 建议RTX3060 6GB以上
 
 ### 安装步骤
 

@@ -128,9 +128,10 @@ xiaoyaosearch/
 ### Environment Requirements
 
 - **Operating System**: Windows/MAC OS/Linux
-- **Python**: 3.10.11+
-- **Node.js**: 21.x+
-- **Memory**: 8GB or more recommended
+- **Python**: 3.10.11+ (https://www.python.org/downloads/)
+- **Node.js**: 21.x+ (https://nodejs.org/en/download)
+- **Memory**: 16GB or more recommended
+- **Graphics Card**: RTX3060 6GB or more recommended
 
 ### Installation Steps
 

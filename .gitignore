@@ -87,3 +87,7 @@ backend/build/
 **/项目提示词.md
 docs/base/
 
+# 整合包运行时
+runtime/
+runtime_backup/
+
