@@ -133,10 +133,11 @@ xiaoyaosearch/
 
 #### Download Integrated Package
 
-Download the latest Windows integrated package from [Releases](https://github.com/dtsola/xiaoyaosearch/releases):
-```
-XiaoyaoSearch-Windows-v1.x.x.zip
-```
+Download the latest Windows integrated package from Baidu Drive:
+- Link: https://pan.baidu.com/s/1lDaWjMCRXIT-Sqx9UFjerg?pwd=37ed
+- Extraction code: 37ed
+
+Please select the latest version to download (e.g., `XiaoyaoSearch-Windows-v1.1.1.zip`)
 
 #### Installation Steps
 
@@ -179,9 +180,6 @@ Extract models to corresponding directories:
 Double-click `scripts/startup.bat`, which will:
 - Start backend service
 - Start frontend service
-- Automatically open browser
-
-Visit: http://127.0.0.1:5173
 
 **Detailed Documentation**: [Integrated Package Deployment Guide](docs/部署文档/整合包部署指南.md)
 

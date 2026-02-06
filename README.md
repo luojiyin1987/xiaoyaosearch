@@ -133,10 +133,11 @@ xiaoyaosearch/
 
 #### 下载整合包
 
-从 [Releases](https://github.com/dtsola/xiaoyaosearch/releases) 页面下载最新的 Windows 整合包：
-```
-XiaoyaoSearch-Windows-v1.x.x.zip
-```
+从百度网盘下载最新的 Windows 整合包：
+- 链接：https://pan.baidu.com/s/1lDaWjMCRXIT-Sqx9UFjerg?pwd=37ed
+- 提取码：37ed
+
+请选择最新版本下载（如 `XiaoyaoSearch-Windows-v1.1.1.zip`）
 
 #### 安装步骤
 
@@ -179,9 +180,6 @@ ollama pull qwen2.5:1.5b
 双击运行 `scripts/startup.bat`，脚本会：
 - 启动后端服务
 - 启动前端服务
-- 自动打开浏览器
-
-访问：http://127.0.0.1:5173
 
 **详细文档**：[整合包部署指南](docs/部署文档/整合包部署指南.md)
 
