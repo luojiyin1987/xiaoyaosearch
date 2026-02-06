@@ -13,7 +13,10 @@ echo.
 
 REM 获取脚本目录和项目根目录
 set "SCRIPT_DIR=%~dp0"
-set "PROJECT_ROOT=%SCRIPT_DIR%.."
+REM 转换为绝对路径（解决双击运行时路径解析问题）
+pushd "%SCRIPT_DIR%.."
+set "PROJECT_ROOT=%CD%"
+popd
 set "RUNTIME_DIR=%PROJECT_ROOT%\runtime"
 
 REM ============================================
@@ -154,19 +157,19 @@ if not exist "%RUNTIME_DIR%\python\python-embed\Scripts\pip.exe" (
     echo     [OK] pip 已安装
 )
 
-REM 使用 pip 安装依赖
-"%PYTHON_EXE%" -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+REM 使用 pip 安装依赖（使用阿里云镜像源）
+"%PYTHON_EXE%" -m pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 
 if %errorlevel% neq 0 (
     echo   [X] 后端依赖安装失败
     echo.
     echo     错误详情：
-    echo     - 确保已将 Python 3.10.11 嵌入版解压到 runtime\python\python-embed\
-    echo     - 检查网络连接到 pypi.tuna.tsinghua.edu.cn
+    echo     -- 确保已将 Python 3.10.11 嵌入版解压到 runtime\python\python-embed\
+    echo     -- 检查网络连接到 mirrors.aliyun.com
     echo.
     echo     请尝试手动安装：
     echo     1. cd runtime\python\python-embed
-    echo     2. python.exe -m pip install ..\..\..\backend\requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+    echo     2. python.exe -m pip install ..\..\..\backend\requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
     pause
     exit /b 1
 )
@@ -181,12 +184,12 @@ echo [3.5/7] 安装 faster-whisper 和 GPU 支持...
 echo     正在安装 faster-whisper 语音识别...
 echo.
 
-"%PYTHON_EXE%" -m pip install faster-whisper -i https://pypi.tuna.tsinghua.edu.cn/simple
+"%PYTHON_EXE%" -m pip install faster-whisper -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 
 if %errorlevel% neq 0 (
     echo   [!] 警告：faster-whisper 安装失败，语音识别可能无法工作
     echo     您可以稍后手动安装：
-    echo     python.exe -m pip install faster-whisper -i https://pypi.tuna.tsinghua.edu.cn/simple
+    echo     python.exe -m pip install faster-whisper -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
     echo.
 ) else (
     echo   [OK] faster-whisper 已安装
@@ -237,7 +240,7 @@ if !errorlevel! equ 0 (
     echo   [!] CUDA 安装失败，将使用 CPU 版本
     echo     您可能需要从以下地址安装 CUDA Toolkit：https://developer.nvidia.com/cuda-downloads
     echo     正在重新安装 CPU 版本...
-    "%PYTHON_EXE%" -m pip install torch torchaudio torchvision -i https://pypi.tuna.tsinghua.edu.cn/simple
+    "%PYTHON_EXE%" -m pip install torch torchaudio torchvision -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 )
 goto cuda_done
 
