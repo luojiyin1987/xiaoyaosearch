@@ -15,12 +15,29 @@
 - 本项目完全通过Vibe Coding实现，提供所有源码及开发文档（上下文）供大家交流学习
   ![开发文档](docs/产品文档/应用截图/开发文档.png)
 
-## 作者介绍
-- dtsola【IT解决方案架构师 | 一人公司实践者】
-- 网站：https://www.dtsola.com
-- B站：https://space.bilibili.com/736015
-- 微信：dtsola（如需联系，请备注你的来意）
-![dtsola](docs/产品文档/应用截图/个人二维码.png)
+## 👨‍💻 作者介绍
+
+<div align="center">
+
+<table>
+<tr>
+<td align="center" width="120">
+<img src="docs/产品文档/应用截图/author-avatar.jpg" alt="dtsola" width="120" style="border-radius: 50%;">
+</td>
+<td>
+
+**dtsola**
+IT解决方案架构师 | 一人公司实践者
+
+🌐 [个人网站](https://www.dtsola.com) &nbsp;|&nbsp; 📺 [B站](https://space.bilibili.com/736015) &nbsp;|&nbsp; 💬 微信：dtsola（请备注来意）
+
+</td>
+</tr>
+</table>
+
+![微信二维码](docs/产品文档/应用截图/个人二维码.png)
+
+</div>
 
 ### ✨ 核心特性
 

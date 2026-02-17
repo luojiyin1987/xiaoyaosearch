@@ -15,12 +15,29 @@ XiaoyaoSearch is a cross-platform local desktop application (Windows/MacOS/Linux
 - This project is entirely implemented through Vibe Coding, providing all source code and development documentation (context) for everyone to learn and exchange
   ![Development Documentation](docs/产品文档/应用截图/开发文档.png)
 
-## Author Introduction
-- dtsola [IT Solution Architect | One-Person Company Practitioner]
-- Website: https://www.dtsola.com
-- Bilibili: https://space.bilibili.com/736015
-- WeChat: dtsola (please state your purpose when contacting)
-![dtsola](docs/产品文档/应用截图/个人二维码.png)
+## 👨‍💻 Author Introduction
+
+<div align="center">
+
+<table>
+<tr>
+<td align="center" width="120">
+<img src="docs/产品文档/应用截图/author-avatar.jpg" alt="dtsola" width="120" style="border-radius: 50%;">
+</td>
+<td>
+
+**dtsola**
+IT Solution Architect | One-Person Company Practitioner
+
+🌐 [Website](https://www.dtsola.com) &nbsp;|&nbsp; 📺 [Bilibili](https://space.bilibili.com/736015) &nbsp;|&nbsp; 💬 WeChat: dtsola (please state your purpose)
+
+</td>
+</tr>
+</table>
+
+![WeChat QR Code](docs/产品文档/应用截图/个人二维码.png)
+
+</div>
 
 ### ✨ Core Features
 
