@@ -328,6 +328,12 @@ npm run dev
 
 ## 🤝 How to Contribute
 
+<div align="center">
+
+![Developer Community](docs/运营文档/开发者交流群图.png)
+
+</div>
+
 Thank you for your interest in XiaoyaoSearch! We welcome contributions in any form, whether it's code, documentation, bug fixes, or new feature suggestions.
 
 ### Contribution Methods
