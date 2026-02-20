@@ -48,6 +48,12 @@ IT Solution Architect | One-Person Company Practitioner
 - **🔒 Privacy & Security**: Runs locally, data is not uploaded to the cloud, supports privacy mode
 - **🎨 Modern Interface**: Modern desktop application based on Electron + Vue 3 + TypeScript
 
+<div align="center">
+
+![User Community](docs/运营文档/用户交流群图.png)
+
+</div>
+
 ## 📖 Core Interfaces
 
 ### Search Interface
