@@ -1,0 +1,521 @@
+# 微内核架构设计
+
+> **文档类型**：架构设计
+> **特性状态**：规划中
+> **创建时间**：2026-02-22
+> **文档版本**：v1.0
+
+---
+
+## 1. 架构概述
+
+### 1.1 什么是微内核架构
+
+微内核架构（Microkernel Architecture）是一种将系统核心功能最小化，将其他功能作为可插拔模块实现的架构模式。它起源于操作系统设计，但在应用层同样适用。
+
+**核心特征**：
+- **最小内核**：只保留最基础的核心功能
+- **模块化扩展**：所有非核心功能都以插件形式存在
+- **接口隔离**：通过定义良好的接口进行通信
+- **运行时扩展**：支持动态加载和卸载模块
+
+### 1.2 小遥搜索的微内核定位
+
+小遥搜索的插件化架构遵循**应用层微内核架构**模式：
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        用户界面层 (Frontend)                              │
+│                      Electron + Vue 3 + TypeScript                       │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │ REST API
+┌───────────────────────────────▼─────────────────────────────────────────┐
+│                        微内核层 (Core Kernel)                             │
+├─────────────────────────────────────────────────────────────────────────┤
+│  • 插件生命周期管理 (PluginLoader)                                        │
+│  • 配置管理 (ConfigService)                                               │
+│  • 数据库抽象 (DatabaseService)                                           │
+│  • 搜索引擎协调 (SearchService)                                           │
+│  • API路由协调 (FastAPI Router)                                           │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │ 插件接口
+┌───────────────────────────────▼─────────────────────────────────────────┐
+│                        插件层 (Plugin Modules)                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐          │
+│  │ 数据源插件       │  │ AI模型插件      │  │ 搜索引擎插件    │          │
+│  │ DataSourcePlugin│  │ AIModelPlugin   │  │ SearchEnginePlugin│         │
+│  ├─────────────────┤  ├─────────────────┤  ├─────────────────┤          │
+│  │ • 语雀          │  │ • OpenAI        │  │ • Faiss         │          │
+│  │ • Notion        │  │ • Claude        │  │ • Whoosh        │          │
+│  │ • 飞书          │  │ • Ollama        │  │ • ElasticSearch │          │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 2. 核心设计原则
+
+### 2.1 内核职责界定
+
+**内核只负责**：
+1. **插件生命周期管理**：发现、加载、初始化、卸载插件
+2. **配置协调**：统一管理配置，支持环境变量
+3. **数据持久化**：提供数据库抽象层
+4. **API路由协调**：提供REST API框架
+5. **搜索协调**：协调不同搜索引擎进行查询
+
+**内核不负责**：
+- 具体数据源的访问逻辑（由数据源插件负责）
+- 具体AI模型的调用（由AI模型插件负责）
+- 具体搜索引擎的实现（由搜索引擎插件负责）
+
+### 2.2 接口设计原则
+
+```python
+# 插件接口定义示例
+class DataSourcePlugin(ABC):
+    """数据源插件接口 - 微内核架构中的模块接口"""
+
+    @abstractmethod
+    async def sync(self) -> List[DataSourceItem]:
+        """同步数据源到本地（核心调用插件）"""
+        pass
+
+    @abstractmethod
+    def get_file_source_info(self, file_path: str, content: str) -> Dict[str, Any]:
+        """获取文件的数据源元数据（插件提供元数据）"""
+        pass
+```
+
+**设计要点**：
+- 使用Python ABC定义抽象基类
+- 接口稳定，向后兼容
+- 插件实现接口，内核通过接口调用
+- 支持异步操作（async/await）
+
+---
+
+## 3. 与传统OS微内核的对比
+
+| 特性 | OS微内核（如MINIX） | 应用层微内核（小遥搜索） |
+|------|-------------------|----------------------|
+| **内核功能** | 进程调度、IPC、内存管理 | 插件管理、配置、数据库、API |
+| **模块加载** | 设备驱动、文件系统、网络协议 | 数据源、AI模型、搜索引擎 |
+| **通信机制** | IPC（进程间通信） | 方法调用、异步回调 |
+| **隔离级别** | 进程级隔离 | 插件级隔离（可扩展为进程级） |
+| **故障影响** | 驱动崩溃不影响内核 | 插件崩溃不影响核心功能 |
+| **扩展性** | 需要重新编译内核 | 运行时动态加载插件 |
+
+### 3.1 架构相似性
+
+两者都遵循相同的设计哲学：
+```
+稳定内核 + 可插拔模块 = 灵活可扩展系统
+```
+
+### 3.2 架构差异性
+
+| 差异点 | OS微内核 | 应用层微内核 |
+|--------|---------|-------------|
+| **性能开销** | IPC开销较大 | 方法调用开销小 |
+| **安全边界** | 强隔离（用户态/内核态） | 弱隔离（同一进程） |
+| **适用场景** | 操作系统 | 应用程序 |
+
+---
+
+## 4. 类似应用案例分析
+
+### 4.1 VSCode
+
+**架构特点**：
+- **核心**：编辑器基础功能、工作台、插件管理
+- **插件**：语言支持、调试器、主题、工具
+- **扩展点**：Extension API（commands、languages、debuggers等）
+
+**与小遥搜索的相似点**：
+```typescript
+// VSCode扩展API示例
+export function activate(context: vscode.ExtensionContext) {
+    // 注册命令、语言功能等
+    let disposable = vscode.commands.registerCommand(
+        'extension.helloWorld', () => {}
+    );
+    context.subscriptions.push(disposable);
+}
+```
+
+```python
+# 小遥搜索插件激活示例
+class YuqueDataSource(DataSourcePlugin):
+    def __init__(self, config: YuqueConfig):
+        self.config = config
+        # 初始化插件
+```
+
+### 4.2 Eclipse
+
+**架构特点**：
+- **核心**：Platform Runtime（OSGi容器）
+- **插件**：通过bundle实现各种功能
+- **扩展点**：Extension Points机制
+
+**OSGi与Python ABC对比**：
+| 特性 | OSGi (Eclipse) | Python ABC (小遥搜索) |
+|------|---------------|---------------------|
+| **模块定义** | bundle.xml | Python类 |
+| **生命周期** | ACTIVE、RESOLVED等状态 | 初始化、卸载 |
+| **依赖管理** | Import/Export package | import导入 |
+| **热部署** | 支持 | 支持 |
+
+### 4.3 Chrome
+
+**架构特点**：
+- **核心**：浏览器引擎（Blink）、V8、网络栈
+- **插件**：扩展程序（Extensions）
+- **沙箱隔离**：每个扩展运行在独立进程
+
+**小遥搜索的未来可扩展性**：
+- 当前：同一进程内加载插件
+- 未来：可扩展为多进程隔离（类似Chrome）
+
+---
+
+## 5. 小遥搜索微内核实现
+
+### 5.1 核心组件
+
+#### 5.1.1 插件加载器（PluginLoader）
+
+```python
+class PluginLoader:
+    """插件加载器 - 微内核的模块管理器"""
+
+    def __init__(self, plugin_dir: str):
+        self.plugin_dir = Path(plugin_dir)
+        self.loaded_plugins: Dict[str, BasePlugin] = {}
+
+    async def discover_and_load(self):
+        """发现并加载所有插件"""
+        for plugin_path in self.plugin_dir.rglob("*_plugin.py"):
+            plugin = await self._load_plugin(plugin_path)
+            if plugin:
+                self.loaded_plugins[plugin.plugin_id] = plugin
+
+    async def _load_plugin(self, plugin_path: Path) -> Optional[BasePlugin]:
+        """动态加载单个插件"""
+        spec = importlib.util.spec_from_file_location(
+            plugin_path.stem, plugin_path
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        # 查找插件类
+        for attr_name in dir(module):
+            attr = getattr(module, attr_name)
+            if self._is_plugin_class(attr):
+                return await self._initialize_plugin(attr)
+        return None
+```
+
+#### 5.1.2 配置管理（ConfigService）
+
+```python
+class ConfigService:
+    """配置管理服务 - 微内核的配置中心"""
+
+    def __init__(self):
+        self.configs: Dict[str, BaseModel] = {}
+
+    def register(self, plugin_id: str, config_class: Type[BaseModel]):
+        """注册插件配置"""
+        config = config_class()
+        self.configs[plugin_id] = config
+
+    def get(self, plugin_id: str) -> BaseModel:
+        """获取插件配置"""
+        return self.configs.get(plugin_id)
+```
+
+#### 5.1.3 数据库抽象（DatabaseService）
+
+```python
+class DatabaseService:
+    """数据库服务 - 微内核的数据持久化层"""
+
+    def __init__(self, db_url: str):
+        self.engine = create_async_engine(db_url)
+        self.async_session = async_sessionmaker(
+            self.engine, expire_on_commit=False
+        )
+
+    async def create_tables(self):
+        """创建数据库表（由内核统一管理）"""
+        async with self.engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+```
+
+### 5.2 插件接口定义
+
+#### 5.2.1 数据源插件接口
+
+```python
+class DataSourcePlugin(BasePlugin):
+    """数据源插件接口"""
+
+    @abstractmethod
+    async def sync(self) -> List[DataSourceItem]:
+        """同步数据源到本地"""
+        pass
+
+    @abstractmethod
+    def get_sync_dirs(self) -> List[str]:
+        """获取同步后的本地目录路径"""
+        pass
+
+    @abstractmethod
+    def get_file_source_info(self, file_path: str, content: str) -> Dict[str, Any]:
+        """获取文件的数据源元数据"""
+        pass
+```
+
+#### 5.2.2 AI模型插件接口（架构预留）
+
+```python
+class AIModelPlugin(BasePlugin):
+    """AI模型插件接口（未来扩展）"""
+
+    @abstractmethod
+    async def initialize(self):
+        """初始化模型"""
+        pass
+
+    @abstractmethod
+    async def infer(self, inputs: Any) -> Any:
+        """执行推理"""
+        pass
+```
+
+---
+
+## 6. 数据流与交互模式
+
+### 6.1 插件同步流程
+
+```
+用户请求同步
+    │
+    ▼
+API层 (/api/datasource/sync)
+    │
+    ▼
+DataSourceManager (内核协调器)
+    │
+    ├─► PluginLoader.get_plugin("yuque")
+    │       │
+    │       ▼
+    │   YuqueDataSource.sync()
+    │       │
+    │       ├─► 调用yuque-dl CLI
+    │       │
+    │       └─► 返回 List[DataSourceItem]
+    │
+    ▼
+IndexService (内核索引服务)
+    │
+    ├─► 扫描 get_sync_dirs() 返回的目录
+    │
+    ├─► 调用 plugin.get_file_source_info() 获取元数据
+    │
+    └─► 构建索引 (Faiss + Whoosh)
+```
+
+### 6.2 搜索流程
+
+```
+用户搜索请求
+    │
+    ▼
+API层 (/api/search)
+    │
+    ▼
+SearchService (内核搜索协调器)
+    │
+    ├─► 查询Faiss索引
+    │
+    ├─► 查询Whoosh索引
+    │
+    └─► 合并结果，返回给用户
+```
+
+---
+
+## 7. 扩展性设计
+
+### 7.1 插件发现机制
+
+**约定优于配置**：
+```
+data/plugins/
+├── datasource/
+│   ├── yuque/
+│   │   ├── yuque_plugin.py       # 插件实现
+│   │   ├── config.yaml           # 插件配置
+│   │   └── data/                 # 数据存储
+│   └── notion/
+│       └── notion_plugin.py
+└── ai_model/
+    └── openai/
+        └── openai_plugin.py
+```
+
+**自动发现规则**：
+- 文件名以 `_plugin.py` 结尾
+- 目录下存在 `config.yaml` 则加载配置
+- 类名与文件名对应（如 `YuqueDataSource`）
+
+### 7.2 插件生命周期
+
+```python
+# 插件生命周期状态机
+PLUGING_NOT_LOADED  →  PLUGIN_LOADING
+    │                          │
+    ▼                          ▼
+PLUGIN_LOADED         ←    PLUGIN_INITIALIZING
+    │                          │
+    ▼                          ▼
+PLUGIN_ACTIVE  →  PLUGIN_SYNCING  →  PLUGIN_ERROR
+    │
+    ▼
+PLUGIN_UNLOADING
+    │
+    ▼
+PLUGIN_UNLOADED
+```
+
+### 7.3 故障隔离
+
+```python
+class PluginLoader:
+    async def safe_sync(self, plugin_id: str) -> List[DataSourceItem]:
+        """安全同步，隔离插件故障"""
+        try:
+            plugin = self.loaded_plugins.get(plugin_id)
+            return await plugin.sync()
+        except Exception as e:
+            logger.error(f"插件 {plugin_id} 同步失败: {e}")
+            # 插件故障不影响其他插件
+            return []
+```
+
+---
+
+## 8. 配置管理
+
+### 8.1 插件配置格式
+
+```yaml
+# data/plugins/datasource/yuque/config.yaml
+plugin:
+  id: "yuque"
+  name: "语雀数据源"
+  version: "1.0.0"
+  enabled: true
+
+config:
+  # 支持多个知识库
+  repositories:
+    - repo_slug: "xiaoyao/knowledge-base"
+      api_token: "${YUQUE_API_TOKEN}"
+      base_url: "https://www.yuque.com/api/v2/"
+    - repo_slug: "xiaoyao/tech-docs"
+      api_token: "${YUQUE_API_TOKEN_2}"
+      base_url: "https://www.yuque.com/api/v2/"
+
+  sync:
+    interval_days: 7  # 增量同步天数
+    max_concurrent: 5  # 最大并发数
+```
+
+### 8.2 配置加载
+
+```python
+class YuqueConfig(BaseSettings):
+    """语雀插件配置"""
+
+    repositories: List[YuqueRepoConfig]
+    sync_interval_days: int = 7
+    max_concurrent: int = 5
+
+    class Config:
+        env_file = ".env"
+        env_prefix = "YUQUE_"
+```
+
+---
+
+## 9. 优势与挑战
+
+### 9.1 架构优势
+
+| 优势 | 说明 |
+|------|------|
+| **扩展性** | 新增数据源无需修改核心代码 |
+| **可维护性** | 插件独立开发、测试、部署 |
+| **灵活性** | 用户可按需启用/禁用插件 |
+| **稳定性** | 插件故障不影响核心功能 |
+| **生态建设** | 第三方可开发插件 |
+
+### 9.2 设计挑战
+
+| 挑战 | 解决方案 |
+|------|---------|
+| **接口稳定性** | 版本化管理，向后兼容 |
+| **插件隔离** | 异常捕获，故障隔离 |
+| **配置管理** | Pydantic验证，环境变量支持 |
+| **性能开销** | 异步加载，懒加载优化 |
+| **测试复杂度** | 插件Mock，接口测试 |
+
+---
+
+## 10. 实施路线图
+
+### 10.1 MVP阶段（当前）
+
+- ✅ 核心插件框架（PluginLoader、BasePlugin）
+- ✅ 数据源插件接口（DataSourcePlugin）
+- ✅ 语雀数据源插件（YuqueDataSource）
+- ✅ 配置管理集成（Pydantic Settings）
+
+### 10.2 扩展阶段
+
+- ⏳ 本地文件插件迁移（可选）
+- ⏳ Notion数据源插件
+- ⏳ 飞书数据源插件
+- ⏳ AI模型插件接口设计
+
+### 10.3 生态阶段
+
+- ⏳ 插件开发文档
+- ⏳ 插件开发SDK
+- ⏳ 插件市场（可选）
+- ⏳ 第三方插件认证
+
+---
+
+## 11. 总结
+
+小遥搜索的微内核架构设计遵循了"稳定内核 + 可插拔模块"的架构哲学，将核心功能最小化，将扩展功能插件化。这种架构设计带来了：
+
+1. **技术价值**：高扩展性、高可维护性、高稳定性
+2. **业务价值**：快速响应市场需求、支持生态建设、降低维护成本
+3. **用户价值**：灵活配置、按需扩展、功能定制
+
+通过微内核架构，小遥搜索可以从单一的本地搜索工具，演进为一个支持多数据源、多AI模型、多搜索引擎的智能搜索平台。
+
+---
+
+**文档版本**：v1.0
+**作者**：AI助手
+**最后更新**：2026-02-22
