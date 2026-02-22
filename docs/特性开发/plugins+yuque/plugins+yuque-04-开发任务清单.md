@@ -3,17 +3,18 @@
 > **文档类型**：开发任务清单
 > **特性状态**：规划中
 > **创建时间**：2026-02-22
-> **最后更新**：2026-02-22 (v1.2 - 约定优于配置)
+> **最后更新**：2026-02-22 (v2.0 - 通用插件系统)
 > **预计总工期**：3-4周
 
 ---
 
-## 设计原则：约定优于配置
+## 设计原则：约定优于配置 + 通用插件架构
 
-本特性采用"约定优于配置"原则，大幅简化实现：
+本特性采用**约定优于配置**原则，并建立**通用插件系统架构**：
 - **插件安装**：复制到 `data/plugins/` 目录即完成安装
 - **配置管理**：通过 `config.yaml` 文件配置，无需API
 - **自动发现**：系统启动时自动扫描和加载插件
+- **类型隔离**：不同类型插件独立目录、独立接口
 - **无API管理**：移除所有插件管理API接口
 
 ---
@@ -22,57 +23,81 @@
 
 | 阶段 | 任务数 | 预计时间 | 优先级 |
 |------|--------|----------|--------|
-| 一、插件基础设施 | 5 | 4-5天 | P0 |
+| 一、插件基础设施 | 6 | 5-6天 | P0 |
 | 二、语雀数据源插件 | 4 | 4-5天 | P0 |
 | 三、索引集成 | 3 | 3-4天 | P0 |
 | 四、数据库迁移 | 1 | 1天 | P0 |
 | 五、测试与文档 | 3 | 3-4天 | P0/P1 |
-| **总计** | **16** | **15-19天** | - |
+| **总计** | **17** | **16-20天** | - |
 
-**v1.2 变更说明**：
-- ✅ 移除插件管理API（节省10.5小时）
-- ✅ 移除数据源管理API（节省8.5小时）
-- ✅ 移除数据库表创建（节省7小时）
-- ✅ 简化插件管理器（节省4小时）
-- ➕ 新增ConfigParser实现（2小时）
-- ➕ 新增YAML配置文件（1小时）
-- 📉 总工作量从20-30天降至15-19天
+**v2.0 变更说明**：
+- ➕ 新增 BasePlugin 通用基类
+- ➕ 新增 PluginType 插件类型枚举
+- ➕ 新增 AIModelPlugin 接口（架构预留）
+- ➕ 插件目录按类型组织（datasource/、ai_model/）
+- ➕ 配置文件新增 plugin.type 字段
+- 🔄 接口模块拆分为 interface/ 目录结构
+- 📉 工作量略微增加（约1-2小时）
 
 ---
 
-## 一、插件基础设施（4-5天）
+## 一、插件基础设施（5-6天）
 
-### 1.1 插件接口定义
+### 1.1 通用插件基类
 
 | 任务 | 预计时间 | 优先级 | 状态 | 依赖 |
 |------|----------|--------|------|------|
-| 创建DataSourcePlugin抽象接口 | 2小时 | P0 | ⬜ | 无 |
-| 定义PluginMetadata数据类 | 1小时 | P0 | ⬜ | 无 |
-| 定义DataSourceItem数据类 | 1小时 | P0 | ⬜ | 无 |
-| 定义插件异常类 | 1小时 | P0 | ⬜ | 无 |
-| **小计** | **5小时** | | | |
+| 创建BasePlugin抽象基类 | 1.5小时 | P0 | ⬜ | 无 |
+| 定义PluginType枚举 | 1小时 | P0 | ⬜ | 无 |
+| 定义get_status方法 | 0.5小时 | P1 | ⬜ | 无 |
+| 定义health_check方法 | 0.5小时 | P1 | ⬜ | 无 |
+| **小计** | **3.5小时** | | | |
 
 **验收标准**：
-- [ ] 接口定义完整，包含所有必需方法
-- [ ] 类型注解完整
-- [ ] 文档字符串完整
+- [ ] BasePlugin包含所有插件通用方法
+- [ ] PluginType包含所有支持的插件类型
+- [ ] 状态检查方法完整
 
-**文件位置**: `backend/app/plugins/interface.py`
+**文件位置**: `backend/app/plugins/base.py`
 
-### 1.2 配置解析器（ConfigParser）
+### 1.2 数据源插件接口
+
+| 任务 | 预计时间 | 优先级 | 状态 | 依赖 |
+|------|----------|--------|------|------|
+| 创建DataSourcePlugin接口 | 1小时 | P0 | ⬜ | 1.1 |
+| 定义DataSourceItem数据类 | 1小时 | P0 | ⬜ | 无 |
+| 定义scan抽象方法 | 1小时 | P0 | ⬜ | 无 |
+| 定义get_content抽象方法 | 0.5小时 | P0 | ⬜ | 无 |
+| **小计** | **3.5小时** | | | |
+
+**文件位置**: `backend/app/plugins/interface/datasource.py`
+
+### 1.3 AI模型插件接口（架构预留）
+
+| 任务 | 预计时间 | 优先级 | 状态 | 依赖 |
+|------|----------|--------|------|------|
+| 创建AIModelPlugin接口 | 1小时 | P0 | ⬜ | 1.1 |
+| 定义ModelType枚举 | 0.5小时 | P0 | ⬜ | 无 |
+| 定义chat抽象方法 | 1小时 | P1 | ⬜ | 无 |
+| 定义embedding抽象方法 | 1小时 | P1 | ⬜ | 无 |
+| **小计** | **3.5小时** | | | |
+
+**文件位置**: `backend/app/plugins/interface/ai_model.py`
+
+### 1.4 配置解析器
 
 | 任务 | 预计时间 | 优先级 | 状态 | 依赖 |
 |------|----------|--------|------|------|
 | 实现ConfigParser类 | 2小时 | P0 | ⬜ | 无 |
 | 实现YAML文件加载 | 1小时 | P0 | ⬜ | 无 |
-| 实现配置验证功能 | 2小时 | P0 | ⬜ | 无 |
+| 实现配置验证功能（支持plugin.type） | 2小时 | P0 | ⬜ | 无 |
 | 添加配置错误处理 | 1小时 | P0 | ⬜ | 无 |
 | **小计** | **6小时** | | | |
 
 **验收标准**：
 - [ ] 能够正确解析YAML配置文件
-- [ ] 配置验证功能正常
-- [ ] 错误提示清晰
+- [ ] 支持plugin.type字段验证
+- [ ] 根据插件类型验证特定配置段
 
 **文件位置**: `backend/app/plugins/config_parser.py`
 
@@ -82,82 +107,50 @@ plugin:
   id: yuque
   name: 语雀知识库
   version: "1.0.0"
+  type: datasource              # 新增：插件类型
   enabled: true
 
 datasource:
   type: yuque
   api_token: "xxx"
   repo_slug: "xxx"
-
-sync:
-  interval: 60
-  batch_size: 50
 ```
 
-### 1.3 插件加载器（PluginLoader）
+### 1.5 插件加载器（PluginLoader）
 
 | 任务 | 预计时间 | 优先级 | 状态 | 依赖 |
 |------|----------|--------|------|------|
 | 实现PluginLoader类 | 2小时 | P0 | ⬜ | 1.1 |
-| 实现插件目录扫描功能 | 2小时 | P0 | ⬜ | 1.1 |
-| 实现插件动态加载 | 3小时 | P0 | ⬜ | 1.1, 1.2 |
-| 实现插件初始化 | 2小时 | P0 | ⬜ | 1.1, 1.2 |
-| **小计** | **9小时** | | | |
+| 按类型扫描插件目录 | 2小时 | P0 | ⬜ | 1.1 |
+| 支持多类型插件加载 | 3小时 | P0 | ⬜ | 1.1, 1.2, 1.3 |
+| 实现get_plugins_by_type方法 | 1小时 | P0 | ⬜ | 1.5 |
+| **小计** | **8小时** | | | |
 
 **验收标准**：
-- [ ] 能够发现 `data/plugins/` 目录下的插件
-- [ ] 能够动态加载插件类
-- [ ] 能够解析配置文件并初始化插件
+- [ ] 能够按类型发现插件（datasource/、ai_model/）
+- [ ] 能够动态加载多种类型插件
+- [ ] 配置文件类型必须与目录类型匹配
+- [ ] 支持按类型查询插件
 
 **文件位置**: `backend/app/plugins/loader.py`
 
-**核心逻辑**：
-```python
-class PluginLoader:
-    def __init__(self, plugin_dir: str = "data/plugins"):
-        self.plugin_dir = Path(plugin_dir)
-
-    async def discover_and_load_all(self) -> Dict[str, DataSourcePlugin]:
-        """发现并加载所有启用的插件"""
-        plugins = {}
-        for plugin_path in self.plugin_dir.iterdir():
-            if not plugin_path.is_dir():
-                continue
-            config = ConfigParser.parse_plugin_config(plugin_path / "config.yaml")
-            if not config.get("plugin", {}).get("enabled", False):
-                continue
-            plugin = self._load_plugin(plugin_path, config)
-            plugins[plugin.get_metadata()["id"]] = plugin
-        return plugins
-```
-
-### 1.4 错误处理与隔离
+### 1.6 错误处理与隔离
 
 | 任务 | 预计时间 | 优先级 | 状态 | 依赖 |
 |------|----------|--------|------|------|
-| 实现插件异常类 | 1小时 | P0 | ⬜ | 1.1 |
-| 实现插件执行错误隔离 | 2小时 | P0 | ⬜ | 1.3 |
+| 实现插件异常类 | 1小时 | P0 | ⬜ | 无 |
+| 实现插件执行错误隔离 | 2小时 | P0 | ⬜ | 1.5 |
 | 添加插件错误日志 | 1小时 | P0 | ⬜ | 无 |
 | **小计** | **4小时** | | | |
 
-**验收标准**：
-- [ ] 插件错误不影响其他插件
-- [ ] 插件错误不影响主系统
-- [ ] 错误日志记录完整
-
-### 1.5 启动时插件加载
+### 1.7 启动时插件加载
 
 | 任务 | 预计时间 | 优先级 | 状态 | 依赖 |
 |------|----------|--------|------|------|
-| 修改main.py启动时发现插件 | 1小时 | P0 | ⬜ | 1.3 |
-| 实现插件自动加载和初始化 | 2小时 | P0 | ⬜ | 1.3 |
+| 修改main.py启动时发现插件 | 1小时 | P0 | ⬜ | 1.5 |
+| 实现插件自动加载和初始化 | 2小时 | P0 | ⬜ | 1.5 |
 | 添加插件加载状态日志 | 1小时 | P0 | ⬜ | 无 |
 | **小计** | **4小时** | | | |
-
-**验收标准**：
-- [ ] 系统启动时自动扫描插件目录
-- [ ] 自动加载启用的插件
-- [ ] 加载失败不影响系统启动
 
 **文件位置**: `backend/app/main.py`
 
@@ -181,13 +174,13 @@ class PluginLoader:
 - [ ] 正确处理API响应
 - [ ] 支持API限流重试
 
-**文件位置**: `data/plugins/yuque/client.py`
+**文件位置**: `data/plugins/datasource/yuque/client.py`
 
 ### 2.2 语雀插件实现
 
 | 任务 | 预计时间 | 优先级 | 状态 | 依赖 |
 |------|----------|--------|------|------|
-| 实现YuquePlugin类 | 3小时 | P0 | ⬜ | 1.1, 2.1 |
+| 实现YuqueDataSource类 | 3小时 | P0 | ⬜ | 1.2 |
 | 实现get_metadata方法 | 0.5小时 | P0 | ⬜ | 无 |
 | 实现initialize方法 | 2小时 | P0 | ⬜ | 2.1 |
 | 实现scan方法 | 4小时 | P0 | ⬜ | 2.1 |
@@ -199,7 +192,7 @@ class PluginLoader:
 - [ ] 正确提取文档内容
 - [ ] 资源清理正确
 
-**文件位置**: `data/plugins/yuque/plugin.py`
+**文件位置**: `data/plugins/datasource/yuque/plugin.py`
 
 ### 2.3 插件配置文件
 
@@ -210,13 +203,13 @@ class PluginLoader:
 | 创建README.md使用说明 | 1小时 | P1 | ⬜ | 无 |
 | **小计** | **2.5小时** | | | |
 
-**文件位置**: `data/plugins/yuque/config.yaml`
+**文件位置**: `data/plugins/datasource/yuque/config.yaml`
 
 ### 2.4 插件目录结构
 
 | 任务 | 预计时间 | 优先级 | 状态 | 依赖 |
 |------|----------|--------|------|------|
-| 创建data/plugins/yuque目录 | 0.5小时 | P0 | ⬜ | 无 |
+| 创建data/plugins/datasource/yuque目录 | 0.5小时 | P0 | ⬜ | 无 |
 | 创建plugin.py入口文件 | 0.5小时 | P0 | ⬜ | 无 |
 | 创建client.py客户端文件 | 0.5小时 | P0 | ⬜ | 无 |
 | 创建__init__.py | 0.5小时 | P0 | ⬜ | 无 |
@@ -224,12 +217,13 @@ class PluginLoader:
 
 **插件目录结构**：
 ```
-data/plugins/yuque/
-├── plugin.py           # 插件实现
-├── client.py           # API客户端
-├── config.yaml         # 配置文件
-├── requirements.txt    # 依赖列表
-└── README.md           # 使用说明
+data/plugins/
+├── datasource/           # 新增：按类型分类
+│   └── yuque/
+│       ├── plugin.py
+│       ├── client.py
+│       ├── config.yaml
+│       └── requirements.txt
 ```
 
 ---
@@ -240,9 +234,9 @@ data/plugins/yuque/
 
 | 任务 | 预计时间 | 优先级 | 状态 | 依赖 |
 |------|----------|--------|------|------|
-| 创建FileSystemPlugin类 | 2小时 | P0 | ⬜ | 1.1 |
-| 迁移FileScanner到插件 | 3小时 | P0 | ⬜ | 1.3 |
-| 迁移ContentParser到插件 | 2小时 | P0 | ⬜ | 1.3 |
+| 创建FileSystemPlugin类 | 2小时 | P0 | ⬜ | 1.2 |
+| 迁移FileScanner到插件 | 3小时 | P0 | ⬜ | 1.5 |
+| 迁移ContentParser到插件 | 2小时 | P0 | ⬜ | 1.5 |
 | 测试本地文件插件功能 | 2小时 | P0 | ⬜ | 3.1.2 |
 | **小计** | **9小时** | | | |
 
@@ -250,21 +244,17 @@ data/plugins/yuque/
 - [ ] 本地文件功能正常
 - [ ] 向后兼容现有功能
 
-**文件位置**: `data/plugins/filesystem/plugin.py`
+**文件位置**: `data/plugins/datasource/filesystem/plugin.py`
 
 ### 3.2 统一索引服务
 
 | 任务 | 预计时间 | 优先级 | 状态 | 依赖 |
 |------|----------|--------|------|------|
-| 修改索引服务支持多数据源 | 3小时 | P0 | ⬜ | 1.3 |
+| 修改索引服务支持多数据源 | 3小时 | P0 | ⬜ | 1.5 |
 | 实现数据源类型标识 | 2小时 | P0 | ⬜ | 无 |
 | 实现source_url字段存储 | 1小时 | P0 | ⬜ | 无 |
 | 测试多数据源索引构建 | 2小时 | P0 | ⬜ | 3.2.1 |
 | **小计** | **8小时** | | | |
-
-**验收标准**：
-- [ ] 多个数据源能正确构建索引
-- [ ] 索引能区分数据来源
 
 ### 3.3 搜索响应扩展
 
@@ -276,36 +266,6 @@ data/plugins/yuque/
 | 更新搜索服务返回source_name | 1小时 | P0 | ⬜ | 无 |
 | 测试搜索结果包含数据源信息 | 2小时 | P0 | ⬜ | 3.3.1 |
 | **小计** | **6小时** | | | |
-
-**验收标准**：
-- [ ] 搜索结果包含source_type字段
-- [ ] 搜索结果包含source_url字段（云端数据源）
-- [ ] 搜索结果包含source_name字段
-
-**API响应示例**：
-```json
-{
-  "success": true,
-  "data": {
-    "results": [
-      {
-        "id": "file_001",
-        "filename": "产品需求文档.md",
-        "source_type": "filesystem",
-        "source_url": null,
-        "source_name": "本地文件"
-      },
-      {
-        "id": "yuque_001",
-        "filename": "API设计规范",
-        "source_type": "yuque",
-        "source_url": "https://www.yuque.com/docs/...",
-        "source_name": "语雀知识库"
-      }
-    ]
-  }
-}
-```
 
 ---
 
@@ -319,26 +279,6 @@ data/plugins/yuque/
 | 测试数据库迁移 | 2小时 | P0 | ⬜ | 无 |
 | **小计** | **5小时** | | | |
 
-**数据库变更**：
-```sql
--- 1. 新增 source_type 字段
-ALTER TABLE files ADD COLUMN source_type TEXT DEFAULT 'filesystem';
-
--- 2. 新增 source_url 字段
-ALTER TABLE files ADD COLUMN source_url TEXT;
-
--- 3. 创建索引
-CREATE INDEX IF NOT EXISTS idx_files_source_type ON files(source_type);
-
--- 4. 更新现有记录
-UPDATE files SET source_type = 'filesystem' WHERE source_type IS NULL;
-```
-
-**验收标准**：
-- [ ] 数据库迁移成功
-- [ ] 现有数据正确迁移
-- [ ] 回滚功能正常
-
 ---
 
 ## 五、测试与文档（3-4天）
@@ -347,8 +287,8 @@ UPDATE files SET source_type = 'filesystem' WHERE source_type IS NULL;
 
 | 任务 | 预计时间 | 优先级 | 状态 | 依赖 |
 |------|----------|--------|------|------|
-| ConfigParser测试 | 2小时 | P0 | ⬜ | 1.2 |
-| PluginLoader测试 | 3小时 | P0 | ⬜ | 1.3 |
+| ConfigParser测试 | 2小时 | P0 | ⬜ | 1.4 |
+| PluginLoader测试 | 3小时 | P0 | ⬜ | 1.5 |
 | 语雀插件测试（mock API） | 3小时 | P0 | ⬜ | 2.2 |
 | **小计** | **8小时** | | | |
 
@@ -360,21 +300,23 @@ UPDATE files SET source_type = 'filesystem' WHERE source_type IS NULL;
 |------|----------|--------|------|------|
 | 插件加载和初始化流程测试 | 2小时 | P0 | ⬜ | 一、二 |
 | 多数据源索引构建测试 | 3小时 | P0 | ⬜ | 三 |
-| 插件错误隔离测试 | 2小时 | P0 | ⬜ | 1.4 |
+| 插件错误隔离测试 | 2小时 | P0 | ⬜ | 1.6 |
 | **小计** | **7小时** | | | |
 
 ### 5.3 开发者文档
 
 | 任务 | 预计时间 | 优先级 | 状态 | 依赖 |
 |------|----------|--------|------|------|
-| 编写插件开发指南 | 3小时 | P0 | ⬜ | 一 |
+| 编写插件开发指南（通用版） | 3小时 | P0 | ⬜ | 一 |
 | 添加插件开发示例 | 2小时 | P1 | ⬜ | 一、二 |
 | 添加FAQ文档 | 1小时 | P1 | ⬜ | 无 |
 | **小计** | **6小时** | | | |
 
 **文档内容**：
 - 插件开发快速入门
+- BasePlugin通用接口说明
 - DataSourcePlugin接口说明
+- AIModelPlugin接口说明（架构预留）
 - 配置文件规范
 - 最佳实践和示例
 - 常见问题解答
@@ -386,9 +328,13 @@ UPDATE files SET source_type = 'filesystem' WHERE source_type IS NULL;
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                   插件基础设施(一)                             │
-│  接口定义(1.1) → ConfigParser(1.2) → PluginLoader(1.3)       │
-│       ↓              ↓               ↓                        │
-│  错误处理(1.4) → 启动加载(1.5)                              │
+│  BasePlugin(1.1) → PluginType枚举(1.1)                         │
+│       ↓                    ↓                                     │
+│  DataSource接口(1.2)    AIModel接口(1.3)                       │
+│       ↓                    ↓                                     │
+│  ConfigParser(1.4) → PluginLoader(1.5)                       │
+│       ↓                    ↓                                     │
+│  错误处理(1.6) → 启动加载(1.7)                              │
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -420,10 +366,10 @@ UPDATE files SET source_type = 'filesystem' WHERE source_type IS NULL;
 
 | 里程碑 | 预计完成时间 | 关键交付物 |
 |--------|-------------|-----------|
-| M1: 插件基础设施完成 | 第1周 | PluginLoader可自动发现并加载插件 |
+| M1: 插件基础设施完成 | 第1周 | BasePlugin、多接口定义、PluginLoader |
 | M2: 语雀插件完成 | 第2周 | 可扫描语雀文档并构建索引 |
 | M3: 索引集成完成 | 第3周 | 多数据源可搜索 |
-| M4: 测试与文档完成 | 第3-4周 | 测试通过，文档完整 |
+| M4: 测试与文档完成 | 第4周 | 测试通过，文档完整（通用版） |
 
 ---
 
@@ -431,10 +377,10 @@ UPDATE files SET source_type = 'filesystem' WHERE source_type IS NULL;
 
 | 风险项 | 影响 | 应对措施 | 负责人 |
 |-------------|----------|--------|
+| 通用架构复杂度增加 | 开发时间延长 | 分阶段实现，先实现数据源插件 | 开发 |
+| 插件类型验证逻辑 | 配置错误风险 | 严格验证配置文件与目录类型匹配 | 开发 |
 | 语雀API限流 | 同步速度慢 | 实现速率限制、增量同步 | 开发 |
 | 动态加载稳定性 | 插件加载失败 | 完善错误处理、错误隔离 | 开发 |
-| YAML配置错误 | 插件无法加载 | 配置验证、清晰错误提示 | 开发 |
-| 时间延期 | 功能不完整 | 分阶段交付，P0优先完成 | 项目经理 |
 
 ---
 
@@ -443,10 +389,12 @@ UPDATE files SET source_type = 'filesystem' WHERE source_type IS NULL;
 - [ ] 所有P0任务完成
 - [ ] 单元测试覆盖率 ≥ 80%
 - [ ] 集成测试全部通过
-- [ ] 插件开发指南完整
+- [ ] 插件开发指南完整（通用版）
 - [ ] 语雀插件可正常工作
 - [ ] 本地文件插件迁移完成
 - [ ] 搜索结果包含数据源信息
+- [ ] BasePlugin通用基类实现
+- [ ] 支持按类型组织插件目录
 
 ---
 
@@ -454,21 +402,42 @@ UPDATE files SET source_type = 'filesystem' WHERE source_type IS NULL;
 
 | 文件路径 | 说明 | 类型 |
 |---------|------|------|
-| `backend/app/plugins/interface.py` | 插件接口定义 | 新建 |
+| `backend/app/plugins/base.py` | 通用插件基类 | 新建 |
+| `backend/app/plugins/interface/__init__.py` | 接口模块初始化 | 新建 |
+| `backend/app/plugins/interface/base.py` | BasePlugin接口 | 新建 |
+| `backend/app/plugins/interface/datasource.py` | DataSourcePlugin接口 | 新建 |
+| `backend/app/plugins/interface/ai_model.py` | AIModelPlugin接口 | 新建 |
 | `backend/app/plugins/config_parser.py` | 配置解析器 | 新建 |
 | `backend/app/plugins/loader.py` | 插件加载器 | 新建 |
 | `backend/app/main.py` | 启动时加载插件 | 修改 |
 | `backend/app/services/unified_index_service.py` | 索引服务扩展 | 修改 |
 | `backend/app/api/search.py` | 搜索响应扩展 | 修改 |
-| `data/plugins/yuque/plugin.py` | 语雀插件实现 | 新建 |
-| `data/plugins/yuque/client.py` | 语雀API客户端 | 新建 |
-| `data/plugins/yuque/config.yaml` | 语雀配置文件 | 新建 |
-| `data/plugins/filesystem/plugin.py` | 本地文件插件 | 新建 |
+| `data/plugins/datasource/yuque/plugin.py` | 语雀插件实现 | 新建 |
+| `data/plugins/datasource/yuque/client.py` | 语雀API客户端 | 新建 |
+| `data/plugins/datasource/yuque/config.yaml` | 语雀配置文件 | 新建 |
+| `data/plugins/datasource/filesystem/plugin.py` | 本地文件插件 | 新建 |
 | `alembic/versions/002_add_plugin_source_fields.py` | 数据库迁移脚本 | 新建 |
 
 ---
 
-## v1.2 变更历史
+## v2.0 变更历史
+
+### v2.0.0 (2026-02-22)
+
+**新增内容**：
+- ➕ 新增 BasePlugin 通用插件基类
+- ➕ 新增 PluginType 插件类型枚举
+- ➕ 新增 AIModelPlugin 接口（架构预留）
+- ➕ 新增 ModelType AI模型类型枚举
+- ➕ 插件目录按类型组织（datasource/、ai_model/）
+- ➕ 配置文件新增 plugin.type 字段
+- ➕ 接口模块拆分为 interface/ 目录结构
+
+**简化内容**：
+- 🔄 移除所有插件管理API
+- 🔄 移除所有数据源管理API
+- 🔄 移除数据库表创建
+- 🔄 遵循"约定优于配置"原则
 
 ### v1.2.0 (2026-02-22)
 
@@ -476,29 +445,20 @@ UPDATE files SET source_type = 'filesystem' WHERE source_type IS NULL;
 - ✅ 移除插件管理API（/api/plugins/*）
 - ✅ 移除数据源管理API（/api/datasources/*）
 - ✅ 移除数据库表（plugins、plugin_configs、datasource_sync_records）
-- ✅ 移除插件启用/禁用功能
-- ✅ 移除插件状态持久化
 
 **新增内容**：
 - ➕ 新增ConfigParser配置解析器
 - ➕ 新增YAML配置文件支持
 - ➕ 新增插件自动发现机制
-- ➕ 新增配置验证功能
-
-**简化内容**：
-- 🔄 PluginLoader简化为自动发现和加载
-- 🔄 插件安装改为文件复制方式
-- 🔄 配置管理改为YAML文件方式
 
 **工作量变化**：
-- 任务数：23 → 16（减少30%）
-- 预计工期：20-30天 → 15-19天（减少25%）
-- 开发周期：4-6周 → 3-4周（减少25%）
+- 任务数：v1.2: 16 → v2.0: 17（+1）
+- 预计工期：v1.2: 15-19天 → v2.0: 16-20天（+1天）
 
 ---
 
-**文档版本**: v1.2
+**文档版本**: v2.0
 **创建时间**: 2026-02-22
-**最后更新**: 2026-02-22 (v1.2 - 约定优于配置)
-**预计总工期**: 15-19个工作日
+**最后更新**: 2026-02-22 (v2.0 - 通用插件系统)
+**预计总工期**: 16-20个工作日
 **文档状态**: 已批准
