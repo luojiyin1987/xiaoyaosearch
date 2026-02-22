@@ -332,6 +332,62 @@ npm install
 npm run dev
 ```
 
+## 🔌 Plugin Development
+
+XiaoyaoSearch supports a **plugin architecture**, allowing developers to extend data source functionality through plugins.
+
+### Supported Plugin Types
+
+- ✅ **Data Source Plugins**: Extend external data sources (e.g., Yuque, Feishu, Notion)
+- 🚧 **AI Model Plugins**: Architecturally reserved, not yet implemented
+- 🚧 **Search Engine Plugins**: Architecturally reserved, not yet implemented
+
+### Quick Start
+
+**Documentation Links**:
+- 📖 [Plugin Development Guide (English)](docs/技术文档/插件开发文档_EN.md)
+- 📖 [插件开发文档（中文）](docs/技术文档/插件开发文档.md)
+
+**Plugin Directory Structure**:
+```
+data/plugins/
+├── datasource/              # Data source plugin directory
+│   ├── yuque/              # Yuque knowledge base plugin
+│   │   ├── plugin.py       # Plugin implementation
+│   │   ├── config.yaml     # Plugin configuration
+│   │   └── data/           # Data storage
+│   └── your-plugin/        # Your plugin
+```
+
+**Core Features**:
+- 🎯 **Convention over Configuration**: Plugins auto-discovered in directory
+- ⚡ **Async Architecture**: Based on asyncio asynchronous processing
+- 🔧 **Hot-pluggable**: Runtime dynamic loading support
+- 📝 **Simple Configuration**: YAML format configuration files
+
+### Development Example
+
+A minimal data source plugin only needs to implement the following methods:
+
+```python
+class MyDataSource(DataSourcePlugin):
+    async def initialize(self, config) -> bool:
+        """Initialize plugin"""
+        pass
+
+    async def sync(self) -> bool:
+        """Sync data to local"""
+        pass
+
+    async def cleanup(self):
+        """Cleanup resources"""
+        pass
+```
+
+See: [Plugin Development Guide](docs/技术文档/插件开发文档_EN.md)
+
+---
+
 ## 🤝 How to Contribute
 
 <div align="center">

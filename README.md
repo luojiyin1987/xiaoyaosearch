@@ -332,6 +332,62 @@ npm install
 npm run dev
 ```
 
+## 🔌 插件开发
+
+小遥搜索支持**插件化架构**，开发者可以通过插件扩展数据源功能。
+
+### 支持的插件类型
+
+- ✅ **数据源插件**：扩展外部数据源（如语雀、飞书、Notion等）
+- 🚧 **AI模型插件**：架构预留，暂未实现
+- 🚧 **搜索引擎插件**：架构预留，暂未实现
+
+### 快速开始
+
+**文档链接**：
+- 📖 [插件开发文档（中文）](docs/技术文档/插件开发文档.md)
+- 📖 [Plugin Development Guide (English)](docs/技术文档/插件开发文档_EN.md)
+
+**插件目录结构**：
+```
+data/plugins/
+├── datasource/              # 数据源插件目录
+│   ├── yuque/              # 语雀知识库插件
+│   │   ├── plugin.py       # 插件实现
+│   │   ├── config.yaml     # 插件配置
+│   │   └── data/           # 数据存储
+│   └── your-plugin/        # 你的插件
+```
+
+**核心特性**：
+- 🎯 **约定优于配置**：插件放到目录自动加载
+- ⚡ **异步架构**：基于 asyncio 异步处理
+- 🔧 **热插拔**：支持运行时动态加载
+- 📝 **配置简单**：YAML 格式配置文件
+
+### 开发示例
+
+一个最简单的数据源插件只需实现以下方法：
+
+```python
+class MyDataSource(DataSourcePlugin):
+    async def initialize(self, config) -> bool:
+        """初始化插件"""
+        pass
+
+    async def sync(self) -> bool:
+        """同步数据到本地"""
+        pass
+
+    async def cleanup(self):
+        """清理资源"""
+        pass
+```
+
+详见：[插件开发文档](docs/技术文档/插件开发文档.md)
+
+---
+
 ## 🤝 如何共享代码
 
 <div align="center">
