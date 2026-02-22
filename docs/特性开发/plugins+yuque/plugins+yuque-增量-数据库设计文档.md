@@ -2,7 +2,7 @@
 
 > **特性状态**：规划中
 > **创建时间**：2026-02-22
-> **最后更新**：2026-02-22 (v1.2 - 约定优于配置)
+> **最后更新**：2026-02-22 (v1.3 - 插件提供元数据)
 > **关联文档**：[技术方案](./plugins+yuque-03-技术方案.md) | [任务清单](./plugins+yuque-04-开发任务清单.md)
 
 ---
@@ -30,10 +30,18 @@
 
 ### 1.2 变更说明
 
-**设计原则**：采用"约定优于配置"原则，插件元数据和配置通过文件系统管理，数据库仅存储索引数据。
+**设计原则**：
+1. **约定优于配置**：插件元数据和配置通过文件系统管理，数据库仅存储索引数据
+2. **插件提供元数据**：source_type 和 source_url 由插件通过 `get_file_source_info()` 方法提供
 
+**核心优势**：
+- ✅ **完全解耦**：索引服务不需要硬编码各数据源的提取规则
+- ✅ **易于扩展**：新增数据源只需实现插件接口，无需修改索引服务代码
+- ✅ **插件自治**：每个插件最了解自己的文件格式和元数据位置
+
+**变更内容**：
 - **不新增表**：无需插件元数据表、配置表、同步记录表
-- **修改现有表**：为 `files` 表新增数据源标识字段
+- **修改现有表**：为 `files` 表新增数据源标识字段（source_type、source_url）
 
 ### 1.3 ER图扩展
 
@@ -126,8 +134,15 @@ CREATE INDEX idx_files_source_type ON files(source_type);
 
 | 字段 | 数据类型 | 默认值 | 说明 | 示例值 |
 |------|----------|--------|------|--------|
-| source_type | TEXT | 'filesystem' | 数据源类型标识 | 'filesystem' / 'yuque' / 'feishu' |
-| source_url | TEXT | NULL | 原文访问链接 | NULL / 'https://yuque.com/...' |
+| source_type | TEXT | 'filesystem' | 数据源类型标识（由插件提供） | 'filesystem' / 'yuque' / 'feishu' |
+| source_url | TEXT | NULL | 原文访问链接（由插件从文件内容提取） | NULL / 'https://yuque.com/...' |
+
+**字段获取方式**：
+
+| 字段 | 获取方式 | 说明 |
+|------|---------|------|
+| `source_type` | 调用插件的 `get_file_source_info()` 方法 | 每个插件返回自己的 source_type |
+| `source_url` | 调用插件的 `get_file_source_info()` 方法 | 每个插件从文件内容提取自己的 URL 格式 |
 
 ---
 
@@ -138,9 +153,9 @@ CREATE INDEX idx_files_source_type ON files(source_type);
 ```sql
 -- =====================================================
 -- 插件化架构数据库迁移脚本
--- 版本: v1.2.0
+-- 版本: v1.3.0
 -- 日期: 2026-02-22
--- 说明: 为files表新增数据源标识字段
+-- 说明: 为files表新增数据源标识字段（由插件提供）
 -- =====================================================
 
 -- 1. 新增 source_type 字段
@@ -167,11 +182,12 @@ FROM files;
 
 ```python
 # alembic/versions/002_add_plugin_source_fields.py
-"""添加数据源标识字段
+"""添加数据源标识字段（由插件提供元数据）
 
 Revision ID: 002_add_plugin_source_fields
 Revises: 001_initial
 Create Date: 2026-02-22
+说明: source_type 和 source_url 由插件通过 get_file_source_info() 方法提供
 
 """
 from alembic import op
@@ -185,7 +201,7 @@ depends_on = None
 
 
 def upgrade():
-    """升级：添加数据源字段"""
+    """升级：添加数据源字段（字段值由插件提供）"""
     # 添加 source_type 字段
     op.add_column(
         'files',
@@ -297,6 +313,7 @@ WHERE type = 'index'
 | 默认值 | 'filesystem' |
 | 可空 | 是 |
 | 索引 | 是 |
+| **数据来源** | **由插件通过 `get_file_source_info()` 方法提供** |
 
 **枚举值说明**
 
@@ -318,6 +335,7 @@ WHERE type = 'index'
 | 默认值 | NULL |
 | 可空 | 是 |
 | 索引 | 否 |
+| **数据来源** | **由插件从文件内容提取（如语雀文档底部的"原文: <URL>"）** |
 
 **使用说明**
 - 本地文件：该字段为 NULL
@@ -469,6 +487,12 @@ ANALYZE files;
 
 ## 8. 更新日志
 
+### v1.3.0 (2026-02-22)
+- **插件提供元数据** ✅ 规划中
+  - source_type 和 source_url 由插件通过 `get_file_source_info()` 方法提供
+  - 实现完全解耦，索引服务无需硬编码提取规则
+  - 新增数据源只需实现插件接口
+
 ### v1.2.0 (2026-02-22)
 - **约定优于配置** ✅ 规划中
   - 移除插件元数据表
@@ -508,8 +532,8 @@ ANALYZE files;
 
 ---
 
-**文档版本**: v1.2
+**文档版本**: v1.3
 **创建时间**: 2026-02-22
-**最后更新**: 2026-02-22 (v1.2 - 约定优于配置)
+**最后更新**: 2026-02-22 (v1.3 - 插件提供元数据)
 **文档状态**: 已批准
 **维护者**: 开发者
