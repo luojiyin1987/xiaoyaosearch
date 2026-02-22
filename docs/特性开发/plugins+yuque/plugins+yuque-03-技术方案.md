@@ -3,7 +3,7 @@
 > **文档类型**：技术方案
 > **特性状态**：规划中
 > **创建时间**：2026-02-22
-> **最后更新**：2026-02-22 (v2.0 - 通用插件系统)
+> **最后更新**：2026-02-22 (v2.1 - yuque-dl CLI集成)
 
 ---
 
@@ -11,7 +11,7 @@
 
 ### 1.1 技术目标
 
-建立**通用插件化架构**，支持多种类型的插件扩展，包括数据源插件、AI模型插件等。优先实现数据源插件和AI模型插件，后续可扩展到搜索引擎、内容解析器、认证等插件类型。
+建立**通用插件化架构**，支持多种类型的插件扩展，包括数据源插件、AI模型插件等。优先实现数据源插件，语雀数据源采用 CLI 工具集成方案。
 
 ### 1.2 设计原则：约定优于配置
 
@@ -26,11 +26,9 @@
 | 插件类型 | 接口 | 状态 | 说明 |
 |---------|------|------|------|
 | **数据源插件** | `DataSourcePlugin` | ✅ 已实现 | 扫描外部数据源并索引内容 |
-| **AI模型插件** | `AIModelPlugin` | ✅ 已实现 | 提供AI模型服务（对话、嵌入、图像理解） |
+| **AI模型插件** | `AIModelPlugin` | 🚧 架构预留 | 提供AI模型服务（本版本不实现） |
 | **搜索引擎插件** | `SearchEnginePlugin` | 🚧 规划中 | 替换或扩展搜索引擎 |
 | **内容解析器插件** | `ContentParserPlugin` | 🚧 规划中 | 支持新的文件格式解析 |
-| **存储插件** | `StoragePlugin` | 🚧 规划中 | 支持不同的存储后端 |
-| **认证插件** | `AuthPlugin` | 🚧 规划中 | 支持不同的认证方式 |
 
 ### 1.4 技术选型
 
@@ -39,8 +37,8 @@
 | Python ABC | 插件接口定义 | 标准库，类型安全 |
 | importlib | 插件动态加载 | Python标准库，无额外依赖 |
 | PyYAML | 配置文件解析 | 人类可读，易于编辑 |
-| httpx | API调用 | 异步HTTP客户端，已集成 |
-| Pydantic | 配置验证 | 数据验证，类型安全 |
+| asyncio subprocess | CLI工具调用 | 异步进程管理 |
+| yuque-dl | 语雀数据获取 | 成熟开源工具，避免维护API |
 
 ---
 
@@ -58,24 +56,23 @@
 ┌────────────▼──────────────────────────────────────────────────────────────┐
 │                        服务层 (Service Layer)                             │
 ├───────────────────────────────────────────────────────────────────────────┤
-│  PluginLoader  │  DataSourceManager  │  AIModelManager  │  IndexService  │
+│  PluginLoader  │  DataSourceManager  │  IndexService                     │
 └────────────┬──────────────────────────────────────────┬───────────────────┘
              │                                          │
 ┌────────────▼──────────────────────────────────────────▼───────────────────┐
 │                        插件层 (Plugin Layer)                                │
 ├───────────────────────────────────────────────────────────────────────────┤
 │  BasePlugin(interface) - 通用插件基类                                      │
-│  ├─ DataSourcePlugin(interface)  ├─ AIModelPlugin(interface)             │
-│  │   ├─ FileSystemDataSource        │   ├─ OpenAIModel                   │
-│  │   ├─ YuqueDataSource             │   ├─ ClaudeModel                   │
-│  │   └─ FeishuDataSource            │   └─ OllamaModel                   │
-│  └─ [未来插件类型]...                                                         │
-└────────────┬──────────────────────────────────────────┬───────────────────┘
-             │                                          │
-┌────────────▼──────────────────────────────────────────▼───────────────────┐
+│  └─ DataSourcePlugin(interface)                                          │
+│      ├─ FileSystemDataSource                                             │
+│      └─ YuqueDataSource (yuque-dl CLI集成)                               │
+│  └─ [AIModelPlugin - 架构预留]                                             │
+└────────────┬──────────────────────────────────────────────────────────────┘
+             │
+┌────────────▼──────────────────────────────────────────────────────────────┐
 │                        数据层 (Data Layer)                                  │
 ├───────────────────────────────────────────────────────────────────────────┤
-│  本地文件  │  语雀API  │  OpenAI API  │  Faiss索引  │  Whoosh  │  SQLite  │
+│  本地文件  │  yuque-dl CLI  │  Faiss索引  │  Whoosh  │  SQLite              │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -85,41 +82,21 @@
 data/plugins/
 ├── datasource/              # 数据源插件目录
 │   ├── yuque/              # 语雀知识库插件
-│   │   ├── plugin.py
-│   │   ├── config.yaml
-│   │   ├── client.py
-│   │   └── requirements.txt
-│   ├── feishu/             # 飞书文档插件
-│   │   ├── plugin.py
-│   │   ├── config.yaml
-│   │   └── requirements.txt
+│   │   ├── plugin.py       # 插件实现
+│   │   ├── config.yaml     # 配置文件
+│   │   ├── requirements.txt # Python依赖（说明Node.js依赖）
+│   │   └── data/           # 下载的数据目录
+│   │       └── downloaded/ # yuque-dl 下载的markdown文件
+│   ├── feishu/             # 飞书文档插件（未来）
 │   └── filesystem/         # 本地文件插件
-│       ├── plugin.py
-│       └── config.yaml
 │
-├── ai_model/               # AI模型插件目录
-│   ├── openai/             # OpenAI模型插件
-│   │   ├── plugin.py
-│   │   ├── config.yaml
-│   │   └── requirements.txt
-│   ├── claude/             # Claude模型插件
-│   │   ├── plugin.py
-│   │   ├── config.yaml
-│   │   └── requirements.txt
-│   └── ollama/             # Ollama本地模型插件
-│       ├── plugin.py
-│       ├── config.yaml
-│       └── requirements.txt
+├── ai_model/               # AI模型插件目录（架构预留）
 │
 ├── search_engine/          # 搜索引擎插件目录（未来）
-│   └── elasticsearch/      # Elasticsearch引擎
 │
 ├── content_parser/         # 内容解析器插件目录（未来）
-│   ├── pdf/                # PDF解析器
-│   └── docx/               # DOCX解析器
 │
 └── auth/                   # 认证插件目录（未来）
-    └── oauth/              # OAuth认证
 ```
 
 ### 2.3 模块划分
@@ -134,8 +111,7 @@ backend/
 │   │   │   ├── __init__.py
 │   │   │   ├── base.py                  # BasePlugin接口
 │   │   │   ├── datasource.py            # DataSourcePlugin接口
-│   │   │   ├── ai_model.py              # AIModelPlugin接口
-│   │   │   └── search_engine.py         # SearchEnginePlugin接口（预留）
+│   │   │   └── ai_model.py              # AIModelPlugin接口（预留）
 │   │   ├── loader.py                    # 插件加载器
 │   │   └── config_parser.py             # 配置文件解析器
 │   │
@@ -145,10 +121,6 @@ backend/
 │   │   │   ├── base.py                  # 基础数据项
 │   │   │   ├── filesystem.py            # 本地文件数据源
 │   │   │   └── manager.py               # 数据源管理器
-│   │   ├── ai_model/                     # AI模型服务层
-│   │   │   ├── __init__.py
-│   │   │   ├── base.py                  # AI模型基类
-│   │   │   └── manager.py               # AI模型管理器
 │   │   └── unified_index_service.py      # 统一索引服务
 │   │
 │   └── core/
@@ -156,21 +128,13 @@ backend/
 │
 └── data/
     └── plugins/                          # 插件目录
-        ├── datasource/
-        │   ├── yuque/
-        │   │   ├── plugin.py
-        │   │   ├── config.yaml
-        │   │   ├── client.py
-        │   │   └── requirements.txt
-        │   └── feishu/
-        │       └── ...
-        └── ai_model/
-            ├── openai/
-            │   ├── plugin.py
-            │   ├── config.yaml
-            │   └── requirements.txt
-            └── claude/
-                └── ...
+        └── datasource/
+            └── yuque/
+                ├── plugin.py
+                ├── config.yaml
+                ├── requirements.txt
+                └── data/
+                    └── downloaded/
 ```
 
 ---
@@ -188,12 +152,9 @@ from enum import Enum
 class PluginType(Enum):
     """插件类型枚举"""
     DATASOURCE = "datasource"       # 数据源插件
-    AI_MODEL = "ai_model"           # AI模型插件
+    AI_MODEL = "ai_model"           # AI模型插件（架构预留）
     SEARCH_ENGINE = "search_engine" # 搜索引擎插件（预留）
     CONTENT_PARSER = "content_parser"  # 内容解析器插件（预留）
-    STORAGE = "storage"             # 存储插件（预留）
-    AUTH = "auth"                   # 认证插件（预留）
-    NOTIFICATION = "notification"   # 通知插件（预留）
 
 class BasePlugin(ABC):
     """插件基类，所有插件的父类"""
@@ -215,8 +176,6 @@ class BasePlugin(ABC):
                 - type: 插件类型（必填，见PluginType）
                 - author: 作者（必填）
                 - description: 描述（必填）
-                - dependencies: 依赖的其他插件（可选）
-                - min_system_version: 最低系统版本要求（可选）
         """
         pass
 
@@ -330,41 +289,21 @@ class DataSourcePlugin(BasePlugin):
         pass
 ```
 
-### 3.3 AI模型插件接口
+### 3.3 AI模型插件接口（架构预留）
 
 ```python
 # backend/app/plugins/interface/ai_model.py
 from abc import ABC, abstractmethod
-from typing import Dict, Any, AsyncIterator, Optional, Union
-from enum import Enum
-from ..base import BasePlugin, PluginType
-
-class ModelType(Enum):
-    """AI模型类型"""
-    TEXT = "text"        # 文本模型（对话、嵌入）
-    IMAGE = "image"      # 图像模型（图像理解）
-    VOICE = "voice"      # 语音模型（语音识别）
-    VIDEO = "video"      # 视频模型（预留）
+from typing import Dict, Any
+from ..base import BasePlugin
 
 class AIModelPlugin(BasePlugin):
-    """AI模型插件接口"""
+    """AI模型插件接口（本版本不实现，仅架构预留）"""
 
     @classmethod
     @abstractmethod
     def get_metadata(cls) -> Dict[str, Any]:
-        """
-        返回插件元数据
-
-        Returns:
-            Dict[str, Any]: 包含以下额外键:
-                - model_type: 模型类型（见ModelType）
-                - supported_features: 支持的功能列表（可选）
-                    * chat: 对话
-                    * embedding: 文本嵌入
-                    * streaming: 流式输出
-                    * vision: 图像理解
-                    * transcribe: 语音识别
-        """
+        """返回插件元数据"""
         pass
 
     @abstractmethod
@@ -372,69 +311,14 @@ class AIModelPlugin(BasePlugin):
         """初始化插件"""
         pass
 
-    async def chat(
-        self,
-        messages: list,
-        stream: bool = False,
-        **kwargs
-    ) -> Union[AsyncIterator[Dict[str, Any]], Dict[str, Any]]:
-        """
-        对话接口（可选实现）
-
-        Args:
-            messages: 消息列表
-            stream: 是否流式输出
-            **kwargs: 其他参数（model, temperature等）
-
-        Returns:
-            流式返回或单次返回结果
-        """
-        raise NotImplementedError
-
-    async def embedding(self, text: str, **kwargs) -> list[float]:
-        """
-        文本嵌入接口（可选实现）
-
-        Args:
-            text: 输入文本
-            **kwargs: 其他参数（model等）
-
-        Returns:
-            list[float]: 文本向量
-        """
-        raise NotImplementedError
-
-    async def understand_image(self, image: str, prompt: str, **kwargs) -> str:
-        """
-        图像理解接口（可选实现）
-
-        Args:
-            image: 图像路径或URL
-            prompt: 提示词
-            **kwargs: 其他参数
-
-        Returns:
-            str: 理解结果
-        """
-        raise NotImplementedError
-
-    async def transcribe_audio(self, audio: str, **kwargs) -> str:
-        """
-        语音识别接口（可选实现）
-
-        Args:
-            audio: 音频文件路径
-            **kwargs: 其他参数
-
-        Returns:
-            str: 识别文本
-        """
-        raise NotImplementedError
-
     @abstractmethod
     async def cleanup(self):
         """清理资源"""
         pass
+
+    # 以下方法在后续版本实现
+    # async def chat(self, messages, **kwargs): ...
+    # async def embedding(self, text, **kwargs): ...
 ```
 
 ### 3.4 插件加载器
@@ -469,7 +353,6 @@ class PluginLoader:
         # 遍历所有插件类型目录
         plugin_type_dirs = [
             (PluginType.DATASOURCE, "datasource"),
-            (PluginType.AI_MODEL, "ai_model"),
         ]
 
         for plugin_type, type_dir_name in plugin_type_dirs:
@@ -559,12 +442,7 @@ class PluginLoader:
             plugin_instance = plugin_class()
 
             # 获取特定类型的配置
-            if plugin_type == PluginType.DATASOURCE:
-                plugin_config = config.get("datasource", {})
-            elif plugin_type == PluginType.AI_MODEL:
-                plugin_config = config.get("model", {})
-            else:
-                plugin_config = {}
+            plugin_config = config.get("datasource", {})
 
             if not await plugin_instance.initialize(plugin_config):
                 logger.error(f"插件初始化失败: {plugin_id}")
@@ -589,30 +467,12 @@ class PluginLoader:
         """获取插件实例"""
         return self._loaded_plugins.get(plugin_id)
 
-    def get_plugin_type(self, plugin_id: str) -> Optional[str]:
-        """获取插件类型"""
-        return self._plugin_types.get(plugin_id)
-
     def get_plugins_by_type(self, plugin_type: str) -> Dict[str, BasePlugin]:
         """按类型获取插件"""
         return {
             pid: plugin
             for pid, plugin in self._loaded_plugins.items()
             if self._plugin_types.get(pid) == plugin_type
-        }
-
-    def list_plugins(self) -> Dict[str, Dict[str, Any]]:
-        """列出所有插件信息"""
-        return {
-            plugin_id: {
-                "id": plugin_id,
-                "name": config.get("plugin", {}).get("name"),
-                "type": self._plugin_types.get(plugin_id),
-                "version": config.get("plugin", {}).get("version"),
-                "enabled": config.get("plugin", {}).get("enabled", False),
-                "loaded": plugin_id in self._loaded_plugins
-            }
-            for plugin_id, config in self._plugin_configs.items()
         }
 
     async def cleanup_all(self):
@@ -626,125 +486,30 @@ class PluginLoader:
         self._loaded_plugins.clear()
 ```
 
-### 3.5 配置文件解析器
-
-```python
-# backend/app/plugins/config_parser.py
-from typing import Dict, Any, Optional
-import yaml
-from pathlib import Path
-from pydantic import BaseModel, ValidationError
-from app.core.logging_config import logger
-
-class PluginConfigModel(BaseModel):
-    """插件配置模型"""
-    id: str
-    name: str
-    version: str
-    type: str                # 新增：插件类型
-    enabled: bool = True
-
-class DatasourceConfigModel(BaseModel):
-    """数据源配置模型"""
-    type: str
-
-class AIModelConfigModel(BaseModel):
-    """AI模型配置模型"""
-    type: str                # 模型类型: text/image/voice
-
-class ConfigParser:
-    """配置文件解析器"""
-
-    @staticmethod
-    def parse_plugin_config(config_path: Path) -> Optional[Dict[str, Any]]:
-        """
-        解析插件配置文件
-
-        Args:
-            config_path: 配置文件路径
-
-        Returns:
-            Optional[Dict]: 解析后的配置，失败返回None
-        """
-        try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                raw_config = yaml.safe_load(f)
-
-            # 验证配置结构
-            if "plugin" not in raw_config:
-                raise ValueError("缺少 plugin 配置段")
-
-            # 验证必需字段
-            plugin_config = raw_config["plugin"]
-            if not plugin_config.get("id"):
-                raise ValueError("plugin.id 不能为空")
-            if not plugin_config.get("name"):
-                raise ValueError("plugin.name 不能为空")
-            if not plugin_config.get("type"):
-                raise ValueError("plugin.type 不能为空")
-
-            # 根据插件类型验证特定配置段
-            plugin_type = plugin_config["type"]
-            if plugin_type == "datasource":
-                if "datasource" not in raw_config:
-                    raise ValueError("数据源插件缺少 datasource 配置段")
-            elif plugin_type == "ai_model":
-                if "model" not in raw_config:
-                    raise ValueError("AI模型插件缺少 model 配置段")
-
-            logger.info(f"配置文件解析成功: {config_path}")
-            return raw_config
-
-        except yaml.YAMLError as e:
-            logger.error(f"YAML解析失败 {config_path}: {e}")
-        except ValueError as e:
-            logger.error(f"配置验证失败 {config_path}: {e}")
-        except Exception as e:
-            logger.error(f"读取配置文件失败 {config_path}: {e}")
-
-        return None
-
-    @staticmethod
-    def validate_config(config: Dict[str, Any]) -> tuple[bool, list]:
-        """
-        验证配置
-
-        Args:
-            config: 配置字典
-
-        Returns:
-            tuple[bool, list]: (是否有效, 错误信息列表)
-        """
-        errors = []
-
-        try:
-            PluginConfigModel(**config.get("plugin", {}))
-        except ValidationError as e:
-            errors.extend([f"plugin.{err['loc'][0]}: {err['msg']}" for err in e.errors()])
-
-        # 根据插件类型验证特定配置
-        plugin_type = config.get("plugin", {}).get("type")
-
-        if plugin_type == "datasource":
-            try:
-                DatasourceConfigModel(**config.get("datasource", {}))
-            except ValidationError as e:
-                errors.extend([f"datasource.{err['loc'][0]}: {err['msg']}" for err in e.errors()])
-
-        elif plugin_type == "ai_model":
-            try:
-                AIModelConfigModel(**config.get("model", {}))
-            except ValidationError as e:
-                errors.extend([f"model.{err['loc'][0]}: {err['msg']}" for err in e.errors()])
-
-        return len(errors) == 0, errors
-```
-
 ---
 
-## 4. 数据源插件实现
+## 4. 语雀数据源插件实现（yuque-dl CLI集成）
 
-### 4.1 配置文件示例
+### 4.1 设计思路
+
+**核心决策**：采用 CLI 工具集成方式，而非直接调用语雀 API。
+
+**理由**：
+- ✅ **开发快速**：节省 3-5 天 API 客户端开发时间
+- ✅ **功能完整**：yuque-dl 支持增量下载、断点续传、附件下载
+- ✅ **维护成本低**：API 变更由 yuque-dl 维护者处理
+- ✅ **稳定性高**：利用成熟的开源工具
+
+**工作流程**：
+```
+1. 检测 yuque-dl 工具是否可用（npx 或全局安装）
+2. 调用 yuque-dl 下载知识库到本地目录
+3. 扫描下载的 Markdown 文件
+4. 从 Front Matter 提取元数据
+5. 生成 DataSourceItem 流
+```
+
+### 4.2 配置文件
 
 ```yaml
 # data/plugins/datasource/yuque/config.yaml
@@ -752,38 +517,70 @@ plugin:
   id: yuque
   name: 语雀知识库
   version: "1.0.0"
-  type: datasource              # 插件类型
+  type: datasource
   enabled: true
 
-datasource:
-  type: yuque
-  api_token: "your_yuque_api_token_here"
-  repo_slug: "username/knowledge_base"
-  base_url: "https://www.yuque.com/api/v2"
+# yuque-dl 配置
+yuque_dl:
+  # 知识库 URL
+  repo_url: "https://www.yuque.com/your-org/repo"
 
+  # 下载目录（相对于插件目录）
+  download_dir: "./data/downloaded"
+
+  # 语雀 Cookie（用于访问私有知识库）
+  # 获取方式：浏览器 DevTools -> Application -> Cookies -> _yuque_session
+  token: ""
+
+  # 企业部署的 Cookie Key（可选）
+  # 企业版语雀的 cookie key 可能不是 _yuque_session
+  cookie_key: "_yuque_session"
+
+  # 是否忽略图片下载
+  ignore_images: false
+
+  # 是否启用增量下载
+  incremental: true
+
+  # 是否输出 TOC 目录
+  toc: false
+
+  # yuque-dl 可执行文件路径（可选，默认自动查找）
+  # yuque_dl_path: "/usr/local/bin/yuque-dl"
+
+# 同步配置
 sync:
-  interval: 60
+  # 自动同步间隔（秒），0 表示手动同步
+  interval: 3600
+  # 每次扫描的批次大小
   batch_size: 50
-  timeout: 30
 ```
 
-### 4.2 语雀插件实现
+### 4.3 插件实现
 
 ```python
 # data/plugins/datasource/yuque/plugin.py
-from app.plugins.interface.datasource import DataSourcePlugin, DataSourceItem
+import asyncio
+import os
+import re
+from pathlib import Path
 from typing import Dict, Any, AsyncIterator, Optional
-from .client import YuqueClient
-import logging
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+from app.plugins.interface.datasource import DataSourcePlugin, DataSourceItem
+from app.core.logging_config import logger
+
+import yaml
+
 
 class YuqueDataSource(DataSourcePlugin):
-    """语雀知识库数据源插件"""
+    """语雀知识库数据源插件（基于 yuque-dl CLI 工具）"""
 
-    _client: Optional[YuqueClient] = None
-    _repo_slug: str = None
+    def __init__(self):
+        self._config: Dict[str, Any] = {}
+        self._yuque_dl_path: Optional[str] = None
+        self._download_dir: Path = None
+        self._plugin_dir: Path = None
 
     @classmethod
     def get_metadata(cls) -> Dict[str, Any]:
@@ -793,80 +590,219 @@ class YuqueDataSource(DataSourcePlugin):
             "version": "1.0.0",
             "type": "datasource",
             "author": "XiaoyaoSearch Team",
-            "description": "支持语雀知识库文档搜索",
-            "datasource_type": "yuque"
+            "description": "基于 yuque-dl 的语雀知识库文档搜索",
+            "datasource_type": "yuque",
+            "dependencies": ["Node.js 18.4+", "yuque-dl"]
         }
 
     async def initialize(self, config: Dict[str, Any]) -> bool:
-        """初始化语雀客户端"""
+        """初始化插件"""
         try:
-            api_token = config.get("api_token")
-            repo_slug = config.get("repo_slug")
-            base_url = config.get("base_url", "https://www.yuque.com/api/v2")
+            self._config = config
+            self._plugin_dir = Path(__file__).parent
 
-            if not api_token or not repo_slug:
-                logger.error("缺少必要配置: api_token 或 repo_slug")
+            # 获取下载目录
+            download_dir_rel = config.get("download_dir", "./data/downloaded")
+            self._download_dir = self._plugin_dir / download_dir_rel
+            self._download_dir.mkdir(parents=True, exist_ok=True)
+
+            # 检测 yuque-dl 工具
+            self._yuque_dl_path = await self._find_yuque_dl()
+            if not self._yuque_dl_path:
+                logger.error(
+                    "未找到 yuque-dl 工具，请安装: npm install -g yuque-dl "
+                    "或确保 Node.js 18.4+ 已安装以使用 npx"
+                )
                 return False
 
-            self._repo_slug = repo_slug
-            self._client = YuqueClient(api_token=api_token, base_url=base_url)
-
-            # 测试连接
-            user_info = await self._client.get_user_info()
-            if not user_info:
-                logger.error("语雀API连接失败: 无效的Token")
-                return False
-
-            logger.info(f"语雀数据源初始化成功: {repo_slug}")
+            logger.info(f"语雀数据源初始化成功，使用: {self._yuque_dl_path}")
             return True
 
         except Exception as e:
             logger.error(f"语雀数据源初始化失败: {e}")
             return False
 
+    async def _find_yuque_dl(self) -> Optional[str]:
+        """查找 yuque-dl 可执行文件"""
+        # 1. 检查 npx（优先，因为不需要全局安装）
+        if await self._check_command("npx yuque-dl --version"):
+            return "npx yuque-dl"
+
+        # 2. 检查全局安装的 yuque-dl
+        if await self._check_command("yuque-dl --version"):
+            return "yuque-dl"
+
+        # 3. 检查配置文件中指定的路径
+        custom_path = self._config.get("yuque_dl_path")
+        if custom_path and os.path.exists(custom_path):
+            return custom_path
+
+        return None
+
+    async def _check_command(self, cmd: str) -> bool:
+        """检查命令是否可用"""
+        try:
+            proc = await asyncio.create_subprocess_shell(
+                cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            await proc.communicate()
+            return proc.returncode == 0
+        except Exception:
+            return False
+
     async def scan(self, **kwargs) -> AsyncIterator[DataSourceItem]:
         """扫描语雀文档"""
-        if self._client is None:
-            raise RuntimeError("插件未初始化")
+        try:
+            # 1. 调用 yuque-dl 下载知识库
+            await self._download_repo()
 
-        docs = await self._client.get_repo_docs(self._repo_slug)
-
-        for doc in docs:
-            try:
-                doc_detail = await self._client.get_doc_detail(doc['slug'])
-                if not doc_detail:
-                    continue
-
-                item = DataSourceItem(
-                    id=f"yuque:{doc['id']}",
-                    title=doc['title'],
-                    content=self._extract_content(doc_detail),
-                    source_type="yuque",
-                    url=doc.get('url'),
-                    author=doc.get('created_by', {}).get('name'),
-                    created_at=self._parse_datetime(doc.get('created_at')),
-                    modified_at=self._parse_datetime(doc.get('updated_at')),
-                    metadata={
-                        'slug': doc['slug'],
-                        'repo_slug': self._repo_slug,
-                        'word_count': doc_detail.get('word_count', 0)
-                    }
-                )
-
+            # 2. 扫描下载的 Markdown 文件
+            async for item in self._scan_downloaded_files():
                 yield item
 
-            except Exception as e:
-                logger.warning(f"处理文档失败 {doc.get('id')}: {e}")
-                continue
+        except Exception as e:
+            logger.error(f"扫描语雀文档失败: {e}")
+            raise
 
-    def _extract_content(self, doc_detail: Dict[str, Any]) -> str:
-        """提取文档内容"""
-        content = doc_detail.get('content', '')
-        # 移除markdown特殊符号
-        import re
-        content = re.sub(r'!\[.*?\]\(.*?\)', '', content)
-        content = re.sub(r'\[.*?\]\(.*?\)', '', content)
-        content = re.sub(r'#+\s*', '', content)
+    async def _download_repo(self) -> bool:
+        """调用 yuque-dl 下载知识库"""
+        cmd = self._build_yuque_dl_command()
+        logger.info(f"运行命令: {' '.join(cmd)}")
+
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+
+        stdout, stderr = await process.communicate()
+
+        if process.returncode != 0:
+            error_msg = stderr.decode("utf-8", errors="ignore")
+            logger.error(f"yuque-dl 执行失败: {error_msg}")
+            return False
+
+        logger.info(f"yuque-dl 执行成功")
+        return True
+
+    def _build_yuque_dl_command(self) -> list[str]:
+        """构建 yuque-dl 命令"""
+        cmd = []
+
+        # 添加命令前缀（npx 或直接命令）
+        if self._yuque_dl_path.startswith("npx"):
+            cmd.extend(["npx", "yuque-dl"])
+        else:
+            cmd.append(self._yuque_dl_path)
+
+        # 添加知识库 URL
+        cmd.append(self._config["repo_url"])
+
+        # 添加输出目录
+        cmd.extend(["-d", str(self._download_dir)])
+
+        # 添加认证 token（如果配置了）
+        token = self._config.get("token")
+        if token:
+            cmd.extend(["-t", token])
+
+        # 如果是企业部署，指定 cookie key
+        cookie_key = self._config.get("cookie_key")
+        if cookie_key and cookie_key != "_yuque_session":
+            cmd.extend(["-k", cookie_key])
+
+        # 是否忽略图片
+        if self._config.get("ignore_images", False):
+            cmd.append("--ignoreImg")
+
+        # 是否增量下载
+        if self._config.get("incremental", True):
+            cmd.append("--incremental")
+
+        # 是否输出 TOC
+        if self._config.get("toc", False):
+            cmd.append("--toc")
+
+        return cmd
+
+    async def _scan_downloaded_files(self) -> AsyncIterator[DataSourceItem]:
+        """扫描下载的 Markdown 文件"""
+        for root, dirs, files in os.walk(self._download_dir):
+            # 跳过隐藏目录
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+
+            for file in files:
+                if not file.endswith(".md"):
+                    continue
+
+                file_path = os.path.join(root, file)
+
+                try:
+                    # 读取文件内容
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        content = f.read()
+
+                    # 提取元数据（从 Front Matter）
+                    metadata = self._extract_front_matter(content)
+
+                    # 移除 Front Matter
+                    content = self._remove_front_matter(content)
+
+                    # 生成唯一 ID
+                    rel_path = os.path.relpath(file_path, self._download_dir)
+                    item_id = f"yuque:{rel_path.replace(os.sep, '/').replace('.md', '')}"
+
+                    yield DataSourceItem(
+                        id=item_id,
+                        title=metadata.get("title", file.replace(".md", "")),
+                        content=content,
+                        source_type="yuque",
+                        url=metadata.get("url", ""),
+                        author=metadata.get("author", ""),
+                        created_at=self._parse_datetime(metadata.get("created_at")),
+                        modified_at=self._parse_datetime(metadata.get("updated_at")),
+                        metadata={
+                            **metadata,
+                            "file_path": file_path,
+                            "relative_path": rel_path
+                        }
+                    )
+
+                except Exception as e:
+                    logger.warning(f"处理文件失败 {file_path}: {e}")
+                    continue
+
+    def _extract_front_matter(self, content: str) -> Dict[str, Any]:
+        """从 Markdown 内容提取 Front Matter 元数据"""
+        metadata = {}
+
+        # yuque-dl 的 Front Matter 格式通常在文件顶部
+        # ---\nkey: value\n---\n
+        front_matter_pattern = r'^---\n(.*?)\n---'
+        match = re.match(front_matter_pattern, content, re.DOTALL)
+
+        if match:
+            front_matter_text = match.group(1)
+            try:
+                metadata = yaml.safe_load(front_matter_text) or {}
+            except:
+                pass
+
+        # 尝试从注释中提取 URL（yuque-dl 的页脚格式）
+        # <!--原链接：https://www.yuque.com/...-->
+        url_pattern = r'<!--原链接：(.*?)-->'
+        url_match = re.search(url_pattern, content)
+        if url_match:
+            metadata["url"] = url_match.group(1).strip()
+
+        return metadata
+
+    def _remove_front_matter(self, content: str) -> str:
+        """移除 Front Matter"""
+        front_matter_pattern = r'^---\n.*?\n---\n'
+        content = re.sub(front_matter_pattern, '', content, count=1, flags=re.DOTALL)
         return content.strip()
 
     def _parse_datetime(self, dt_str: Optional[str]) -> Optional[datetime]:
@@ -874,147 +810,286 @@ class YuqueDataSource(DataSourcePlugin):
         if not dt_str:
             return None
         try:
+            # 尝试 ISO 格式
             return datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
         except:
-            return None
+            try:
+                # 尝试常见格式
+                return datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+            except:
+                return None
 
     async def get_content(self, item_id: str) -> Optional[str]:
         """获取文档内容"""
-        if self._client is None:
-            return None
-
         if item_id.startswith('yuque:'):
             item_id = item_id[6:]
 
-        doc_detail = await self._client.get_doc_detail(item_id)
-        if doc_detail:
-            return self._extract_content(doc_detail)
+        # 从 metadata 中获取文件路径
+        file_path = self._download_dir / f"{item_id}.md"
 
-        return None
+        if not file_path.exists():
+            return None
+
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            return self._remove_front_matter(content)
+        except Exception as e:
+            logger.error(f"读取文档失败 {item_id}: {e}")
+            return None
 
     async def cleanup(self):
         """清理资源"""
-        if self._client:
-            await self._client.close()
-            self._client = None
+        pass
+```
+
+### 4.4 requirements.txt
+
+```txt
+# data/plugins/datasource/yuque/requirements.txt
+# 语雀数据源插件依赖
+
+# 外部依赖（需要在系统环境安装）：
+# - Node.js 18.4+
+# - yuque-dl (npm install -g yuque-dl)
+
+# Python 依赖：
+pyyaml>=6.0
+```
+
+### 4.5 README.md
+
+```markdown
+# 语雀知识库插件
+
+基于 [yuque-dl](https://github.com/gxr404/yuque-dl) 的语雀知识库数据源插件。
+
+## 安装依赖
+
+### 1. 安装 Node.js
+
+确保系统已安装 Node.js 18.4 或更高版本：
+
+```bash
+node --version
+```
+
+### 2. 安装 yuque-dl
+
+```bash
+npm install -g yuque-dl
+```
+
+或使用 npx（无需全局安装）：
+
+```bash
+npx yuque-dl --version
+```
+
+## 配置说明
+
+编辑 `config.yaml` 文件：
+
+```yaml
+yuque_dl:
+  # 知识库 URL
+  repo_url: "https://www.yuque.com/your-org/repo"
+
+  # 语雀 Cookie（访问私有知识库需要）
+  # 获取方式：浏览器 DevTools -> Application -> Cookies -> _yuque_session
+  token: ""
+```
+
+## 使用场景
+
+| 场景 | 配置说明 |
+|------|---------|
+| 公开知识库 | 仅需配置 `repo_url` |
+| 私有知识库 | 需配置 `token`（`_yuque_session` Cookie） |
+| 企业部署 | 需配置 `cookie_key` 和 `token` |
+| 密码保护知识库 | 输入密码后获取对应 Cookie |
+
+## 获取 Cookie
+
+1. 登录语雀
+2. 打开浏览器 DevTools（F12）
+3. 进入 Application -> Cookies -> https://www.yuque.com
+4. 找到 `_yuque_session`，复制其值
+
+## 支持的功能
+
+- ✅ 增量下载（仅下载新增/修改的文档）
+- ✅ 断点续传（中断后可继续下载）
+- ✅ 图片下载
+- ✅ 附件下载
+- ✅ TOC 目录生成
 ```
 
 ---
 
-## 5. AI模型插件实现
+## 5. 本地文件数据源插件
 
-### 5.1 配置文件示例
+### 5.1 配置文件
 
 ```yaml
-# data/plugins/ai_model/openai/config.yaml
+# data/plugins/datasource/filesystem/config.yaml
 plugin:
-  id: openai
-  name: OpenAI
+  id: filesystem
+  name: 本地文件
   version: "1.0.0"
-  type: ai_model              # 插件类型
+  type: datasource
   enabled: true
 
-model:
-  type: text                  # 模型类型
-  api_key: "your_openai_api_key"
-  base_url: "https://api.openai.com/v1"
-  model: "gpt-4"
-  embedding_model: "text-embedding-3-small"
+datasource:
+  # 扫描目录列表
+  scan_dirs:
+    - "D:/Documents"
+    - "D:/Projects"
 
-capabilities:
-  chat: true                  # 支持对话
-  embedding: true             # 支持嵌入
-  streaming: true             # 支持流式输出
-  vision: true                # 支持图像理解
+  # 支持的文件扩展名
+  extensions:
+    - ".md"
+    - ".txt"
+    - ".pdf"
+    - ".docx"
+    - ".mp4"
+    - ".mp3"
+    - ".wav"
+    - ".jpg"
+    - ".png"
+
+  # 排除的目录
+  exclude_dirs:
+    - ".git"
+    - "node_modules"
+    - "__pycache__"
+    - ".venv"
 ```
 
-### 5.2 OpenAI插件实现
+### 5.2 插件实现
 
 ```python
-# data/plugins/ai_model/openai/plugin.py
-from app.plugins.interface.ai_model import AIModelPlugin, ModelType
-from typing import Dict, Any, AsyncIterator
-from openai import AsyncOpenAI
-import logging
+# data/plugins/datasource/filesystem/plugin.py
+import os
+from pathlib import Path
+from typing import Dict, Any, AsyncIterator, Optional
+from datetime import datetime
 
-logger = logging.getLogger(__name__)
+from app.plugins.interface.datasource import DataSourcePlugin, DataSourceItem
+from app.core.logging_config import logger
 
-class OpenAIModel(AIModelPlugin):
-    """OpenAI AI模型插件"""
 
-    _client: AsyncOpenAI = None
+class FileSystemDataSource(DataSourcePlugin):
+    """本地文件数据源插件"""
+
+    def __init__(self):
+        self._config: Dict[str, Any] = {}
 
     @classmethod
     def get_metadata(cls) -> Dict[str, Any]:
         return {
-            "id": "openai",
-            "name": "OpenAI",
+            "id": "filesystem",
+            "name": "本地文件",
             "version": "1.0.0",
-            "type": "ai_model",
+            "type": "datasource",
             "author": "XiaoyaoSearch Team",
-            "description": "OpenAI GPT模型集成",
-            "model_type": ModelType.TEXT.value,
-            "supported_features": ["chat", "embedding", "streaming", "vision"]
+            "description": "扫描本地文件系统",
+            "datasource_type": "filesystem"
         }
 
     async def initialize(self, config: Dict[str, Any]) -> bool:
-        """初始化OpenAI客户端"""
+        """初始化插件"""
         try:
             self._config = config
-            self._client = AsyncOpenAI(
-                api_key=config.get("api_key"),
-                base_url=config.get("base_url")
-            )
+            scan_dirs = config.get("scan_dirs", [])
+            if not scan_dirs:
+                logger.warning("未配置扫描目录")
+                return False
+
+            logger.info(f"本地文件数据源初始化成功，扫描目录: {scan_dirs}")
             return True
+
         except Exception as e:
-            logger.error(f"OpenAI初始化失败: {e}")
+            logger.error(f"本地文件数据源初始化失败: {e}")
             return False
 
-    async def chat(
+    async def scan(self, **kwargs) -> AsyncIterator[DataSourceItem]:
+        """扫描本地文件"""
+        scan_dirs = self._config.get("scan_dirs", [])
+        extensions = set(self._config.get("extensions", []))
+        exclude_dirs = set(self._config.get("exclude_dirs", []))
+
+        for scan_dir in scan_dirs:
+            async for item in self._scan_directory(scan_dir, extensions, exclude_dirs):
+                yield item
+
+    async def _scan_directory(
         self,
-        messages: list,
-        stream: bool = False,
-        **kwargs
-    ) -> AsyncIterator[Dict[str, Any]]:
-        """对话接口"""
-        model = kwargs.get("model", self._config.get("model", "gpt-4"))
+        directory: str,
+        extensions: set[str],
+        exclude_dirs: set[str]
+    ) -> AsyncIterator[DataSourceItem]:
+        """扫描目录"""
+        for root, dirs, files in os.walk(directory):
+            # 排除指定目录
+            dirs[:] = [d for d in dirs if d not in exclude_dirs and not d.startswith('.')]
 
-        if stream:
-            stream_response = await self._client.chat.completions.create(
-                model=model,
-                messages=messages,
-                stream=True
-            )
-            async for chunk in stream_response:
-                if chunk.choices[0].delta.content:
-                    yield {
-                        "content": chunk.choices[0].delta.content,
-                        "finish_reason": None
-                    }
-            yield {"finish_reason": "stop"}
-        else:
-            response = await self._client.chat.completions.create(
-                model=model,
-                messages=messages
-            )
-            yield {
-                "content": response.choices[0].message.content,
-                "finish_reason": response.choices[0].finish_reason
-            }
+            for file in files:
+                file_path = os.path.join(root, file)
+                _, ext = os.path.splitext(file)
 
-    async def embedding(self, text: str, **kwargs) -> list[float]:
-        """文本嵌入接口"""
-        model = kwargs.get("model", self._config.get("embedding_model", "text-embedding-3-small"))
-        response = await self._client.embeddings.create(
-            model=model,
-            input=text
-        )
-        return response.data[0].embedding
+                if extensions and ext not in extensions:
+                    continue
+
+                try:
+                    # 获取文件信息
+                    stat = os.stat(file_path)
+                    created_at = datetime.fromtimestamp(stat.st_ctime)
+                    modified_at = datetime.fromtimestamp(stat.st_mtime)
+
+                    # 读取内容（文本文件）
+                    content = ""
+                    if ext in ['.md', '.txt']:
+                        try:
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                        except:
+                            content = f"[二进制文件: {file}]"
+
+                    yield DataSourceItem(
+                        id=f"fs:{file_path}",
+                        title=file,
+                        content=content,
+                        source_type="filesystem",
+                        url=f"file:///{file_path.replace(os.sep, '/')}",
+                        created_at=created_at,
+                        modified_at=modified_at,
+                        metadata={
+                            "file_path": file_path,
+                            "file_size": stat.st_size,
+                            "extension": ext
+                        }
+                    )
+
+                except Exception as e:
+                    logger.warning(f"处理文件失败 {file_path}: {e}")
+                    continue
+
+    async def get_content(self, item_id: str) -> Optional[str]:
+        """获取文件内容"""
+        if item_id.startswith('fs:'):
+            item_id = item_id[3:]
+
+        try:
+            with open(item_id, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            logger.error(f"读取文件失败 {item_id}: {e}")
+            return None
 
     async def cleanup(self):
         """清理资源"""
-        if self._client:
-            await self._client.close()
+        pass
 ```
 
 ---
@@ -1028,7 +1103,6 @@ class OpenAIModel(AIModelPlugin):
 from contextlib import asynccontextmanager
 from app.plugins.loader import PluginLoader
 from app.services.datasource.manager import get_datasource_manager
-from app.services.ai_model.manager import get_ai_model_manager
 from pathlib import Path
 
 @asynccontextmanager
@@ -1041,12 +1115,9 @@ async def lifespan(app: FastAPI):
     # 发现并加载所有插件
     loaded_plugins = await plugin_loader.discover_and_load_all()
 
-    # 设置到管理器
+    # 设置到数据源管理器
     datasource_manager = get_datasource_manager()
     datasource_manager.set_loader(plugin_loader)
-
-    ai_model_manager = get_ai_model_manager()
-    ai_model_manager.set_loader(plugin_loader)
 
     logger.info(f"插件系统启动完成，已加载 {len(loaded_plugins)} 个插件")
 
@@ -1081,21 +1152,32 @@ CREATE INDEX IF NOT EXISTS idx_files_source_type ON files(source_type);
 |------|------|------|
 | v1.0 | 2026-02-22 | 初始版本（数据源插件专用） |
 | v1.2 | 2026-02-22 | 约定优于配置版本 |
-| **v2.0** | **2026-02-22** | **通用插件系统架构** |
+| v2.0 | 2026-02-22 | 通用插件系统架构 |
+| **v2.1** | **2026-02-22** | **yuque-dl CLI集成方案** |
+
+### v2.1 主要变更
+
+- ✅ 语雀插件改用 yuque-dl CLI 工具集成
+- ✅ 移除 YuqueClient API 客户端
+- ✅ 增加 yuque-dl 工具检测逻辑
+- ✅ 增加 subprocess 命令调用
+- ✅ 增加 Front Matter 元数据提取
+- ✅ 简化配置文件，增加 yuque-dl 专属配置
+- ✅ 增加 requirements.txt 说明外部依赖
+- ✅ 增加 README.md 使用说明
 
 ### v2.0 主要变更
 
 - ✅ 新增 `BasePlugin` 通用基类
-- ✅ 新增 `AIModelPlugin` AI模型接口
+- ✅ 新增 `AIModelPlugin` AI模型接口（架构预留）
 - ✅ 新增 `PluginType` 插件类型枚举
-- ✅ 新增 `ModelType` AI模型类型枚举
 - ✅ 插件目录按类型组织
 - ✅ 配置文件支持插件类型标识
 - ✅ PluginLoader支持多类型插件加载
 
 ---
 
-**文档版本**: v2.0
+**文档版本**: v2.1
 **创建时间**: 2026-02-22
-**最后更新**: 2026-02-22 (v2.0 - 通用插件系统)
+**最后更新**: 2026-02-22 (v2.1 - yuque-dl CLI集成)
 **维护者**: 开发者
