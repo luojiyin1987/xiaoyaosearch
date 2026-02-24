@@ -11,7 +11,7 @@ const t = (key: string, params?: Record<string, any>): string => {
 // 创建 axios 实例
 const http: AxiosInstance = axios.create({
   baseURL: 'http://127.0.0.1:8000', // 后端 API 地址，使用IPv4确保连接
-  timeout: 30000, // 30秒超时
+  timeout: 600000, // 10分钟超时
   headers: {
     'Content-Type': 'application/json',
   },
