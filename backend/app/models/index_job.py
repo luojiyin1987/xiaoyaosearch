@@ -43,7 +43,7 @@ class IndexJobModel(Base):
         if total_files > 0:
             progress = int((processed_files / total_files) * 100)
 
-        return {
+        result = {
             "index_id": self.id,
             "folder_path": self.folder_path,
             "job_type": self.job_type,
@@ -57,6 +57,8 @@ class IndexJobModel(Base):
             "error_message": self.error_message,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
+
+        return result
 
     @classmethod
     def get_job_types(cls) -> list:
@@ -83,10 +85,10 @@ class IndexJobModel(Base):
         self.status = "processing"
         self.started_at = datetime.now()
         # 初始化进度相关字段，确保前端显示正确
-        if self.processed_files is None:
-            self.processed_files = 0
-        if self.total_files is None:
-            self.total_files = 0
+        # 注意：必须重置processed_files为0，而不是保留旧值
+        self.processed_files = 0
+        if self.total_files is None or self.total_files == 0:
+            self.total_files = 100  # 设置临时值，扫描完成后会更新
         if self.error_count is None:
             self.error_count = 0
 

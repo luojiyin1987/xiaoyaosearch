@@ -92,7 +92,29 @@ async def create_index(
         ).first()
 
         if existing_job:
-            logger.info(f"文件夹已在索引中: {request.folder_path}")
+            # 如果存在旧任务，需要重置状态和进度
+            # 这样可以避免显示旧任务的过期进度（如 84% 230/271）
+            logger.info(f"发现旧的索引任务，重置状态: id={existing_job.id}")
+
+            # 重置任务状态和进度
+            existing_job.status = get_enum_value(JobStatus.PENDING)
+            existing_job.processed_files = 0
+            existing_job.error_count = 0
+            existing_job.started_at = None
+            existing_job.completed_at = None
+            existing_job.error_message = None
+            db.commit()
+            db.refresh(existing_job)
+
+            # 启动后台任务执行索引
+            background_tasks.add_task(
+                run_full_index_task,
+                existing_job.id,
+                request.folder_path,
+                request.recursive,
+                request.file_types
+            )
+
             return IndexCreateResponse(
                 data=IndexJobInfo(**existing_job.to_dict()),
                 message=i18n.t('index.folder_indexing', locale)
@@ -160,7 +182,28 @@ async def update_index(
         ).first()
 
         if existing_job:
-            logger.info(f"文件夹正在索引中: {request.folder_path}")
+            # 如果存在旧任务，需要重置状态和进度
+            logger.info(f"发现旧的增量索引任务，重置状态: id={existing_job.id}, old_status={existing_job.status}")
+
+            # 重置任务状态和进度
+            existing_job.status = get_enum_value(JobStatus.PENDING)
+            existing_job.processed_files = 0
+            existing_job.error_count = 0
+            existing_job.started_at = None
+            existing_job.completed_at = None
+            existing_job.error_message = None
+            db.commit()
+            db.refresh(existing_job)
+
+            # 启动后台任务执行索引
+            background_tasks.add_task(
+                run_incremental_index_task,
+                existing_job.id,
+                request.folder_path,
+                request.recursive,
+                request.file_types
+            )
+
             return IndexCreateResponse(
                 data=IndexJobInfo(**existing_job.to_dict()),
                 message=i18n.t('index.folder_indexing', locale)
@@ -694,6 +737,11 @@ async def run_full_index_task(
 
         # 开始任务
         index_job.start_job()
+        # 初始化进度字段，确保从0%开始
+        if index_job.processed_files is None:
+            index_job.processed_files = 0
+        if index_job.total_files is None or index_job.total_files == 0:
+            index_job.total_files = 100  # 临时值，扫描完成后会更新
         db.commit()
 
         # 重置索引服务的停止标志
@@ -787,6 +835,11 @@ async def run_incremental_index_task(
 
         # 开始任务
         index_job.start_job()
+        # 设置初始total_files为100（用于进度计算，后续会更新为实际值）
+        if not index_job.total_files or index_job.total_files == 0:
+            index_job.total_files = 100
+        if index_job.processed_files is None:
+            index_job.processed_files = 0
         db.commit()
 
         # 重置索引服务的停止标志
@@ -809,12 +862,33 @@ async def run_incremental_index_task(
 
         # 定义进度更新回调函数
         def progress_callback(current: int, total: int, stage: str = ""):
-            """增量索引进度更新回调"""
-            if total > 0:
-                progress = (current / total) * 100.0
-                index_job.update_progress(int(progress))
+            """增量索引进度更新回调
+
+            注意：增量索引的progress_callback传入的current/total是整体进度百分比（如30/100）
+            需要转换为虚拟的processed_files数量，避免在文件处理完就显示100%
+
+            进度权重分配：
+            - 扫描变更：0-10%
+            - 处理文件：10-70%
+            - 保存数据库：70-85%
+            - 删除索引：85-90%
+            - 构建索引：90-99%
+            - 完成：100%
+        """
+            if total > 0 and index_job.total_files and index_job.total_files > 0:
+                # current/total 是整体进度百分比（如30/100 = 30%）
+                # 直接按百分比计算虚拟进度
+                virtual_progress = current / total  # 0.0 - 1.0
+
+                # 确保不超过99%（除非是完成状态）
+                if virtual_progress > 0.99 and "完成" not in stage:
+                    virtual_progress = 0.99
+
+                # 计算虚拟的processed_files数量
+                processed_count = int(index_job.total_files * virtual_progress)
+                index_job.update_progress(processed_count)
                 db.commit()
-                task_logger.debug(f"增量索引进度更新: {current}/{total} ({progress:.1f}%) - {stage}")
+                task_logger.debug(f"增量索引进度更新: {stage} - {current}/{total} -> {processed_count}/{index_job.total_files} ({virtual_progress*100:.1f}%)")
 
         result = await temp_index_service.update_incremental_index(
             scan_paths=[folder_path],
