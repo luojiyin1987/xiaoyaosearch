@@ -1,0 +1,8 @@
+# 语雀知识库插件依赖
+
+# Python 依赖（插件本身使用）
+pyyaml>=6.0
+
+# 外部依赖（需要手动安装）
+# - Node.js 18.4+ (https://nodejs.org/)
+# - yuque-dl (npm install -g yuque-dl 或使用 npx)

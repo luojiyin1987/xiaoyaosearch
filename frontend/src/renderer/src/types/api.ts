@@ -98,6 +98,8 @@ export interface SearchResult {
   modified_at: string;
   file_size: number;
   match_type: string;
+  source_type?: string | null;
+  source_url?: string | null;
 }
 
 // 统一响应格式

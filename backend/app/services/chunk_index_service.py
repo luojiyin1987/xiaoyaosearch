@@ -522,6 +522,10 @@ class ChunkIndexService:
                 modified_time=fields.ID(stored=True, sortable=True),
                 created_at=fields.ID(stored=True, sortable=True),
 
+                # 数据源信息（插件系统）
+                source_type=fields.ID(stored=True),
+                source_url=fields.ID(stored=True),
+
                 # 优化的搜索字段
                 title=fields.TEXT(stored=True, analyzer=StandardAnalyzer()),  # 从文件名提取
                 keywords=fields.KEYWORD(stored=True, commas=True),  # 关键词字段
@@ -602,7 +606,10 @@ class ChunkIndexService:
                                 created_at=created_at_str,
                                 title=title,
                                 keywords=','.join(keywords) if keywords else '',
-                                content_preview=content_preview
+                                content_preview=content_preview,
+                                # 数据源信息（插件系统）
+                                source_type=chunk.get('source_type'),
+                                source_url=chunk.get('source_url')
                             )
 
                         except Exception as doc_error:
@@ -990,7 +997,10 @@ class ChunkIndexService:
                         end_position=chunk['end_position'],
                         content_length=chunk['content_length'],
                         modified_time=chunk['modified_time'],
-                        created_at=chunk['created_at'].isoformat() if isinstance(chunk['created_at'], datetime) else str(chunk['created_at'])
+                        created_at=chunk['created_at'].isoformat() if isinstance(chunk['created_at'], datetime) else str(chunk['created_at']),
+                        # 数据源信息（插件系统）
+                        source_type=chunk.get('source_type'),
+                        source_url=chunk.get('source_url')
                     )
 
                 writer.commit()
@@ -1422,7 +1432,10 @@ class ChunkIndexService:
                 start_position=fields.NUMERIC(stored=True, numtype=int),
                 end_position=fields.NUMERIC(stored=True, numtype=int),
                 content_length=fields.NUMERIC(stored=True, numtype=int),
-                title=fields.TEXT(analyzer=analyzer, stored=True)  # 标题字段
+                title=fields.TEXT(analyzer=analyzer, stored=True),  # 标题字段
+                # 数据源信息（插件系统）
+                source_type=fields.ID(stored=True),
+                source_url=fields.ID(stored=True)
             )
 
             # 3. 创建索引
@@ -1463,7 +1476,10 @@ class ChunkIndexService:
                     'embedding': str(chunk.get('embedding', [])),
                     'modified_time': str(modified_timestamp),  # 使用时间戳字符串
                     'created_at': str(created_timestamp),    # 使用时间戳字符串
-                    'title': chunk.get('file_name', '')  # 从文件名提取作为标题
+                    'title': chunk.get('file_name', ''),  # 从文件名提取作为标题
+                    # 数据源信息（插件系统）
+                    'source_type': chunk.get('source_type'),
+                    'source_url': chunk.get('source_url')
                 }
 
                 writer.add_document(**doc)

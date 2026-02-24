@@ -332,60 +332,6 @@ npm install
 npm run dev
 ```
 
-## 🔌 Plugin Development
-
-XiaoyaoSearch supports a **plugin architecture**, allowing developers to extend data source functionality through plugins.
-
-### Supported Plugin Types
-
-- ✅ **Data Source Plugins**: Extend external data sources (e.g., Yuque, Feishu, Notion)
-- 🚧 **AI Model Plugins**: Architecturally reserved, not yet implemented
-- 🚧 **Search Engine Plugins**: Architecturally reserved, not yet implemented
-
-### Quick Start
-
-**Documentation Links**:
-- 📖 [Plugin Development Guide (English)](docs/技术文档/插件开发文档_EN.md)
-- 📖 [插件开发文档（中文）](docs/技术文档/插件开发文档.md)
-
-**Plugin Directory Structure**:
-```
-data/plugins/
-├── datasource/              # Data source plugin directory
-│   ├── yuque/              # Yuque knowledge base plugin
-│   │   ├── plugin.py       # Plugin implementation
-│   │   ├── config.yaml     # Plugin configuration
-│   │   └── data/           # Data storage
-│   └── your-plugin/        # Your plugin
-```
-
-**Core Features**:
-- 🎯 **Convention over Configuration**: Plugins auto-discovered in directory
-- ⚡ **Async Architecture**: Based on asyncio asynchronous processing
-- 🔧 **Hot-pluggable**: Runtime dynamic loading support
-- 📝 **Simple Configuration**: YAML format configuration files
-
-### Development Example
-
-A minimal data source plugin only needs to implement the following methods:
-
-```python
-class MyDataSource(DataSourcePlugin):
-    async def initialize(self, config) -> bool:
-        """Initialize plugin"""
-        pass
-
-    async def sync(self) -> bool:
-        """Sync data to local"""
-        pass
-
-    async def cleanup(self):
-        """Cleanup resources"""
-        pass
-```
-
-See: [Plugin Development Guide](docs/技术文档/插件开发文档_EN.md)
-
 ---
 
 ## 🤝 How to Contribute
@@ -502,6 +448,35 @@ If you find a bug or have a feature suggestion:
 
 ## Product Roadmap
 [Product Roadmap](ROADMAP_EN.md)
+
+## Data Source Plugins List
+
+XiaoyaoSearch supports a **plugin-based architecture** that can be extended with various data sources through plugins:
+
+### Supported Data Source Types
+
+| Type | Description | Status |
+|------|-------------|--------|
+| 📁 Local File | Built-in system, no configuration required | ✅ Implemented |
+| ☁️ Yuque | Alibaba Yuque Knowledge Base | ✅ Implemented |
+| ☁️ Feishu | Feishu/Lark Documents | 📋 Planned |
+| ☁️ Notion | Notion Notes | 📋 Planned |
+| 🔗 GitHub | Code repositories and Wiki | 📋 Planned |
+| 🔗 GitLab | GitLab repositories | 📋 Planned |
+
+### Complete List
+
+View the complete data source plugins list (13 types):
+
+**📖 [Data Source Plugins List](docs/技术文档/数据源插件列表_EN.md)** | [中文版](docs/技术文档/数据源插件列表.md)
+
+### Develop Plugins
+
+Want to develop a new data source plugin?
+
+**📖 [Plugin Development Guide](docs/技术文档/插件开发文档.md)**
+
+---
 
 ## Project Contributors
 Thanks to the following people for their contributions to this project:

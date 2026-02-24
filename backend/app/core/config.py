@@ -232,6 +232,24 @@ class AIConfig(BaseSettings):
             return "cpu"
 
 
+class PluginConfig(BaseSettings):
+    """插件系统配置"""
+
+    # 插件目录配置
+    plugin_dir: str = Field(default="data/plugins", description="插件根目录")
+    plugin_auto_discover: bool = Field(default=True, description="是否自动发现插件")
+
+    # 插件生命周期配置
+    auto_sync_on_startup: bool = Field(default=True, description="启动时自动执行数据源同步")
+    sync_timeout: int = Field(default=300, description="同步超时时间（秒）")
+
+    # 插件隔离配置
+    enable_plugin_sandbox: bool = Field(default=False, description="启用插件沙箱（未实现）")
+
+    class Config:
+        env_prefix = "PLUGIN_"
+
+
 class DefaultConfig(BaseSettings):
     """默认配置"""
     # 默认模式控制
@@ -411,6 +429,7 @@ class AppConfig(BaseSettings):
     api: APIConfig = Field(default_factory=APIConfig)
     processing: ProcessingConfig = Field(default_factory=ProcessingConfig)
     ai: AIConfig = Field(default_factory=AIConfig)
+    plugin: PluginConfig = Field(default_factory=PluginConfig)
     # SecurityConfig 已移除 - 桌面应用无需安全认证配置
 
     class Config:

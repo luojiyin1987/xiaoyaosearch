@@ -87,6 +87,9 @@ class FileIndexService:
         # 内存中缓存已索引文件信息（用于变更检测）
         self._indexed_files_cache: Dict[str, FileInfo] = {}
 
+        # 插件加载器引用（用于提取数据源元数据）
+        self._plugin_loader = None
+
     def stop_indexing(self, task_id: Optional[int] = None) -> Dict[str, Any]:
         """停止索引构建任务
 
@@ -138,6 +141,43 @@ class FileIndexService:
         if self._should_stop:
             logger.info(f"检测到停止信号，任务ID: {self._current_task_id}")
         return self._should_stop
+
+    def set_plugin_loader(self, plugin_loader):
+        """设置插件加载器引用
+
+        Args:
+            plugin_loader: 插件加载器实例
+        """
+        self._plugin_loader = plugin_loader
+        logger.debug("插件加载器已设置到索引服务")
+
+    async def _extract_source_info(self, file_path: str, content: str) -> Dict[str, Any]:
+        """提取数据源信息（调用插件）
+
+        Args:
+            file_path: 文件路径
+            content: 文件内容
+
+        Returns:
+            dict: 数据源信息 {source_type, source_url}
+        """
+        source_info = {"source_type": "filesystem", "source_url": None, "source_id": None}
+
+        if not self._plugin_loader:
+            return source_info
+
+        datasource_plugins = self._plugin_loader.get_plugins_by_type("datasource")
+        for plugin_id, plugin in datasource_plugins.items():
+            try:
+                plugin_info = plugin.get_file_source_info(file_path, content)
+                if plugin_info.get("source_type"):
+                    logger.debug(f"文件 {file_path} 的数据源: {plugin_info.get('source_type')}")
+                    return plugin_info
+            except Exception as e:
+                logger.warning(f"插件 {plugin_id} 获取源信息失败: {e}")
+                continue
+
+        return source_info
 
     def _should_be_chunked(self, content_length: int) -> bool:
         """判断文件是否应该被分块处理
@@ -713,6 +753,10 @@ class FileIndexService:
                             logger.warning(f"跳过不支持的文件类型: {file_info.path} (扩展名: {file_info.extension}, MIME类型: {file_info.mime_type})")
                             continue
 
+                        # 提取数据源信息（调用插件）
+                        content_text = document.get('content', '')
+                        source_info = await self._extract_source_info(file_info.path, content_text)
+
                         # 创建或更新文件记录
                         file_record = FileModel(
                             file_path=file_info.path,
@@ -740,7 +784,10 @@ class FileIndexService:
                             is_chunked=self._should_be_chunked(len(document.get('content', ''))),
                             total_chunks=1,
                             chunk_strategy='500+50',
-                            avg_chunk_size=500
+                            avg_chunk_size=500,
+                            # 数据源信息（插件提供）
+                            source_type=source_info.get("source_type", "filesystem"),
+                            source_url=source_info.get("source_url")
                         )
 
                         # 合并处理：如果文件已存在则更新，否则创建

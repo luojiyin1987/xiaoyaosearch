@@ -135,7 +135,10 @@ async def search_files(
                 created_at=item.get('created_at', ''),
                 modified_at=item.get('modified_at', ''),
                 file_size=item.get('file_size', 0),
-                match_type=item.get('match_type', '')
+                match_type=item.get('match_type', ''),
+                # 数据源信息（插件系统）
+                source_type=item.get('source_type'),
+                source_url=item.get('source_url')
             )
             results.append(search_result_item)
 
@@ -325,7 +328,10 @@ async def multimodal_search(
                                 created_at=created_at,
                                 modified_at=modified_at,
                                 file_size=item.get('file_size', 0),
-                                match_type='image_vector'
+                                match_type='image_vector',
+                                # 数据源信息（插件系统）
+                                source_type=item.get('source_type'),
+                                source_url=item.get('source_url')
                             ))
 
                         # 图像搜索成功，构建MultimodalResponse格式的数据
@@ -419,7 +425,10 @@ async def multimodal_search(
                         created_at=item.get('created_at', ''),
                         modified_at=item.get('modified_at', ''),
                         file_size=item.get('file_size', 0),
-                        match_type=item.get('match_type', '')
+                        match_type=item.get('match_type', ''),
+                        # 数据源信息（插件系统）
+                        source_type=item.get('source_type'),
+                        source_url=item.get('source_url')
                     ))
 
                 # 记录LLM查询增强

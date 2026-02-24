@@ -44,6 +44,10 @@ temp/
 tmp/
 *.tmp
 
+# 插件零时文件
+backend/data/plugins/datasource/*/data/
+backend/data/plugins/datasource/*/config.yaml
+
 # 环境配置文件
 .env
 .env.local

@@ -116,6 +116,18 @@ app.whenReady().then(() => {
     }
   })
 
+  // 在默认浏览器中打开链接
+  ipcMain.handle('open-external', async (_event, url: string) => {
+    try {
+      await shell.openExternal(url)
+      return { success: true }
+    } catch (error) {
+      console.error('打开链接失败:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      return { success: false, error: errorMessage }
+    }
+  })
+
   createWindow()
 
   app.on('activate', function () {

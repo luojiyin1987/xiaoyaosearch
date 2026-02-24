@@ -11,6 +11,7 @@ declare global {
         canceled?: boolean;
         error?: string
       }>
+      openExternal: (url: string) => Promise<{ success: boolean; error?: string }>
     }
   }
 }

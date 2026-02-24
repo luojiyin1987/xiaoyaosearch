@@ -6,7 +6,9 @@ const api = {
   // 打开文件
   openFile: (filePath: string) => ipcRenderer.invoke('open-file', filePath),
   // 选择文件夹
-  selectFolder: () => ipcRenderer.invoke('select-folder')
+  selectFolder: () => ipcRenderer.invoke('select-folder'),
+  // 在默认浏览器中打开链接
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', url)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

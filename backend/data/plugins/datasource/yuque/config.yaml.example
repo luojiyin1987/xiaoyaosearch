@@ -1,0 +1,41 @@
+# 语雀知识库插件配置
+# 注意事项：
+# 1. 获取语雀 URL：
+#    - 打开语雀知识库主页
+#    - 复制浏览器地址栏中的 URL
+#
+# 2. 获取 API Token：
+#    - 参考：https://github.com/gxr404/yuque-dl/blob/main/docs/GET_TOEKN.md
+#
+# 3. 目录结构说明：
+#    下载的文件会保存在插件目录下的 download_dir 中
+#    例如：data/plugins/datasource/yuque/data/product-docs/
+
+plugin:
+  id: yuque
+  name: 语雀知识库
+  version: "1.0.0"
+  type: datasource
+  enabled: true
+
+# 数据源配置
+# 知识库配置列表放在 datasource 键下
+datasource:
+  # 知识库配置列表
+  # 可以配置多个语雀知识库，插件会依次同步
+  repos:
+    # 示例：产品文档知识库
+    - name: "产品知识库"                    # 知识库名称（用于日志显示）
+      url: "https://www.yuque.com/xxxx/xxx"  # 语雀知识库 URL
+      download_dir: "./data/product-docs" # 本地下载目录（相对于插件目录）
+      token: ""                           # 语雀 API Token（可选，公开知识库不需要）
+      ignore_images: true                # 是否忽略图片下载
+
+    # 示例：技术文档知识库
+    # - name: "技术文档"
+    #   url: "https://www.yuque.com/your-org/tech-docs"
+    #   download_dir: "./data/tech-docs"
+    #   token: ""
+    #   ignore_images: true
+
+

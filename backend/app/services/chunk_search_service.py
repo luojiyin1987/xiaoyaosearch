@@ -457,7 +457,10 @@ class ChunkSearchService:
                         'created_at': hit.get('created_at'),
                         'modified_time': hit.get('modified_time'),
                         'relevance_score': min(float(hit.score or 0.0), 1.0),
-                        'match_type': 'fulltext'
+                        'match_type': 'fulltext',
+                        # 数据源信息（插件系统）
+                        'source_type': hit.get('source_type'),
+                        'source_url': hit.get('source_url')
                     }
 
                     # 生成预览文本和高亮
@@ -614,7 +617,10 @@ class ChunkSearchService:
                     'chunk_index': chunk.chunk_index,
                     'start_position': chunk.start_position,
                     'end_position': chunk.end_position,
-                    'content_length': chunk.content_length
+                    'content_length': chunk.content_length,
+                    # 数据源信息（插件系统）
+                    'source_type': file.source_type,
+                    'source_url': file.source_url
                 }
 
             finally:
@@ -707,7 +713,10 @@ class ChunkSearchService:
                 'created_at': result.get('created_at') if result.get('created_at') else None,
                 'modified_at': result.get('modified_time') if result.get('modified_time') else None,
                 'file_size': result.get('file_size', 0),
-                'match_type': result.get('match_type', 'unknown')
+                'match_type': result.get('match_type', 'unknown'),
+                # 数据源信息（插件系统）
+                'source_type': result.get('source_type'),
+                'source_url': result.get('source_url')
             }
             formatted_results.append(formatted_result)
 

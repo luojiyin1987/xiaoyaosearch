@@ -53,7 +53,70 @@ async def lifespan(app: FastAPI):
         init_database()
         logger.info("数据库初始化完成")
 
-            # 初始化AI模型服务
+        # ========== 插件系统初始化 ==========
+        logger.info("初始化插件系统...")
+        try:
+            from app.plugins.loader import PluginLoader
+            from app.core.config import get_settings
+
+            settings = get_settings()
+            from pathlib import Path
+            plugin_dir = Path(settings.plugin.plugin_dir)
+
+            # 确保插件目录存在（相对于backend目录）
+            if not plugin_dir.is_absolute():
+                plugin_dir = backend_dir / plugin_dir
+            plugin_dir.mkdir(parents=True, exist_ok=True)
+
+            # 创建插件加载器
+            app.state.plugin_loader = PluginLoader(plugin_dir)
+
+            # 发现并加载所有插件
+            loaded_plugins = await app.state.plugin_loader.discover_and_load_all()
+
+            # 获取加载错误信息
+            load_errors = app.state.plugin_loader.get_load_errors()
+
+            logger.info(f"✅ 插件系统启动完成")
+            logger.info(f"   - 成功加载: {len(loaded_plugins)} 个插件")
+            if load_errors:
+                logger.warning(f"   - 加载失败: {len(load_errors)} 个插件")
+                for plugin_id, error in load_errors.items():
+                    logger.warning(f"     * {plugin_id}: {error}")
+
+            # 将插件加载器注入到索引服务
+            from app.services.file_index_service import get_file_index_service
+            index_service = get_file_index_service()
+            index_service.set_plugin_loader(app.state.plugin_loader)
+            logger.debug("插件加载器已注入到索引服务")
+
+            # 自动执行数据源插件的同步（如果配置启用）
+            if settings.plugin.auto_sync_on_startup:
+                datasource_plugins = app.state.plugin_loader.get_plugins_by_type("datasource")
+                if datasource_plugins:
+                    logger.info(f"开始自动同步 {len(datasource_plugins)} 个数据源插件...")
+                    for plugin_id, plugin in datasource_plugins.items():
+                        if hasattr(plugin, 'sync'):
+                            logger.info(f"  → 同步插件: {plugin_id}")
+                            try:
+                                sync_result = await plugin.sync()
+                                if sync_result:
+                                    logger.info(f"  ✅ 插件 {plugin_id} 同步完成")
+                                else:
+                                    logger.warning(f"  ⚠️ 插件 {plugin_id} 同步失败")
+                            except Exception as e:
+                                logger.error(f"  ❌ 插件 {plugin_id} 同步异常: {e}")
+                    logger.info("数据源插件自动同步完成")
+                else:
+                    logger.info("没有需要同步的数据源插件")
+
+        except Exception as e:
+            logger.error(f"❌ 插件系统初始化失败: {str(e)}")
+            logger.info("继续运行，但插件功能将不可用")
+            app.state.plugin_loader = None
+        # =====================================
+
+        # 初始化AI模型服务
         logger.info("加载AI模型...")
         try:
             from app.services.ai_model_manager import ai_model_service
@@ -93,8 +156,13 @@ async def lifespan(app: FastAPI):
     # 关闭时执行
     logger.info("小遥搜索服务关闭中...")
     try:
-        # TODO: 清理资源
-        # await cleanup_resources()
+        # 清理插件资源
+        if hasattr(app.state, 'plugin_loader') and app.state.plugin_loader:
+            logger.info("清理插件资源...")
+            await app.state.plugin_loader.cleanup_all()
+
+        # 清理其他资源
+        # TODO: 清理其他资源
         logger.info("资源清理完成")
     except Exception as e:
         logger.error(f"资源清理失败: {str(e)}")

@@ -28,6 +28,9 @@ class SearchResult(BaseModel):
     modified_at: Optional[datetime] = Field(None, description="文件修改时间")
     file_size: int = Field(..., description="文件大小(字节)")
     match_type: str = Field(..., description="匹配类型 semantic/fulltext/hybrid")
+    # 数据源信息（插件系统新增）
+    source_type: Optional[str] = Field(None, description="数据源类型(filesystem/yuque/feishu)")
+    source_url: Optional[str] = Field(None, description="原始文档URL")
 
     class Config:
         use_enum_values = True

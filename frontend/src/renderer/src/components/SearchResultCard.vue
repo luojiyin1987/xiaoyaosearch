@@ -19,7 +19,7 @@
           </h4>
           <div class="file-path" :title="result.file_path">
             <FolderOutlined />
-            {{ result.file_path }}
+            {{ displayPath }}
           </div>
         </div>
       </div>
@@ -49,6 +49,11 @@
       <!-- 文件元信息 -->
       <div class="file-metadata">
         <div class="metadata-row">
+          <!-- 文件来源类型 -->
+          <span class="metadata-item source-type" :class="`source-${result.source_type || 'filesystem'}`">
+            <component :is="getSourceIcon(result.source_type)" />
+            {{ getSourceTypeLabel(result.source_type) }}
+          </span>
           <span class="metadata-item">
             <CalendarOutlined />
             {{ formatDate(result.modified_at) }}
@@ -70,6 +75,16 @@
       <a-button type="text" size="small" @click="$emit('open', result)">
         <FolderOpenOutlined />
         {{ t('searchResult.open') }}
+      </a-button>
+      <a-button
+        v-if="isValidSourceUrl"
+        type="text"
+        size="small"
+        @click="openSourceUrl"
+        class="open-link-btn"
+      >
+        <LinkOutlined />
+        {{ t('searchResult.openLink') }}
       </a-button>
       <a-button type="text" size="small" @click="copyFilePath">
         <CopyOutlined />
@@ -94,7 +109,10 @@ import {
   CopyOutlined,
   CalendarOutlined,
   HddOutlined,
-  TagOutlined
+  TagOutlined,
+  CloudOutlined,
+  DatabaseOutlined,
+  LinkOutlined
 } from '@ant-design/icons-vue'
 
 const { t } = useI18n()
@@ -126,6 +144,51 @@ const getMatchTypeLabel = (type: string) => {
     hybrid: t('searchResult.hybridMatch')
   }
   return typeMap[type] || type
+}
+
+// 获取来源类型标签
+const getSourceTypeLabel = (sourceType: string | null) => {
+  const typeMap: Record<string, string> = {
+    filesystem: t('searchResult.sourceFilesystem'),
+    yuque: t('searchResult.sourceYuque'),
+    feishu: t('searchResult.sourceFeishu'),
+    notion: t('searchResult.sourceNotion'),
+    github: t('searchResult.sourceGithub'),
+    confluence: t('searchResult.sourceConfluence'),
+    wordpress: t('searchResult.sourceWordpress'),
+    obsidian: t('searchResult.sourceObsidian'),
+    dropbox: t('searchResult.sourceDropbox'),
+    googledrive: t('searchResult.sourceGoogleDrive'),
+    onedrive: t('searchResult.sourceOneDrive'),
+    figma: t('searchResult.sourceFigma'),
+    gitlab: t('searchResult.sourceGitlab')
+  }
+  // 如果是预定义类型，显示翻译文本；否则显示原始值
+  if (sourceType && sourceType in typeMap) {
+    return typeMap[sourceType]
+  }
+  // 如果是null、undefined或未定义类型，显示原始值或默认为filesystem
+  return sourceType || 'filesystem'
+}
+
+// 获取来源类型图标
+const getSourceIcon = (sourceType: string | null) => {
+  const iconMap: Record<string, any> = {
+    filesystem: DatabaseOutlined,
+    yuque: CloudOutlined,
+    feishu: CloudOutlined,
+    notion: CloudOutlined,
+    github: LinkOutlined,
+    confluence: CloudOutlined,
+    wordpress: FileTextOutlined,
+    obsidian: DatabaseOutlined,
+    dropbox: CloudOutlined,
+    googledrive: CloudOutlined,
+    onedrive: CloudOutlined,
+    figma: PictureOutlined,
+    gitlab: LinkOutlined
+  }
+  return iconMap[sourceType || 'filesystem'] || DatabaseOutlined
 }
 
 const copyFilePath = async () => {
@@ -164,6 +227,58 @@ const formatDate = (dateString: string): string => {
     return t('searchResult.daysAgo', { days })
   } else {
     return date.toLocaleDateString(t('common.localeCode'))
+  }
+}
+
+// 缩短路径显示
+import { computed } from 'vue'
+
+const displayPath = computed(() => {
+  const path = props.result.file_path
+  const maxLength = 60 // 最大显示长度
+
+  if (path.length <= maxLength) {
+    return path
+  }
+
+  // 保留开头和结尾，中间用省略号
+  const startLength = 25
+  const endLength = 25
+
+  return `${path.substring(0, startLength)}...${path.substring(path.length - endLength)}`
+})
+
+// 判断 source_url 是否为有效 URL
+const isValidSourceUrl = computed(() => {
+  const url = props.result.source_url
+  if (!url) return false
+  try {
+    new URL(url)
+    return true
+  } catch {
+    return false
+  }
+})
+
+// 打开来源链接
+const openSourceUrl = async () => {
+  const url = props.result.source_url
+  if (!url) return
+
+  try {
+    // 使用 shell.openExternal 在默认浏览器中打开 URL
+    const api = (window as any).api
+    if (api && typeof api.openExternal === 'function') {
+      await api.openExternal(url)
+      message.success(t('searchResult.linkOpened'))
+    } else {
+      // 备用方案：使用 window.open
+      window.open(url, '_blank')
+      message.success(t('searchResult.linkOpened'))
+    }
+  } catch (error) {
+    message.error(t('searchResult.linkOpenFailed'))
+    console.error('打开链接失败:', error)
   }
 }
 </script>
@@ -323,6 +438,82 @@ const formatDate = (dateString: string): string => {
   white-space: nowrap;
 }
 
+/* 来源类型样式 - 默认使用filesystem颜色 */
+.source-type {
+  padding: 2px 8px;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  /* 默认蓝色（filesystem颜色） */
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+}
+
+.source-type.source-filesystem {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+}
+
+.source-type.source-yuque {
+  color: #52c41a;
+  background: rgba(82, 196, 26, 0.1);
+}
+
+.source-type.source-feishu {
+  color: #722ed1;
+  background: rgba(114, 46, 209, 0.1);
+}
+
+.source-type.source-notion {
+  color: #fa541c;
+  background: rgba(250, 84, 28, 0.1);
+}
+
+/* 新增数据源类型样式 */
+.source-type.source-github {
+  color: #24292e;
+  background: rgba(36, 41, 46, 0.1);
+}
+
+.source-type.source-gitlab {
+  color: #FC6D26;
+  background: rgba(252, 109, 38, 0.1);
+}
+
+.source-type.source-confluence {
+  color: #0052CC;
+  background: rgba(0, 82, 204, 0.1);
+}
+
+.source-type.source-wordpress {
+  color: #21759b;
+  background: rgba(33, 117, 155, 0.1);
+}
+
+.source-type.source-obsidian {
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.1);
+}
+
+.source-type.source-dropbox {
+  color: #0061FE;
+  background: rgba(0, 97, 254, 0.1);
+}
+
+.source-type.source-googledrive {
+  color: #4285F4;
+  background: rgba(66, 133, 244, 0.1);
+}
+
+.source-type.source-onedrive {
+  color: #0078D4;
+  background: rgba(0, 120, 212, 0.1);
+}
+
+.source-type.source-figma {
+  color: #F24E1E;
+  background: rgba(242, 78, 30, 0.1);
+}
+
 .card-actions {
   display: flex;
   align-items: center;
@@ -341,6 +532,16 @@ const formatDate = (dateString: string): string => {
 .card-actions .ant-btn:hover {
   background: var(--surface-02);
   transform: translateY(-1px);
+}
+
+/* 打开链接按钮特殊样式 */
+.card-actions .open-link-btn {
+  color: #1890ff;
+}
+
+.card-actions .open-link-btn:hover {
+  color: #40a9ff;
+  background: rgba(24, 144, 255, 0.1);
 }
 
 

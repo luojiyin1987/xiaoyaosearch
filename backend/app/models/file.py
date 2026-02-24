@@ -90,7 +90,10 @@ class FileModel(Base):
             "is_chunked": self.is_chunked,
             "total_chunks": self.total_chunks,
             "chunk_strategy": self.chunk_strategy,
-            "avg_chunk_size": self.avg_chunk_size
+            "avg_chunk_size": self.avg_chunk_size,
+            # 数据源支持字段（插件系统）
+            "source_type": self.source_type,
+            "source_url": self.source_url
         }
 
     @classmethod
@@ -294,6 +297,10 @@ class FileModel(Base):
     total_chunks = Column(Integer, default=1, comment="总分块数量")
     chunk_strategy = Column(String(50), default='500+50', comment="分块策略")
     avg_chunk_size = Column(Integer, default=500, comment="平均分块大小")
+
+    # 数据源相关字段 (插件系统新增)
+    source_type = Column(String(50), default='filesystem', comment="数据源类型(filesystem/yuque/feishu)")
+    source_url = Column(String(1000), nullable=True, comment="原始文档URL")
 
     # 注意：软外键模式下不定义SQLAlchemy relationship
     # 关联关系由应用层通过file_id字段手动维护
