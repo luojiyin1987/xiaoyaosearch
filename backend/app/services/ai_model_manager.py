@@ -199,13 +199,28 @@ class AIModelService:
                         logger.info(f"创建并加载vision模型: {model_id}")
 
                     elif model_type == "llm":
-                        # 创建大语言模型
-                        ollama_service = create_ollama_service(config)
-                        self.model_manager.register_model(model_id, ollama_service)
+                        # ========== 新增：根据 provider 创建不同的服务 ==========
+                        if provider == "local":
+                            # 创建本地 Ollama 大语言模型服务
+                            from app.services.ollama_service import create_ollama_service
+                            llm_service = create_ollama_service(config)
+                        elif provider == "cloud":
+                            # 创建 OpenAI 兼容大语言模型服务
+                            from app.services.openai_llm_service import create_openai_compatible_service
+                            # 确保 config 包含 model 字段（从 model_name 映射）
+                            cloud_config = config.copy() if isinstance(config, dict) else {}
+                            cloud_config["model"] = model_config.get("model_name", "gpt-3.5-turbo")
+                            llm_service = create_openai_compatible_service(cloud_config)
+                        else:
+                            logger.warning(f"不支持的 LLM provider: {provider}")
+                            continue
+                        # =========================================================
+
+                        self.model_manager.register_model(model_id, llm_service)
                         self.default_models["llm"] = model_id
                         # 立即加载模型
                         await self.model_manager.load_model(model_id)
-                        logger.info(f"创建并加载llm模型: {model_id}")
+                        logger.info(f"创建并加载llm模型: {model_id}, provider: {provider}")
 
                 except Exception as model_error:
                     logger.warning(f"创建{model_type}模型失败 ({model_id}): {str(model_error)}")
@@ -543,7 +558,17 @@ class AIModelService:
             elif model_type == "vision":
                 model = create_clip_service(config)
             elif model_type == "llm":
-                model = create_ollama_service(config)
+                # 根据 provider 创建不同的 LLM 服务
+                if provider == "local":
+                    model = create_ollama_service(config)
+                elif provider == "cloud":
+                    from app.services.openai_llm_service import create_openai_compatible_service
+                    # 确保 config 包含 model 字段（从 model_name 映射）
+                    cloud_config = config.copy() if isinstance(config, dict) else {}
+                    cloud_config["model"] = model_config.get("model_name", "gpt-3.5-turbo")
+                    model = create_openai_compatible_service(cloud_config)
+                else:
+                    raise AIModelException(f"不支持的 LLM provider: {provider}")
             else:
                 raise AIModelException(f"不支持的模型类型: {model_type}")
 
@@ -749,7 +774,22 @@ class AIModelService:
             elif model_type == "vision":
                 new_model = create_clip_service(config)
             elif model_type == "llm":
-                new_model = create_ollama_service(config)
+                # 根据 provider 创建不同的 LLM 服务
+                provider = new_model_config.get("provider", "local")
+                if provider == "local":
+                    new_model = create_ollama_service(config)
+                elif provider == "cloud":
+                    from app.services.openai_llm_service import create_openai_compatible_service
+                    # 确保 config 包含 model 字段（从 model_name 映射）
+                    cloud_config = config.copy() if isinstance(config, dict) else {}
+                    cloud_config["model"] = new_model_config.get("model_name", "gpt-3.5-turbo")
+                    new_model = create_openai_compatible_service(cloud_config)
+                else:
+                    return {
+                        "success": False,
+                        "message": f"不支持的 LLM provider: {provider}",
+                        "reload_time": time.time() - start_time
+                    }
             else:
                 return {
                     "success": False,

@@ -346,11 +346,20 @@ async def test_ai_model(
                 # 测试大语言模型 - 使用当前配置重新创建实例
                 test_message = "你好，请介绍一下你自己"
                 try:
-                    # 导入Ollama服务
-                    from app.services.ollama_service import create_ollama_service
+                    # 根据 provider 创建对应的服务实例
+                    provider = model_config.provider or 'local'
+                    if provider == 'local':
+                        from app.services.ollama_service import create_ollama_service
+                        test_llm_service = create_ollama_service(config)
+                    elif provider == 'cloud':
+                        from app.services.openai_llm_service import create_openai_compatible_service
+                        # 确保 config 包含 model 字段（从 model_name 映射）
+                        cloud_config = config.copy() if isinstance(config, dict) else {}
+                        cloud_config["model"] = model_config.model_name
+                        test_llm_service = create_openai_compatible_service(cloud_config)
+                    else:
+                        raise ValueError(f"不支持的 LLM provider: {provider}")
 
-                    # 使用当前配置创建新的模型实例
-                    test_llm_service = create_ollama_service(config)
                     await test_llm_service.load_model()
 
                     # 执行测试

@@ -469,18 +469,54 @@ export default {
   settingsLLM: {
     title: '大语言模型',
     subtitle: '配置大语言模型参数',
+
+    // 新增：类型选择
+    modelType: '模型类型',
+    modelTypeOllama: 'Ollama（本地）',
+    modelTypeOpenAI: 'OpenAI 兼容（云端）',
+
+    // 现有：Ollama 配置
     llmService: 'LLM服务',
-    localOllamaService: '本地Ollama服务',
-    localOllamaDesc: '使用本地部署的Ollama服务运行大语言模型',
+    localOllamaService: '本地 Ollama 服务',
+    localOllamaDesc: '使用本地部署的 Ollama 服务运行大语言模型',
+
+    // 新增：OpenAI 兼容配置
+    openaiCompatibleService: 'OpenAI 兼容服务',
+    openaiCompatibleDesc: '使用兼容 OpenAI API 标准的云端大语言模型',
+
+    // 新增：云端服务说明
+    cloudServiceInfo: {
+      title: 'ℹ️ 云端服务使用说明',
+      description: '使用云端大模型时：',
+      localDataSafe: '✅ 您的本地文件和索引数据存储在本地，不会上传',
+      querySent: '⚠️ 搜索查询会发送到云端服务进行处理',
+      betterUnderstanding: '💡 云端模型可提供更好的语义理解能力',
+      recommendation: '如需完全隐私保护，请使用本地 Ollama 服务'
+    },
+
+    // 通用配置项
     modelName: '模型名称',
     modelNamePlaceholder: '例如: qwen2.5:1.5b',
+    modelNamePlaceholderCloud: '例如: gpt-3.5-turbo、qwen-turbo、deepseek-chat',
     modelNameHelp: '输入已安装的Ollama模型名称，支持任何格式',
+    modelNameHelpCloud: '输入云端模型名称，如 gpt-3.5-turbo、qwen-turbo、deepseek-chat 等',
+
     serviceUrl: '服务地址',
     serviceUrlPlaceholder: 'http://localhost:11434',
+
+    // 新增：云端配置项
+    apiKey: 'API 密钥',
+    apiKeyPlaceholder: 'sk-...',
+    endpoint: '端点地址',
+    endpointPlaceholder: 'https://api.openai.com/v1',
+    endpointHelp: '可选，默认为官方 API 地址',
+
+    // 操作
     testConnection: '测试连接',
-    saveSuccessRestart: '大语言模型配置保存成功，重启应用后生效',
+    saveSettings: '保存设置',
+    saveSuccessRestart: '设置已保存，请重启应用以生效',
     pleaseSaveFirst: '请先保存大语言模型配置',
-    testData: '你好，请介绍一下你自己'
+    testData: '你好，请简单介绍一下你自己。'
   },
 
   // 设置页面 - 视觉模型

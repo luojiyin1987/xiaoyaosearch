@@ -1,6 +1,6 @@
 """
 Ollama大语言模型集成服务
-提供本地大语言模型调用和云端API备选方案
+提供本地大语言模型调用
 """
 import asyncio
 import logging
@@ -30,7 +30,6 @@ class OllamaLLMService(BaseAIModel):
     Ollama大语言模型服务
 
     提供本地大语言模型调用，支持多种开源模型
-    同时提供云端API备选方案
     """
 
     def __init__(self, config: Dict[str, Any] = None):
@@ -68,7 +67,6 @@ class OllamaLLMService(BaseAIModel):
 
         self.session = None
         self.model_info = None
-        self.cloud_models = {}
 
         logger.info(f"初始化Ollama大语言模型服务，模型: {self.config['model_name']}")
 
@@ -97,10 +95,6 @@ class OllamaLLMService(BaseAIModel):
             # 获取模型信息
             await self._get_model_info()
 
-            # 初始化云端备选模型
-            if self.config.get("use_cloud_fallback", True):
-                await self._init_cloud_models()
-
             self.update_status(ModelStatus.LOADED)
             logger.info(f"Ollama模型检查成功，模型: {self.model_name}")
             return True
@@ -126,9 +120,6 @@ class OllamaLLMService(BaseAIModel):
                 await self.session.close()
                 self.session = None
 
-            # 清理云端模型
-            self.cloud_models.clear()
-
             self.update_status(ModelStatus.UNLOADED)
             logger.info("Ollama模型卸载成功")
             return True
@@ -147,8 +138,6 @@ class OllamaLLMService(BaseAIModel):
             **kwargs: 其他预测参数
                 - temperature: 温度参数
                 - max_tokens: 最大生成token数
-                - use_cloud: 是否使用云端API
-                - cloud_provider: 指定云端提供商
 
         Returns:
             Dict[str, Any]: 生成结果，包含生成文本、使用token数等
@@ -169,16 +158,11 @@ class OllamaLLMService(BaseAIModel):
             # 获取预测参数
             temperature = kwargs.get("temperature", self.config.get("temperature", 0.7))
             max_tokens = kwargs.get("max_tokens", self.config.get("num_predict", 2048))
-            use_cloud = kwargs.get("use_cloud", False)
-            cloud_provider = kwargs.get("cloud_provider", self.config.get("cloud_provider", "aliyun"))
 
-            logger.info(f"开始大语言模型预测，消息数量: {len(standardized_messages)}, 使用云端: {use_cloud}")
+            logger.info(f"开始Ollama本地模型预测，消息数量: {len(standardized_messages)}")
 
-            # 选择推理方式
-            if use_cloud and self.config.get("use_cloud_fallback", True):
-                result = await self._predict_with_cloud(standardized_messages, cloud_provider, **kwargs)
-            else:
-                result = await self._predict_with_ollama(standardized_messages, **kwargs)
+            # 直接使用本地Ollama预测
+            result = await self._predict_with_ollama(standardized_messages, **kwargs)
 
             self.record_usage()
             logger.info(f"大语言模型预测完成，生成文本长度: {len(result['content'])}")
@@ -187,21 +171,6 @@ class OllamaLLMService(BaseAIModel):
         except Exception as e:
             error_msg = f"大语言模型预测失败: {str(e)}"
             logger.error(error_msg)
-
-            # 如果本地失败且启用云端备选，尝试云端API
-            if not kwargs.get("use_cloud", False) and self.config.get("use_cloud_fallback", True):
-                logger.info("本地模型失败，尝试云端备选方案")
-                try:
-                    standardized_messages = self._standardize_messages(messages)
-                    return await self._predict_with_cloud(
-                        standardized_messages,
-                        self.config.get("cloud_provider", "aliyun"),
-                        **kwargs
-                    )
-                except Exception as cloud_error:
-                    logger.error(f"云端备选方案也失败: {str(cloud_error)}")
-                    error_msg += f"；云端备选失败: {str(cloud_error)}"
-
             raise AIModelException(error_msg, model_name=self.model_name)
 
     def _standardize_messages(self, messages: Union[str, List[Message], List[Dict]]) -> List[Dict]:
@@ -274,14 +243,6 @@ class OllamaLLMService(BaseAIModel):
                 "total_tokens": result.get("prompt_eval_count", 0) + result.get("eval_count", 0)
             }
         }
-
-    async def _predict_with_cloud(self, messages: List[Dict], cloud_provider: str, **kwargs) -> Dict[str, Any]:
-        """使用云端API进行预测"""
-        if cloud_provider not in self.cloud_models:
-            raise AIModelException(f"不支持的云端提供商: {cloud_provider}", model_name=self.model_name)
-
-        cloud_service = self.cloud_models[cloud_provider]
-        return await cloud_service.predict(messages, **kwargs)
 
     async def _check_ollama_service(self) -> bool:
         """检查Ollama服务是否可用"""
@@ -362,22 +323,6 @@ class OllamaLLMService(BaseAIModel):
         except Exception as e:
             logger.warning(f"获取模型信息异常: {str(e)}")
             return {}
-
-    async def _init_cloud_models(self):
-        """初始化云端备选模型"""
-        cloud_config = self.config.get("cloud_config", {})
-
-        # 初始化阿里云模型
-        if "aliyun" in cloud_config and cloud_config["aliyun"].get("api_key"):
-            from app.services.aliyun_llm_service import AliyunLLMService
-            self.cloud_models["aliyun"] = AliyunLLMService(cloud_config["aliyun"])
-            logger.info("阿里云大语言模型初始化完成")
-
-        # 初始化OpenAI模型
-        if "openai" in cloud_config and cloud_config["openai"].get("api_key"):
-            from app.services.openai_llm_service import OpenAILLMService
-            self.cloud_models["openai"] = OpenAILLMService(cloud_config["openai"])
-            logger.info("OpenAI大语言模型初始化完成")
 
     async def chat(self, message: str, history: Optional[List[Dict]] = None, **kwargs) -> str:
         """
@@ -480,8 +425,6 @@ class OllamaLLMService(BaseAIModel):
             "top_k": self.config.get("top_k", 40),
             "num_predict": self.config.get("num_predict", 2048),
             "num_ctx": self.config.get("num_ctx", 2048),
-            "use_cloud_fallback": self.config.get("use_cloud_fallback", False),
-            "cloud_providers": list(self.cloud_models.keys()),
             "model_info": self.model_info
         }
 

@@ -60,26 +60,107 @@
         <div class="settings-section">
           <h3>{{ t('settingsLLM.title') }}</h3>
           <a-form layout="vertical">
-            <a-form-item :label="t('settingsLLM.llmService')">
-              <a-alert
-                :message="t('settingsLLM.localOllamaService')"
-                :description="t('settingsLLM.localOllamaDesc')"
-                type="info"
-                show-icon
-              />
+            <!-- 模型类型选择器 -->
+            <a-form-item :label="t('settingsLLM.modelType')">
+              <a-select
+                v-model:value="llmConfig.provider"
+                style="width: 200px"
+                @change="handleProviderChange"
+              >
+                <a-select-option value="local">
+                  {{ t('settingsLLM.modelTypeOllama') }}
+                </a-select-option>
+                <a-select-option value="cloud">
+                  {{ t('settingsLLM.modelTypeOpenAI') }}
+                </a-select-option>
+              </a-select>
             </a-form-item>
 
-            <a-form-item :label="t('settingsLLM.modelName')">
-              <a-input
-                v-model:value="llmConfig.model_name"
-                :placeholder="t('settingsLLM.modelNamePlaceholder')"
-                style="width: 100%"
-              />
-              <div class="form-help">{{ t('settingsLLM.modelNameHelp') }}</div>
-            </a-form-item>
-            <a-form-item :label="t('settingsLLM.serviceUrl')">
-              <a-input v-model:value="llmConfig.base_url" :placeholder="t('settingsLLM.serviceUrlPlaceholder')" />
-            </a-form-item>
+            <!-- Ollama 本地服务配置表单 -->
+            <template v-if="llmConfig.provider === 'local'">
+              <a-form-item>
+                <a-alert
+                  :message="t('settingsLLM.localOllamaService')"
+                  :description="t('settingsLLM.localOllamaDesc')"
+                  type="info"
+                  show-icon
+                />
+              </a-form-item>
+
+              <a-form-item :label="t('settingsLLM.modelName')">
+                <a-input
+                  v-model:value="llmConfig.model_name_local"
+                  :placeholder="t('settingsLLM.modelNamePlaceholder')"
+                  style="width: 100%"
+                />
+                <div class="form-help">{{ t('settingsLLM.modelNameHelp') }}</div>
+              </a-form-item>
+
+              <a-form-item :label="t('settingsLLM.serviceUrl')">
+                <a-input
+                  v-model:value="llmConfig.base_url"
+                  :placeholder="t('settingsLLM.serviceUrlPlaceholder')"
+                />
+              </a-form-item>
+            </template>
+
+            <!-- OpenAI 兼容云端服务配置表单 -->
+            <template v-else>
+              <!-- 云端服务说明卡片 -->
+              <a-form-item>
+                <a-alert
+                  type="info"
+                  show-icon
+                  class="cloud-service-info"
+                >
+                  <template #message>
+                    <span>{{ t('settingsLLM.cloudServiceInfo.title') }}</span>
+                  </template>
+                  <template #description>
+                    <div class="cloud-service-info-content">
+                      <p>{{ t('settingsLLM.cloudServiceInfo.description') }}</p>
+                      <ul class="info-list">
+                        <li class="info-item-success">
+                          <span>{{ t('settingsLLM.cloudServiceInfo.localDataSafe') }}</span>
+                        </li>
+                        <li class="info-item-warning">
+                          <span>{{ t('settingsLLM.cloudServiceInfo.querySent') }}</span>
+                        </li>
+                        <li class="info-item-tip">
+                          <span>{{ t('settingsLLM.cloudServiceInfo.betterUnderstanding') }}</span>
+                        </li>
+                      </ul>
+                      <p class="info-notice">
+                        {{ t('settingsLLM.cloudServiceInfo.recommendation') }}
+                      </p>
+                    </div>
+                  </template>
+                </a-alert>
+              </a-form-item>
+
+              <a-form-item :label="t('settingsLLM.apiKey')">
+                <a-input-password
+                  v-model:value="llmConfig.api_key"
+                  :placeholder="t('settingsLLM.apiKeyPlaceholder')"
+                />
+              </a-form-item>
+
+              <a-form-item :label="t('settingsLLM.endpoint')">
+                <a-input
+                  v-model:value="llmConfig.endpoint"
+                  :placeholder="t('settingsLLM.endpointPlaceholder')"
+                />
+                <div class="form-help">{{ t('settingsLLM.endpointHelp') }}</div>
+              </a-form-item>
+
+              <a-form-item :label="t('settingsLLM.modelName')">
+                <a-input
+                  v-model:value="llmConfig.model_name_cloud"
+                  :placeholder="t('settingsLLM.modelNamePlaceholderCloud')"
+                />
+                <div class="form-help">{{ t('settingsLLM.modelNameHelpCloud') }}</div>
+              </a-form-item>
+            </template>
           </a-form>
         </div>
         <div class="settings-section">
@@ -95,7 +176,7 @@
               :loading="llmConfig.isLoading"
               @click="saveLLMConfig"
             >
-              {{ t('settingsSpeech.saveSettings') }}
+              {{ t('settingsLLM.saveSettings') }}
             </a-button>
           </a-space>
         </div>
@@ -261,8 +342,12 @@ const speechConfig = reactive({
 })
 
 const llmConfig = reactive({
-  model_name: 'qwen2.5:1.5b',
+  provider: 'local',      // 'local' | 'cloud'（新增）
+  model_name_local: 'qwen2.5:1.5b',   // local 专用
+  model_name_cloud: 'gpt-3.5-turbo',  // cloud 专用
   base_url: 'http://localhost:11434',
+  api_key: '',            // 新增
+  endpoint: '',           // 新增
   isLoading: false,
   isTesting: false
 })
@@ -284,6 +369,12 @@ const embeddingConfig = reactive({
 // 存储所有AI模型配置
 const aiModels = ref<AIModelInfo[]>([])
 
+// 类型切换处理（新增）
+const handleProviderChange = (value: string) => {
+  // 只需要切换 provider，model_name 已经分开存储了
+  llmConfig.provider = value
+}
+
 // 加载所有AI模型配置
 const loadAIModels = async () => {
   try {
@@ -301,8 +392,15 @@ const loadAIModels = async () => {
             speechConfig.device = config.device || 'cpu'
             break
           case 'llm':
-            llmConfig.model_name = model.model_name
-            llmConfig.base_url = config.base_url || 'http://localhost:11434'
+            llmConfig.provider = model.provider || 'local'
+            if (model.provider === 'cloud') {
+              llmConfig.model_name_cloud = model.model_name
+              llmConfig.api_key = config.api_key || ''
+              llmConfig.endpoint = config.endpoint || 'https://api.openai.com/v1'
+            } else {
+              llmConfig.model_name_local = model.model_name
+              llmConfig.base_url = config.base_url || 'http://localhost:11434'
+            }
             break
           case 'vision':
             visionConfig.model_name = model.model_name
@@ -380,14 +478,27 @@ const testSpeechModel = async () => {
 const saveLLMConfig = async () => {
   llmConfig.isLoading = true
   try {
-    const response = await AIModelConfigService.updateAIModelConfig({
+    const config: any = {
       model_type: 'llm',
-      provider: 'local',
-      model_name: llmConfig.model_name,
-      config: {
+      provider: llmConfig.provider,
+      model_name: llmConfig.provider === 'cloud' ? llmConfig.model_name_cloud : llmConfig.model_name_local,
+      config: {}
+    }
+
+    // ========== 新增：根据 provider 添加不同配置 ==========
+    if (llmConfig.provider === 'local') {
+      config.config = {
         base_url: llmConfig.base_url
       }
-    })
+    } else {
+      config.config = {
+        api_key: llmConfig.api_key,
+        endpoint: llmConfig.endpoint
+      }
+    }
+    // =========================================================
+
+    const response = await AIModelConfigService.updateAIModelConfig(config)
 
     if (response.success) {
       message.success(t('settingsLLM.saveSuccessRestart'))
@@ -598,6 +709,51 @@ onMounted(() => {
 .form-help {
   margin-left: var(--space-2);
   color: var(--text-tertiary);
+  font-size: 0.875rem;
+}
+
+/* 云端服务说明卡片样式 */
+.cloud-service-info {
+  margin-bottom: var(--space-4);
+}
+
+.cloud-service-info-content {
+  line-height: 1.6;
+}
+
+.cloud-service-info-content p {
+  margin-bottom: var(--space-2);
+}
+
+.cloud-service-info-content .info-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0;
+}
+
+.cloud-service-info-content .info-list li {
+  padding: var(--space-2) 0;
+  display: flex;
+  align-items: flex-start;
+}
+
+.cloud-service-info-content .info-item-success {
+  color: var(--color-success);
+}
+
+.cloud-service-info-content .info-item-warning {
+  color: var(--color-warning);
+}
+
+.cloud-service-info-content .info-item-tip {
+  color: var(--color-info);
+}
+
+.cloud-service-info-content .info-notice {
+  margin-top: var(--space-3);
+  padding: var(--space-2);
+  background: var(--surface-02);
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
 }
 

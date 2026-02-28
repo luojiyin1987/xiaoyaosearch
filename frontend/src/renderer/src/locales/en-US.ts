@@ -469,18 +469,48 @@ export default {
   settingsLLM: {
     title: 'Large Language Model',
     subtitle: 'Configure LLM parameters',
+
+    modelType: 'Model Type',
+    modelTypeOllama: 'Ollama (Local)',
+    modelTypeOpenAI: 'OpenAI Compatible (Cloud)',
+
     llmService: 'LLM Service',
     localOllamaService: 'Local Ollama Service',
-    localOllamaDesc: 'Use locally deployed Ollama service to run large language models',
+    localOllamaDesc: 'Use locally deployed Ollama service to run LLM',
+
+    openaiCompatibleService: 'OpenAI Compatible Service',
+    openaiCompatibleDesc: 'Use cloud LLM that is compatible with OpenAI API standard',
+
+    // Cloud Service Info
+    cloudServiceInfo: {
+      title: 'ℹ️ Cloud Service Usage',
+      description: 'When using cloud LLM:',
+      localDataSafe: '✅ Your local files and index data stay on device, not uploaded',
+      querySent: '⚠️ Search queries will be sent to cloud service for processing',
+      betterUnderstanding: '💡 Cloud models provide better semantic understanding',
+      recommendation: 'For complete privacy, use local Ollama service'
+    },
+
     modelName: 'Model Name',
     modelNamePlaceholder: 'e.g.: qwen2.5:1.5b',
+    modelNamePlaceholderCloud: 'e.g. gpt-3.5-turbo, qwen-turbo, deepseek-chat',
     modelNameHelp: 'Enter installed Ollama model name, any format supported',
+    modelNameHelpCloud: 'Enter cloud model name, e.g. gpt-3.5-turbo, qwen-turbo, deepseek-chat, etc.',
+
     serviceUrl: 'Service URL',
     serviceUrlPlaceholder: 'http://localhost:11434',
+
+    apiKey: 'API Key',
+    apiKeyPlaceholder: 'sk-...',
+    endpoint: 'Endpoint URL',
+    endpointPlaceholder: 'https://api.openai.com/v1',
+    endpointHelp: 'Optional, defaults to official API endpoint',
+
     testConnection: 'Test Connection',
-    saveSuccessRestart: 'LLM configuration saved successfully, restart application to take effect',
+    saveSettings: 'Save Settings',
+    saveSuccessRestart: 'Settings saved. Please restart the app to apply changes.',
     pleaseSaveFirst: 'Please save LLM configuration first',
-    testData: 'Hello, please introduce yourself'
+    testData: 'Hello, please briefly introduce yourself.'
   },
 
   // Settings Page - Vision Model Settings
