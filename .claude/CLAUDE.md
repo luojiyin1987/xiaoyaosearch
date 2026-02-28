@@ -51,6 +51,15 @@
 - **[i18n PRD](docs/特性开发/i18n/i18n-01-prd.md)** - 国际化需求
 - **[i18n 技术方案](docs/特性开发/i18n/i18n-03-技术方案.md)** - 国际化技术实现
 
+### OpenAI兼容大模型服务 🚧
+- **[OpenAI PRD](docs/特性开发/openai/openai-01-prd.md)** - OpenAI兼容大模型服务产品需求（672行）
+- **[OpenAI原型](docs/特性开发/openai/openai-02-原型.md)** - 原型设计和UI规范（857行）
+- **[OpenAI技术方案](docs/特性开发/openai/openai-03-技术方案.md)** - aiohttp + Pydantic技术实现（1145行）
+- **[OpenAI任务清单](docs/特性开发/openai/openai-04-开发任务清单.md)** - 开发任务分解
+- **[OpenAI排期表](docs/特性开发/openai/openai-05-开发排期表.md)** - 时间规划和里程碑
+- **[OpenAI增量接口文档](docs/特性开发/openai/openai-增量-接口文档.md)** - API接口增量设计
+- **[OpenAI增量数据库设计](docs/特性开发/openai/openai-增量-数据库设计文档.md)** - 数据库表结构增量设计
+
 ### 插件化架构与语雀数据源 🚧
 - **[插件化PRD](docs/特性开发/plugins+yuque/plugins+yuque-01-prd.md)** - 插件化架构与语雀数据源产品需求（663行）
 - **[插件化原型](docs/特性开发/plugins+yuque/plugins+yuque-02-原型.md)** - 原型设计和UI规范
@@ -131,6 +140,7 @@ npm run dev
 - **MVP开发**：100%完成
 - **i18n国际化**：100%完成，720+翻译键
 - **API接口**：36个接口全部实现
+- **OpenAI兼容大模型服务**：🚧 规划中，需求分析和原型设计完成
 - **插件化架构与语雀数据源**：规划中，需求分析完成
 - **视频画面搜索**：⏸️ 已暂停，优先开发插件化架构
 
@@ -143,6 +153,43 @@ npm run dev
 - **检查清单**：功能完整性、代码规范、错误处理、测试覆盖、文档同步
 
 ### 当前开发特性说明
+
+#### OpenAI兼容大模型服务 🚧 规划中
+
+**功能定位**：
+为小遥搜索添加 OpenAI 兼容的大语言模型服务支持，用户可选择使用云端大模型（如阿里云通义千问、DeepSeek、Moonshot 等）替代或补充本地 Ollama 模型。
+
+**核心价值**：
+- 降低使用门槛：无需本地 GPU 即可使用强大模型
+- 提升搜索质量：云端大模型能力更强，查询增强效果更好
+- 增加用户粘性：云端 API 密钥绑定增强平台依赖
+- 扩展商业模式：为后续云服务订阅奠定基础
+
+**技术实现**：
+- **OpenAI 兼容服务类**：新建 `openai_llm_service.py`，支持 OpenAI API 标准
+- **模型类型选择器**：前端设置页面添加 Ollama/OpenAI 兼容切换
+- **动态配置表单**：根据类型显示不同配置项
+- **云端模型测试接口**：验证 API 密钥和连接
+- **API 密钥安全存储**：加密保存，不记录日志
+
+**配置管理**：
+- `provider`: 模型提供商类型（local/cloud）
+- `api_key`: API 密钥（cloud 使用）
+- `endpoint`: 端点地址（可选，有默认值）
+- `model`: 模型名称（如 qwen-turbo、deepseek-chat 等）
+
+**设计完成度**：
+- ✅ 全局PRD文档同步
+- ✅ 全局原型设计同步
+- ✅ 全局技术方案同步
+- ✅ 特性PRD文档完成（672行）
+- ✅ 特性原型设计完成（857行）
+- ✅ 特性技术方案完成（1145行）
+- ✅ 特性任务清单完成
+- ✅ 特性排期表完成
+- ✅ 增量接口文档完成
+- ✅ 增量数据库设计文档完成
+- ⏳ 待开发：OpenAI服务类、前端动态表单、API接口
 
 #### 插件化架构与语雀数据源 🚧 规划中
 
@@ -220,6 +267,13 @@ npm run dev
 | 实时进度 | [开发进度](docs/开发进度.md) |
 | 接口规范 | [API接口文档](docs/接口文档.md) |
 | i18n国际化 | [i18n技术方案](docs/特性开发/i18n/i18n-03-技术方案.md) |
+| OpenAI大模型PRD | [OpenAI兼容PRD](docs/特性开发/openai/openai-01-prd.md) |
+| OpenAI原型 | [OpenAI兼容原型](docs/特性开发/openai/openai-02-原型.md) |
+| OpenAI技术方案 | [OpenAI兼容技术方案](docs/特性开发/openai/openai-03-技术方案.md) |
+| OpenAI任务清单 | [OpenAI任务清单](docs/特性开发/openai/openai-04-开发任务清单.md) |
+| OpenAI排期表 | [OpenAI排期表](docs/特性开发/openai/openai-05-开发排期表.md) |
+| OpenAI接口文档 | [OpenAI增量接口文档](docs/特性开发/openai/openai-增量-接口文档.md) |
+| OpenAI数据库设计 | [OpenAI增量数据库设计](docs/特性开发/openai/openai-增量-数据库设计文档.md) |
 | 插件化架构 | [插件化PRD](docs/特性开发/plugins+yuque/plugins+yuque-01-prd.md) |
 | 视频画面搜索 | [视频搜索PRD](docs/特性开发/videosearch/videosearch-01-prd.md) |
 | API测试 | [测试文档目录](docs/测试文档/测试用例/) |
@@ -228,16 +282,31 @@ npm run dev
 - 🔧 技术问题 → [技术方案文档](docs/03-技术方案.md)
 - 📋 产品问题 → [产品需求文档](docs/01-prd.md)
 - 📊 进度跟踪 → [开发进度文档](docs/开发进度.md)
+- 🤖 OpenAI大模型PRD → [OpenAI兼容大模型服务PRD](docs/特性开发/openai/openai-01-prd.md)
+- 🎨 OpenAI原型 → [OpenAI兼容大模型服务原型](docs/特性开发/openai/openai-02-原型.md)
+- ⚙️ OpenAI技术方案 → [OpenAI兼容大模型服务技术方案](docs/特性开发/openai/openai-03-技术方案.md)
+- 📋 OpenAI任务清单 → [OpenAI兼容大模型服务任务清单](docs/特性开发/openai/openai-04-开发任务清单.md)
+- 📅 OpenAI排期表 → [OpenAI兼容大模型服务排期表](docs/特性开发/openai/openai-05-开发排期表.md)
+- 🔌 OpenAI接口文档 → [OpenAI兼容大模型服务接口文档](docs/特性开发/openai/openai-增量-接口文档.md)
+- 🗄️ OpenAI数据库设计 → [OpenAI兼容大模型服务数据库设计](docs/特性开发/openai/openai-增量-数据库设计文档.md)
 - 🔌 插件化架构 → [插件化架构PRD](docs/特性开发/plugins+yuque/plugins+yuque-01-prd.md)
 - 🎬 视频搜索 → [视频画面搜索PRD](docs/特性开发/videosearch/videosearch-01-prd.md)
 
 ---
 
-**文档版本**：v8.0 (插件化架构规划版)
+**文档版本**：v9.0 (OpenAI兼容大模型服务规划版)
 **维护者**：AI助手
 **重要提醒**：所有AI回复、文档编写、代码注释必须使用中文
 
 **特性开发说明**：
+- 🤖 **OpenAI兼容大模型服务** 🚧 规划中
+  - **技术栈**：aiohttp + Pydantic + OpenAI API标准
+  - **核心能力**：云端大模型集成、动态表单、API密钥加密
+  - **配置参数**：provider（local/cloud）、api_key、endpoint、model
+  - **开发状态**：需求分析、原型设计和技术方案完成，PRD文档完成（672行），原型文档完成（857行），技术方案完成（1145行），任务清单完成，排期表完成，增量接口文档完成，增量数据库设计完成
+  - **全局文档**：已同步到PRD、原型、技术方案
+  - **特性文档**：PRD、原型、技术方案、任务清单、排期表、增量接口文档、增量数据库设计文档
+
 - 🔌 **插件化架构与语雀数据源** 🚧 规划中
   - **技术栈**：Python ABC + importlib + Pydantic + httpx + PyYAML
   - **核心能力**：插件化框架、数据源抽象、热插拔、API管理

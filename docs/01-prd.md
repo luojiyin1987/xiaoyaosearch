@@ -37,6 +37,7 @@
 
 ### P1功能（最好有）
 - [x] **国际化支持（i18n）**：中英文双语界面，语言切换器，720+翻译键全覆盖 ✅ 已完成
+- [ ] **OpenAI兼容大模型服务** 🚧 规划中 - 支持OpenAI兼容的云端大语言模型服务，用户可选择使用云端大模型（如阿里云通义千问、DeepSeek、Moonshot等）替代或补充本地Ollama模型（详见[特性PRD](特性开发/openai/openai-01-prd.md)）
 - [ ] **插件化架构与语雀数据源**：建立插件化框架支持多数据源扩展，优先实现语雀知识库数据源（详见[特性PRD](特性开发/plugins+yuque/plugins+yuque-01-prd.md)）
 - [ ] **视频画面搜索**：⏸️ 已暂停 - 通过图片搜索视频内容，快速定位视频中的关键画面（详见[特性PRD](特性开发/videosearch/videosearch-01-prd.md)）
 - [ ] 语音识别模型配置：支持云端API和本地FastWhisper
@@ -68,8 +69,9 @@
 
 ### 设置页面
 - **LLM模型设置**
-  - 云端API配置：API地址、访问令牌、模型名称
-  - 本地Ollama配置：API地址、模型名称
+  - 模型类型选择：Ollama（本地）或 OpenAI 兼容（云端） 🚧 规划中
+  - 本地Ollama配置：模型名称、服务地址
+  - OpenAI兼容配置：API密钥、端点地址、模型名称（支持阿里云通义千问、DeepSeek、Moonshot等） 🚧 规划中
 - **语音识别设置**
   - 云端API配置：API地址、访问令牌
   - 本地FastWhisper（一键启用）
@@ -160,6 +162,13 @@
   - UI组件国际化：Ant Design Vue 组件库语言同步切换
   - 日期时间国际化：Day.js 支持相对时间和绝对时间格式
   - 错误信息国际化：HTTP 错误信息支持前端翻译
+- **OpenAI兼容大模型服务** 🚧 规划中
+  - 核心能力：支持OpenAI兼容的云端大语言模型服务，用户可选择使用云端大模型（如阿里云通义千问、DeepSeek、Moonshot等）替代或补充本地Ollama模型
+  - 技术基础：OpenAI API标准兼容，aiohttp异步HTTP客户端，BaseAIModel统一接口
+  - 模型支持：本地Ollama（已有）、OpenAI兼容云端（P0）
+  - 配置管理：前端动态表单根据类型显示不同配置项，API密钥加密存储
+  - 供应商支持：OpenAI、阿里云通义千问、DeepSeek、Moonshot等兼容供应商
+  - 详见：[OpenAI兼容大模型服务PRD](特性开发/openai/openai-01-prd.md)
 - **插件化架构与数据源扩展** 🚧 规划中
   - 核心能力：建立插件化框架，支持多数据源扩展，优先实现语雀知识库数据源
   - 技术基础：Python importlib动态加载 + ABC接口抽象 + Pydantic配置验证
