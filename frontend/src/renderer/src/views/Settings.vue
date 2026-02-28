@@ -78,7 +78,7 @@
               <div class="form-help">{{ t('settingsLLM.modelNameHelp') }}</div>
             </a-form-item>
             <a-form-item :label="t('settingsLLM.serviceUrl')">
-              <a-input v-model:value="llmConfig.service_url" :placeholder="t('settingsLLM.serviceUrlPlaceholder')" />
+              <a-input v-model:value="llmConfig.base_url" :placeholder="t('settingsLLM.serviceUrlPlaceholder')" />
             </a-form-item>
           </a-form>
         </div>
@@ -262,7 +262,7 @@ const speechConfig = reactive({
 
 const llmConfig = reactive({
   model_name: 'qwen2.5:1.5b',
-  service_url: 'http://localhost:11434',
+  base_url: 'http://localhost:11434',
   isLoading: false,
   isTesting: false
 })
@@ -302,7 +302,7 @@ const loadAIModels = async () => {
             break
           case 'llm':
             llmConfig.model_name = model.model_name
-            llmConfig.service_url = config.service_url || 'http://localhost:11434'
+            llmConfig.base_url = config.base_url || 'http://localhost:11434'
             break
           case 'vision':
             visionConfig.model_name = model.model_name
@@ -385,7 +385,7 @@ const saveLLMConfig = async () => {
       provider: 'local',
       model_name: llmConfig.model_name,
       config: {
-        service_url: llmConfig.service_url
+        base_url: llmConfig.base_url
       }
     })
 

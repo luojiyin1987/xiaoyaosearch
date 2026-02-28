@@ -343,10 +343,22 @@ async def test_ai_model(
                     test_message = i18n.t('model.vision_test_error', locale, error=str(e))
 
             elif is_llm_model(model_config.model_type):
-                # 测试大语言模型
+                # 测试大语言模型 - 使用当前配置重新创建实例
                 test_message = "你好，请介绍一下你自己"
                 try:
-                    llm_result = await ai_model_service.text_generation(test_message)
+                    # 导入Ollama服务
+                    from app.services.ollama_service import create_ollama_service
+
+                    # 使用当前配置创建新的模型实例
+                    test_llm_service = create_ollama_service(config)
+                    await test_llm_service.load_model()
+
+                    # 执行测试
+                    llm_result = await test_llm_service.predict(test_message)
+
+                    # 清理测试实例
+                    await test_llm_service.unload_model()
+
                     # 检查可能的返回字段：content 或 text
                     generated_text = None
                     if llm_result:
