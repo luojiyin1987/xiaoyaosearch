@@ -177,6 +177,8 @@ Double-click `scripts/setup.bat`, which will automatically:
 - Generate configuration files
 - Create data directories
 
+> **RTX 50 Series GPU Users**: If you are using an RTX 50 series GPU, please run `scripts/setup_rtx50显卡.bat`, which will install PyTorch with CUDA 12.8 support for optimal performance.
+
 **3. Install Ollama**
 
 Double-click `runtime\ollama\OllamaSetup.exe` and follow the prompts.
@@ -244,7 +246,12 @@ pip install faster-whisper
 
 # Enable CUDA (optional, note: cuda version needs to be determined based on environment)
 pip uninstall torch torchaudio torchvision
+
+# RTX 40 series and older GPUs (CUDA 12.1)
 pip install torch==2.1.0+cu121 torchaudio==2.1.0+cu121 torchvision==0.16.0+cu121 --index-url https://download.pytorch.org/whl/cu121
+
+# RTX 50 series GPUs (CUDA 12.8)
+pip install torch==2.10.0+cu128 torchaudio==2.10.0+cu128 torchvision==0.22.0+cu128 --index-url https://download.pytorch.org/whl/cu128
 
 ```
 
