@@ -177,6 +177,8 @@ xiaoyaosearch/
 - 生成配置文件
 - 创建数据目录
 
+> **RTX 50 系显卡用户**：如果您使用 RTX 50 系显卡，请运行 `scripts/setup_rtx50显卡.bat`，该脚本会安装支持 CUDA 12.8 的 PyTorch 版本以获得最佳性能。
+
 **3. 安装 Ollama**
 
 双击运行 `runtime\ollama\OllamaSetup.exe`，按提示完成安装。
@@ -244,7 +246,12 @@ pip install faster-whisper
 
 # 启用CUDA（可选，注意：cuda版本需根据环境确定）
 pip uninstall torch torchaudio torchvision
+
+# RTX 40 系及更早显卡（CUDA 12.1）
 pip install torch==2.1.0+cu121 torchaudio==2.1.0+cu121 torchvision==0.16.0+cu121 --index-url https://download.pytorch.org/whl/cu121
+
+# RTX 50 系显卡（CUDA 12.8）
+pip install torch==2.10.0+cu128 torchaudio==2.10.0+cu128 torchvision==0.22.0+cu128 --index-url https://download.pytorch.org/whl/cu128
 
 ```
 
