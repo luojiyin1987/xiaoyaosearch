@@ -228,7 +228,7 @@ echo     正在卸载 CPU 版本...
 
 REM 安装 CUDA 版本
 echo     正在安装 CUDA 版本（PyTorch 2.10.0 + CUDA 12.8）...
-"%PYTHON_EXE%" -m pip install torch==2.10.0+cu128 torchaudio==2.10.0+cu128 torchvision==0.22.0+cu128 --index-url https://download.pytorch.org/whl/cu128
+"%PYTHON_EXE%" -m pip install torch==2.10.0+cu128 torchaudio==2.10.0+cu128 torchvision==0.25.0+cu128 --index-url https://download.pytorch.org/whl/cu128
 
 if !errorlevel! equ 0 (
     echo   [OK] 支持 CUDA 的 PyTorch 已安装

@@ -251,7 +251,7 @@ pip uninstall torch torchaudio torchvision
 pip install torch==2.1.0+cu121 torchaudio==2.1.0+cu121 torchvision==0.16.0+cu121 --index-url https://download.pytorch.org/whl/cu121
 
 # RTX 50 series GPUs (CUDA 12.8)
-pip install torch==2.10.0+cu128 torchaudio==2.10.0+cu128 torchvision==0.22.0+cu128 --index-url https://download.pytorch.org/whl/cu128
+pip install torch==2.10.0+cu128 torchaudio==2.10.0+cu128 torchvision==0.25.0+cu128 --index-url https://download.pytorch.org/whl/cu128
 
 ```
 
