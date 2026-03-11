@@ -77,15 +77,15 @@ if %errorlevel% equ 0 (
 
 REM 超时判断
 if %WAIT_COUNT% geq %MAX_WAIT% (
-    echo   [!] 等待后端超时（30秒），但继续启动前端
-    echo     如果后端启动失败，请检查 backend\ 目录
+    echo   [!] 等待后端超时 (30秒), 但继续启动前端
+    echo     如果后端启动失败, 请检查 backend\ 目录
     goto :backend_ready
 )
 
 REM 检测进程是否还在运行
 tasklist | find "python.exe" >nul 2>&1
 if %errorlevel% neq 0 (
-    echo   [X] 后端进程已停止，启动失败
+    echo   [X] 后端进程已停止, 启动失败
     echo     请检查 backend\main.py 是否存在
     echo     或手动启动后端查看错误信息
     pause
@@ -116,11 +116,11 @@ timeout /t 3 /nobreak >nul
 
 echo.
 echo ========================================
-echo   应用已启动！
+echo   应用已启动!
 echo ========================================
 echo.
-echo 停止方法：
-echo   关闭"小遥搜索-后端"和"小遥搜索-前端"窗口
+echo 停止方法:
+echo   关闭 "小遥搜索-后端" 和 "小遥搜索-前端" 窗口
 echo.
 pause
 exit /b 0
