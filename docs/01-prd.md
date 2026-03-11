@@ -38,8 +38,9 @@
 ### P1功能（最好有）
 - [x] **国际化支持（i18n）**：中英文双语界面，语言切换器，720+翻译键全覆盖 ✅ 已完成
 - [ ] **OpenAI兼容大模型服务** 🚧 规划中 - 支持OpenAI兼容的云端大语言模型服务，用户可选择使用云端大模型（如阿里云通义千问、DeepSeek、Moonshot等）替代或补充本地Ollama模型（详见[特性PRD](特性开发/openai/openai-01-prd.md)）
-- [ ] **插件化架构与语雀数据源**：建立插件化框架支持多数据源扩展，优先实现语雀知识库数据源（详见[特性PRD](特性开发/plugins+yuque/plugins+yuque-01-prd.md)）
-- [ ] **视频画面搜索**：⏸️ 已暂停 - 通过图片搜索视频内容，快速定位视频中的关键画面（详见[特性PRD](特性开发/videosearch/videosearch-01-prd.md)）
+- [ ] **插件化架构与语雀数据源** 🚧 规划中 - 建立插件化框架支持多数据源扩展，优先实现语雀知识库数据源（详见[特性PRD](特性开发/plugins+yuque/plugins+yuque-01-prd.md)）
+- [ ] **MCP服务器支持** 🚧 规划中 - 为小遥搜索添加 Model Context Protocol (MCP) 服务器能力，使 Claude Desktop 等 AI 应用能够连接小遥搜索进行本地文件智能搜索（详见[特性PRD](特性开发/mcp/mcp-01-prd.md)）
+- [ ] **视频画面搜索** ⏸️ 已暂停 - 通过图片搜索视频内容，快速定位视频中的关键画面（详见[特性PRD](特性开发/videosearch/videosearch-01-prd.md)）
 - [ ] 语音识别模型配置：支持云端API和本地FastWhisper
 - [ ] 视觉模型配置：支持云端API和本地视觉模型
 - [ ] 索引管理：文件夹选择、索引重建、删除索引
@@ -177,6 +178,13 @@
   - 多源搜索：统一索引服务，支持跨数据源语义搜索
   - 插件安全：沙箱隔离、API Token加密存储、插件包验证
   - 详见：[插件化架构与语雀数据源PRD](特性开发/plugins+yuque/plugins+yuque-01-prd.md)
+- **MCP服务器支持** 🚧 规划中
+  - 核心能力：为小遥搜索添加 Model Context Protocol (MCP) 服务器能力，使 Claude Desktop 等 AI 应用能够连接小遥搜索进行本地文件智能搜索
+  - 技术基础：mcp-python-sdk + FastAPI SSE 端点 + 适配器模式
+  - 搜索工具：语义搜索、全文搜索、语音搜索、图像搜索、混合搜索
+  - 架构方案：集成到 FastAPI 进程，共享 AI 模型和搜索服务，节省内存
+  - Claude集成：通过 SSE 传输端点连接 Claude Desktop，支持自然语言查询本地文档
+  - 详见：[MCP服务器支持PRD](特性开发/mcp/mcp-01-prd.md)
 - **视频画面搜索** ⏸️ 已暂停
   - 核心能力：通过图片检索视频内容，快速定位视频中的关键画面
   - 暂停原因：优先开发插件化架构与语雀数据源特性

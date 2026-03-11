@@ -67,6 +67,13 @@
 - **[插件化任务清单](docs/特性开发/plugins+yuque/plugins+yuque-04-开发任务清单.md)** - 开发任务分解
 - **[插件化排期表](docs/特性开发/plugins+yuque/plugins+yuque-05-开发排期表.md)** - 时间规划和里程碑
 
+### MCP 服务器支持 🔥 开发中（第一优先级）
+- **[MCP PRD](docs/特性开发/mcp/mcp-01-prd.md)** - MCP服务器支持产品需求（925行）
+- **[MCP原型](docs/特性开发/mcp/mcp-02-原型.md)** - 原型设计和交互规范
+- **[MCP技术方案](docs/特性开发/mcp/mcp-03-技术方案.md)** - FastAPI集成 + SSE端点技术实现（1270行）
+- **[MCP任务清单](docs/特性开发/mcp/mcp-04-开发任务清单.md)** - 开发任务分解（622行）
+- **[MCP排期表](docs/特性开发/mcp/mcp-05-开发排期表.md)** - 时间规划和里程碑（509行）
+
 ### 视频画面搜索 ⏸️ 已暂停
 - **[视频搜索PRD](docs/特性开发/videosearch/videosearch-01-prd.md)** - 视频画面搜索产品需求（678行）
 - **[视频搜索原型](docs/特性开发/videosearch/videosearch-02-原型.md)** - 原型设计和UI规范
@@ -154,110 +161,40 @@ npm run dev
 
 ### 当前开发特性说明
 
-#### OpenAI兼容大模型服务 🚧 规划中
+#### MCP 服务器支持 🔥 开发中（第一优先级）
 
 **功能定位**：
-为小遥搜索添加 OpenAI 兼容的大语言模型服务支持，用户可选择使用云端大模型（如阿里云通义千问、DeepSeek、Moonshot 等）替代或补充本地 Ollama 模型。
+为小遥搜索添加 Model Context Protocol (MCP) 服务器能力，使 Claude Desktop 等 AI 应用能够连接小遥搜索进行本地文件智能搜索。
 
 **核心价值**：
-- 降低使用门槛：无需本地 GPU 即可使用强大模型
-- 提升搜索质量：云端大模型能力更强，查询增强效果更好
-- 增加用户粘性：云端 API 密钥绑定增强平台依赖
-- 扩展商业模式：为后续云服务订阅奠定基础
+- 扩展产品边界：从独立桌面应用升级为 AI 生态的基础设施组件
+- 提升用户粘性：与 Claude Desktop 等 AI 应用深度集成
+- 建立竞争优势：为本地搜索工具提供 AI Agent 集成能力
 
 **技术实现**：
-- **OpenAI 兼容服务类**：新建 `openai_llm_service.py`，支持 OpenAI API 标准
-- **模型类型选择器**：前端设置页面添加 Ollama/OpenAI 兼容切换
-- **动态配置表单**：根据类型显示不同配置项
-- **云端模型测试接口**：验证 API 密钥和连接
-- **API 密钥安全存储**：加密保存，不记录日志
+- **MCP 协议实现**：使用 mcp-python-sdk 实现 MCP 协议规范
+- **SSE 传输层**：通过 SSE 端点 `/mcp/sse` 支持 Claude Desktop 连接
+- **工具体系**：语义搜索、全文搜索、语音搜索、图像搜索、混合搜索
+- **适配器模式**：SearchAdapter 复用现有搜索服务，降低耦合
+- **单一进程**：FastAPI 集成 + 共享 AI 模型，节省内存 4-6GB
 
 **配置管理**：
-- `provider`: 模型提供商类型（local/cloud）
-- `api_key`: API 密钥（cloud 使用）
-- `endpoint`: 端点地址（可选，有默认值）
-- `model`: 模型名称（如 qwen-turbo、deepseek-chat 等）
-
-**设计完成度**：
-- ✅ 全局PRD文档同步
-- ✅ 全局原型设计同步
-- ✅ 全局技术方案同步
-- ✅ 特性PRD文档完成（672行）
-- ✅ 特性原型设计完成（857行）
-- ✅ 特性技术方案完成（1145行）
-- ✅ 特性任务清单完成
-- ✅ 特性排期表完成
-- ✅ 增量接口文档完成
-- ✅ 增量数据库设计文档完成
-- ⏳ 待开发：OpenAI服务类、前端动态表单、API接口
-
-#### 插件化架构与语雀数据源 🚧 规划中
-
-**功能定位**：
-建立插件化架构，实现数据源的热插拔和独立开发，优先支持语雀知识库数据源。
-
-**核心价值**：
-- 扩展产品边界，从本地搜索升级为全场景知识搜索
-- 提升用户粘性，云端数据源绑定增强平台依赖
-- 建立插件生态，降低后续数据源接入成本
-
-**技术实现**：
-- **插件接口**：Python ABC定义DataSourcePlugin抽象基类
-- **动态加载**：importlib实现插件热插拔
-- **数据源抽象**：DataSourceItem标准化数据项
-- **配置管理**：Pydantic验证配置，支持API动态管理
-- **API集成**：httpx异步调用语雀API
-
-**配置管理**：
-- `PLUGIN_DIR`: 插件目录（默认data/plugins）
-- `PLUGIN_AUTO_DISCOVER`: 插件自动发现（默认true）
-- 语雀配置：api_token、repo_slug、base_url
+- `MCP_SSE_ENABLED`: 是否启用 MCP SSE 服务（默认true）
+- `MCP_SERVER_NAME`: 服务器名称（默认xiaoyao-search）
+- `MCP_DEFAULT_LIMIT`: 默认结果数量（默认20）
+- `MCP_DEFAULT_THRESHOLD`: 默认相似度阈值（默认0.7）
+- `MCP_VOICE_ENABLED`: 是否启用语音搜索（默认true）
 
 **设计完成度**：
 - ✅ 全局PRD文档同步
 - ✅ 全局技术方案同步
-- ✅ 特性PRD文档完成（663行）
-- ✅ 特性技术方案完成
-- ✅ 特性任务清单完成
-- ✅ 特性排期表完成
-- ⏳ 待开发：插件框架、语雀插件、API接口
-
-#### 视频画面搜索 ⏸️ 已暂停
-
-**暂停原因**：优先开发插件化架构与语雀数据源特性
-
-**功能定位**：
-为小遥搜索添加视频画面搜索能力，用户可通过图片检索视频内容，快速定位视频中的关键画面。
-
-**核心价值**：
-- 扩展搜索能力覆盖视频内容，提升产品竞争力
-- 弥补现有视频搜索仅基于音频转录的不足
-- 为内容创作者和知识工作者提供更高效的检索工具
-
-**技术实现**：
-- **关键帧提取**：使用FFmpeg按固定间隔提取视频关键帧（默认10秒）
-- **图像理解**：复用现有CN-CLIP模型进行图像特征编码
-- **向量搜索**：与图搜图共享Faiss索引，支持图片和视频帧混合搜索
-- **元数据管理**：video_frames表存储帧元数据（timestamp、frame_path、faiss_index_id）
-
-**配置管理**：
-- `VIDEO_FRAME_SEARCH_ENABLED`: 是否启用视频画面搜索（默认false）
-- `VIDEO_FRAME_INTERVAL`: 关键帧提取间隔（默认10秒）
-- `VIDEO_FRAME_MAX_DURATION`: 最大处理时长（默认600秒）
-- `VIDEO_FRAME_RESOLUTION`: 帧分辨率（默认224像素）
-
-**设计完成度**：
-- ✅ 全局PRD文档同步
-- ✅ 全局原型设计同步
-- ✅ 全局技术方案同步
-- ✅ 全局技术选型同步
-- ✅ 全局代码架构同步
-- ✅ 全局数据库设计同步
-- ✅ 全局索引构建逻辑同步
-- ✅ 特性PRD文档完成（678行）
+- ✅ 特性PRD文档完成（925行）
 - ✅ 特性原型设计完成
-- ✅ 特性技术方案完成（FFmpeg vs OpenCV对比）
-- ⏸️ 待开发：关键帧提取服务、元数据管理、搜索扩展（已暂停）
+- ✅ 特性技术方案完成（1270行）
+- ✅ 特性任务清单完成（622行）
+- ✅ 特性排期表完成（509行）
+- 🚧 开发阶段（20%）：需求分析、系统设计、项目排期完成
+- ⏳ 待开发：MCP服务器类、工具实现、FastAPI集成、API接口
 
 ### 文档导航
 | 需求类型 | 主要文档 |
@@ -274,8 +211,14 @@ npm run dev
 | OpenAI排期表 | [OpenAI排期表](docs/特性开发/openai/openai-05-开发排期表.md) |
 | OpenAI接口文档 | [OpenAI增量接口文档](docs/特性开发/openai/openai-增量-接口文档.md) |
 | OpenAI数据库设计 | [OpenAI增量数据库设计](docs/特性开发/openai/openai-增量-数据库设计文档.md) |
-| 插件化架构 | [插件化PRD](docs/特性开发/plugins+yuque/plugins+yuque-01-prd.md) |
-| 视频画面搜索 | [视频搜索PRD](docs/特性开发/videosearch/videosearch-01-prd.md) |
+| 插件化架构PRD | [插件化PRD](docs/特性开发/plugins+yuque/plugins+yuque-01-prd.md) |
+| 插件化架构技术方案 | [插件化技术方案](docs/特性开发/plugins+yuque/plugins+yuque-03-技术方案.md) |
+| 视频画面搜索PRD | [视频搜索PRD](docs/特性开发/videosearch/videosearch-01-prd.md) |
+| **MCP服务器支持PRD** | **[MCP PRD](docs/特性开发/mcp/mcp-01-prd.md)** |
+| **MCP服务器支持原型** | **[MCP原型](docs/特性开发/mcp/mcp-02-原型.md)** |
+| **MCP服务器支持技术方案** | **[MCP技术方案](docs/特性开发/mcp/mcp-03-技术方案.md)** |
+| **MCP服务器支持任务清单** | **[MCP任务清单](docs/特性开发/mcp/mcp-04-开发任务清单.md)** |
+| **MCP服务器支持排期表** | **[MCP排期表](docs/特性开发/mcp/mcp-05-开发排期表.md)** |
 | API测试 | [测试文档目录](docs/测试文档/测试用例/) |
 
 ### 快速链接
@@ -291,12 +234,19 @@ npm run dev
 - 🗄️ OpenAI数据库设计 → [OpenAI兼容大模型服务数据库设计](docs/特性开发/openai/openai-增量-数据库设计文档.md)
 - 🔌 插件化架构 → [插件化架构PRD](docs/特性开发/plugins+yuque/plugins+yuque-01-prd.md)
 - 🎬 视频搜索 → [视频画面搜索PRD](docs/特性开发/videosearch/videosearch-01-prd.md)
+- 🔥 MCP服务器支持PRD → [MCP服务器支持PRD](docs/特性开发/mcp/mcp-01-prd.md)
+- 🎨 MCP服务器支持原型 → [MCP服务器支持原型](docs/特性开发/mcp/mcp-02-原型.md)
+- ⚙️ MCP服务器支持技术方案 → [MCP服务器支持技术方案](docs/特性开发/mcp/mcp-03-技术方案.md)
+- 📋 MCP服务器支持任务清单 → [MCP服务器支持任务清单](docs/特性开发/mcp/mcp-04-开发任务清单.md)
+- 📅 MCP服务器支持排期表 → [MCP服务器支持排期表](docs/特性开发/mcp/mcp-05-开发排期表.md)
 
 ---
 
-**文档版本**：v9.0 (OpenAI兼容大模型服务规划版)
+**文档版本**：v11.0 (MCP 服务器支持开发版)
 **维护者**：AI助手
 **重要提醒**：所有AI回复、文档编写、代码注释必须使用中文
+
+**当前开发重点**：🔥 MCP 服务器支持特性（第一优先级，开发进度20%）
 
 **特性开发说明**：
 - 🤖 **OpenAI兼容大模型服务** 🚧 规划中
@@ -323,3 +273,11 @@ npm run dev
   - **开发状态**：需求分析和项目排期完成，文档100%同步
   - **全局文档**：已同步到PRD、原型、技术方案、技术选型、代码架构、数据库设计、索引构建逻辑
   - **特性文档**：PRD、原型、技术方案、任务清单、排期表
+
+- 🔥 **MCP 服务器支持** 🔥 开发中（第一优先级）
+  - **技术栈**：mcp-python-sdk + SSE + FastAPI 集成 + 适配器模式
+  - **核心能力**：MCP 协议实现、SSE 传输、5个搜索工具（语义/全文/语音/图像/混合）、适配器模式
+  - **配置参数**：MCP_SSE_ENABLED、MCP_SERVER_NAME、MCP_DEFAULT_LIMIT、MCP_DEFAULT_THRESHOLD、MCP_VOICE_ENABLED
+  - **开发状态**：开发阶段（20%），需求分析、系统设计、项目排期完成，正式进入开发
+  - **全局文档**：已同步到PRD、原型、技术方案
+  - **特性文档**：PRD（925行）、原型、技术方案（1270行）、任务清单（622行）、排期表（509行）
