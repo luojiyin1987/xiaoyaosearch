@@ -111,7 +111,22 @@ echo     正在安装 Python 包...
 echo     使用清华大学镜像源加速下载...
 echo.
 
-cd "%PROJECT_ROOT%\backend"
+REM 设置后端目录路径（不使用 cd，避免路径问题）
+set "BACKEND_DIR=%PROJECT_ROOT%\backend"
+set "BACKEND_REQUIREMENTS=%BACKEND_DIR%\requirements.txt"
+
+REM 检查后端目录和 requirements.txt 是否存在
+if not exist "%BACKEND_DIR%" (
+    echo   [X] 后端目录不存在："%BACKEND_DIR%"
+    pause
+    exit /b 1
+)
+
+if not exist "%BACKEND_REQUIREMENTS%" (
+    echo   [X] requirements.txt 不存在："%BACKEND_REQUIREMENTS%"
+    pause
+    exit /b 1
+)
 
 REM 检查是否已安装 pip
 set "PIP_PY=%PROJECT_ROOT%\runtime\python\python-embed\get-pip.py"
@@ -158,7 +173,7 @@ if not exist "%RUNTIME_DIR%\python\python-embed\Scripts\pip.exe" (
 )
 
 REM 使用 pip 安装依赖（使用阿里云镜像源）
-"%PYTHON_EXE%" -m pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
+"%PYTHON_EXE%" -m pip install -r "%BACKEND_REQUIREMENTS%" -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 
 if %errorlevel% neq 0 (
     echo   [X] 后端依赖安装失败
@@ -257,10 +272,18 @@ echo [4/7] 安装前端依赖...
 echo     正在安装 Node 包...
 echo     使用淘宝镜像源加速下载...
 
-cd "%PROJECT_ROOT%\frontend"
+REM 设置前端目录路径（不使用 cd，避免路径问题）
+set "FRONTEND_DIR=%PROJECT_ROOT%\frontend"
 
-REM 使用完整路径运行npm
-"%RUNTIME_DIR%\nodejs\node.exe" "%RUNTIME_DIR%\nodejs\node_modules\npm\bin\npm-cli.js" install --registry=https://registry.npmmirror.com
+REM 检查前端目录是否存在
+if not exist "%FRONTEND_DIR%" (
+    echo   [X] 前端目录不存在："%FRONTEND_DIR%"
+    pause
+    exit /b 1
+)
+
+REM 使用完整路径运行npm（指定工作目录）
+"%RUNTIME_DIR%\nodejs\node.exe" "%RUNTIME_DIR%\nodejs\node_modules\npm\bin\npm-cli.js" install --prefix "%FRONTEND_DIR%" --registry=https://registry.npmmirror.com
 
 if %errorlevel% neq 0 (
     echo   [X] 前端依赖安装失败
@@ -275,8 +298,6 @@ if %errorlevel% neq 0 (
     pause
     exit /b 1
 )
-
-cd "%PROJECT_ROOT%"
 
 echo   [OK] 前端依赖已安装
 echo.
