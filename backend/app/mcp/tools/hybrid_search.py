@@ -4,6 +4,7 @@
 from typing import Optional, List
 from fastmcp import FastMCP
 from app.services.chunk_search_service import get_chunk_search_service
+from app.services.llm_query_enhancer import get_llm_query_enhancer
 from app.schemas.enums import SearchType
 from app.mcp.tools import format_search_result
 from app.core.logging_config import get_logger
@@ -24,7 +25,8 @@ def register_hybrid_search(mcp: FastMCP):
         query: str,
         limit: int = default_limit,
         threshold: float = default_threshold,
-        file_types: Optional[List[str]] = None
+        file_types: Optional[List[str]] = None,
+        enable_query_enhancement: bool = True
     ) -> str:
         """
         混合搜索，结合语义搜索和全文搜索的优势。
@@ -38,6 +40,7 @@ def register_hybrid_search(mcp: FastMCP):
             limit: 返回结果数量（1-100，默认20）
             threshold: 相似度阈值（0.0-1.0，默认0.7）
             file_types: 文件类型过滤（可选）
+            enable_query_enhancement: 是否启用LLM查询增强（默认true）
 
         Returns:
             JSON 格式的搜索结果
@@ -49,7 +52,21 @@ def register_hybrid_search(mcp: FastMCP):
         if not 0.0 <= threshold <= 1.0:
             raise ValueError("threshold 必须为0.0-1.0")
 
-        logger.info(f"执行混合搜索: query={query}, limit={limit}")
+        logger.info(f"执行混合搜索: query={query}, limit={limit}, 增强={enable_query_enhancement}")
+
+        # LLM查询增强（与前端API保持一致）
+        enhanced_query = query
+        if enable_query_enhancement:
+            try:
+                query_enhancer = get_llm_query_enhancer()
+                enhancement_result = await query_enhancer.enhance_query(query)
+                if enhancement_result.get('success', False) and enhancement_result.get('enhanced', False):
+                    # 混合搜索使用扩展查询
+                    enhanced_query = enhancement_result.get('expanded_query', query)
+                    logger.info(f"LLM查询增强: '{query}' -> '{enhanced_query}'")
+            except Exception as e:
+                logger.warning(f"LLM查询增强失败，使用原始查询: {str(e)}")
+                enhanced_query = query
 
         # 转换 file_types 为 filters
         filters = None
@@ -58,7 +75,7 @@ def register_hybrid_search(mcp: FastMCP):
 
         service = get_chunk_search_service()
         result = await service.search(
-            query=query,
+            query=enhanced_query,
             search_type=SearchType.HYBRID,
             limit=limit,
             offset=0,
