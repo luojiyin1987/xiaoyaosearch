@@ -263,7 +263,7 @@ class MCPConfig(BaseSettings):
 
     # 搜索配置
     default_limit: int = Field(default=20, ge=1, le=100, description="MCP 默认结果数量")
-    default_threshold: float = Field(default=0.7, ge=0.0, le=1.0, description="MCP 默认相似度阈值")
+    default_threshold: float = Field(default=0.5, ge=0.0, le=1.0, description="MCP 默认相似度阈值")
 
     # 语音搜索配置
     voice_enabled: bool = Field(default=True, description="是否启用语音搜索")
