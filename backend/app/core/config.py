@@ -250,6 +250,29 @@ class PluginConfig(BaseSettings):
         env_prefix = "PLUGIN_"
 
 
+class MCPConfig(BaseSettings):
+    """MCP 服务器配置"""
+
+    # 服务器配置
+    sse_enabled: bool = Field(default=True, description="是否启用 MCP SSE 服务")
+    server_name: str = Field(default="xiaoyao-search", description="MCP 服务器名称")
+    server_version: str = Field(default="1.0.0", description="MCP 服务器版本")
+
+    # SSE 配置
+    sse_path: str = Field(default="/mcp/sse", description="SSE 端点路径")
+
+    # 搜索配置
+    default_limit: int = Field(default=20, ge=1, le=100, description="MCP 默认结果数量")
+    default_threshold: float = Field(default=0.7, ge=0.0, le=1.0, description="MCP 默认相似度阈值")
+
+    # 语音搜索配置
+    voice_enabled: bool = Field(default=True, description="是否启用语音搜索")
+    voice_max_duration: int = Field(default=30, ge=1, le=60, description="最大音频时长（秒）")
+
+    class Config:
+        env_prefix = "MCP_"
+
+
 class DefaultConfig(BaseSettings):
     """默认配置"""
     # 默认模式控制
@@ -430,6 +453,7 @@ class AppConfig(BaseSettings):
     processing: ProcessingConfig = Field(default_factory=ProcessingConfig)
     ai: AIConfig = Field(default_factory=AIConfig)
     plugin: PluginConfig = Field(default_factory=PluginConfig)
+    mcp: MCPConfig = Field(default_factory=MCPConfig)
     # SecurityConfig 已移除 - 桌面应用无需安全认证配置
 
     class Config:

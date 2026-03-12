@@ -24,6 +24,9 @@ setup_ai_logging()
 from app.core import init_database, setup_exception_handlers
 from app.core.logging_config import setup_logging, get_logger, logger
 
+# 导入 MCP 模块
+from app.mcp.server import create_mcp_server, register_mcp_tools
+
 # 配置日志系统
 setup_logging()
 from app.api import (
@@ -132,6 +135,41 @@ async def lifespan(app: FastAPI):
             except:
                 pass
 
+        # ========== FastMCP 服务器初始化 ==========
+        logger.info("初始化 FastMCP 服务器...")
+        try:
+            from app.core.config import get_settings
+            settings = get_settings()
+
+            if settings.mcp.sse_enabled:
+                # 创建 FastMCP 服务器实例
+                mcp_server = create_mcp_server()
+
+                # 注册所有工具
+                register_mcp_tools(mcp_server)
+
+                # 获取 SSE 应用（Starlette 应用）
+                mcp_sse_app = mcp_server.sse_app()
+
+                # 挂载到 FastAPI（SSE 端点将是 /mcp/sse）
+                app.mount("/mcp", mcp_sse_app)
+
+                # 保存到 app.state
+                app.state.mcp_server = mcp_server
+                app.state.mcp_sse_app = mcp_sse_app
+
+                logger.info("✅ FastMCP 服务器初始化完成")
+                logger.info(f"📡 SSE 端点: http://127.0.0.1:8000/mcp/sse")
+            else:
+                app.state.mcp_server = None
+                app.state.mcp_sse_app = None
+                logger.info("FastMCP 服务器未启用")
+        except Exception as e:
+            logger.error(f"❌ FastMCP 服务器初始化失败: {str(e)}")
+            app.state.mcp_server = None
+            app.state.mcp_sse_app = None
+        # =====================================
+
         # 初始化索引缓存
         logger.info("初始化索引缓存...")
         try:
@@ -219,6 +257,23 @@ async def root():
         "docs_url": "/docs",
         "redoc_url": "/redoc",
         "health_check": "/api/system/health"
+    }
+
+
+# MCP 健康检查端点
+@app.get("/mcp/health")
+async def mcp_health():
+    """FastMCP 服务器健康检查"""
+    tools = []
+    if hasattr(app.state, 'mcp_server') and app.state.mcp_server:
+        # FastMCP 通过 _tool_manager 获取工具列表
+        tools = list(app.state.mcp_server._tool_manager._tools.keys())
+
+    return {
+        "status": "enabled" if hasattr(app.state, 'mcp_server') and app.state.mcp_server else "disabled",
+        "server": "fastmcp",
+        "tools_count": len(tools),
+        "tools": tools
     }
 
 # 启动服务
