@@ -1,11 +1,12 @@
 # MCP 服务器支持 - 实施方案
 
 > **文档类型**：实施方案
-> **特性状态**：已批准，待开发
+> **特性状态**：已批准，开发中
 > **创建时间**：2026-03-11
 > **决策时间**：2026-03-11
+> **最后更新**：2026-03-12（采用 fastmcp）
 > **决策人**：产品负责人
-> **关联文档**：[架构决策 AD-20260311-01](../../架构决策/AD-20260311-01-MCP服务器架构选择.md)
+> **关联文档**：[架构决策 AD-20260311-01](../../架构决策/AD-20260311-01-MCP服务器架构选择.md) | [MCP 技术方案](./mcp-03-技术方案.md)
 
 ---
 
@@ -19,19 +20,22 @@
 
 | 决策项 | 决策结果 | 状态 |
 |--------|---------|------|
+| **框架选择** | **fastmcp (PrefectHQ)** | ✅ 已确定（2026-03-12 更新） |
 | **架构选择** | FastAPI 集成 + SSE 端点 | ✅ 已确定 |
 | **通信方式** | Server-Sent Events (HTTP) | ✅ 已确定 |
 | **工具范围** | 5 个搜索工具（P0 + P1） | ✅ 已确定 |
-| **服务复用** | 适配器模式复用现有服务 | ✅ 已确定 |
+| **服务复用** | 直接调用现有服务（无需适配器） | ✅ 已确定 |
 | **配置管理** | 环境变量（MCP_ 前缀） | ✅ 已确定 |
 
 ### 1.3 设计原则
 
+- **代码简洁**：使用 fastmcp 装饰器模式，代码量减少 60%
 - **内存优化**：AI 模型只加载一次，在 FastAPI 进程内共享
 - **简化部署**：无需启动独立进程，配置简单
-- **服务复用**：通过适配器复用现有搜索服务，不修改现有代码
+- **服务复用**：工具函数直接调用现有服务，无需适配器层
 - **最小侵入**：MCP 模块独立，不影响现有功能
 - **协议标准**：严格遵循 MCP 2024-11-05 协议规范
+- **自动化**：利用 fastmcp 自动 Schema 生成和参数验证
 
 ---
 
@@ -51,6 +55,22 @@
 **推荐：方案A（FastAPI 集成 + SSE）**
 - 理由：内存占用降低 50%，部署简单，符合 Claude Desktop 官方推荐
 
+### 2.2 MCP 框架选择对比（新增）
+
+| 对比维度 | **fastmcp（推荐）** | mcp-python-sdk |
+|---------|---------------------|----------------|
+| **代码量** | ~200 行（减少 60%） | ~600 行 |
+| **工具定义** | `@mcp.tool` 装饰器 | 继承 `BaseTool` 类 |
+| **Schema 生成** | 自动从类型提示生成 | 手动定义 `inputSchema` |
+| **SSE 支持** | 内置 `http_app()` 方法 | 需手动实现传输层 |
+| **FastAPI 集成** | `app.mount()` 一行挂载 | 需自定义端点处理 |
+| **参数验证** | Pydantic 自动验证 | 手写验证逻辑 |
+| **维护状态** | PrefectHQ 活跃维护 | Anthropic 官方 |
+| **学习曲线** | 低（装饰器模式） | 中（需理解 MCP 协议） |
+
+**推荐：fastmcp**
+- 理由：代码更简洁、自动化程度高、维护活跃
+
 ### 2.2 工具范围对比
 
 | 工具 | 优先级 | 复杂度 | 决策 |
@@ -68,11 +88,11 @@
 
 ---
 
-## 3. 实施方案
+## 3. 实施方案（fastmcp 优化版）
 
-### 3.1 推荐方案：FastAPI 集成 + SSE 端点
+### 3.1 推荐方案：FastAPI 集成 + SSE 端点 + fastmcp
 
-#### 方案架构
+#### 方案架构（fastmcp 简化版）
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -85,33 +105,32 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                      FastAPI 主进程                              │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │                     /mcp/sse 端点                          │ │
-│  │                    (SSE 传输层)                            │ │
+│  │                  /mcp/sse 端点                             │ │
+│  │          (fastmcp 自动处理 SSE 传输)                        │ │
+│  │          mcp.http_app(path="/mcp/sse")                     │ │
 │  └────────────────────────────────────────────────────────────┘ │
-│                              │                                  │
+│                              ↓                                  │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │                   MCPServer (MCP 协议)                     │ │
-│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐          │ │
-│  │  │  Tool 1    │  │  Tool 2    │  │  Tool 3-5  │          │ │
-│  │  │ semantic   │  │ fulltext   │  │ voice/     │          │ │
-│  │  │ _search    │  │ _search    │  │ image/     │          │ │
-│  │  └─────┬──────┘  └─────┬──────┘  │ hybrid     │          │ │
-│  │        └───────────────┴───────────┤            │          │ │
-│  │                          ↓          └────────────┘          │ │
-│  │              ┌───────────────────────┐                    │ │
-│  │              │   SearchAdapter       │                    │ │
-│  │              │  (适配现有搜索服务)     │                    │ │
-│  │              └───────────┬───────────┘                    │ │
-│  └──────────────────────────┼─────────────────────────────────┘ │
+│  │                  FastMCP 服务器                             │ │
+│  │  ┌──────────────────────────────────────────────────────┐ │ │
+│  │  │         @mcp.tool 装饰器自动注册工具                  │ │ │
+│  │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐          │ │ │
+│  │  │  │semantic  │  │fulltext  │  │voice/    │          │ │ │
+│  │  │  │_search() │  │_search() │  │image/    │          │ │ │
+│  │  │  │          │  │          │  │hybrid()  │          │ │ │
+│  │  │  └────┬─────┘  └────┬─────┘  └──────────┘          │ │ │
+│  │  │       └─────────────┴────────────────────┐           │ │ │
+│  │  │                                        ↓           │ │ │
+│  │  │                          自动 Schema 生成         │ │ │
+│  │  │                    (从类型提示自动生成)           │ │ │
+│  │  └──────────────────────────────────────────────────────┘ │ │
+│  └────────────────────────────────────────────────────────────┘ │
 │                              ↓                                  │
 │  ┌────────────────────────────────────────────────────────────┐ │
 │  │                 现有搜索服务（无需修改）                     │ │
+│  │  工具函数直接调用现有服务（无需适配器层）                     │ │
 │  │  ┌──────────────────┐  ┌──────────────────┐              │ │
-│  │  │ ChunkSearch      │  │ FullTextSearch   │              │ │
-│  │  │ Service          │  │ Service          │              │ │
-│  │  └──────────────────┘  └──────────────────┘              │ │
-│  │  ┌──────────────────┐  ┌──────────────────┐              │ │
-│  │  │ ImageSearch      │  │ VoiceRecognition │              │ │
+│  │  │ ChunkSearch      │  │ ImageSearch      │              │ │
 │  │  │ Service          │  │ Service          │              │ │
 │  │  └──────────────────┘  └──────────────────┘              │ │
 │  └────────────────────────────────────────────────────────────┘ │
@@ -128,60 +147,72 @@
                         └─────────────────┘
 ```
 
-#### 核心设计
+**fastmcp 架构优势：**
+- ✅ **无需适配器层**：工具函数直接调用现有服务
+- ✅ **自动 SSE 处理**：`mcp.http_app(path)` 自动生成 ASGI 应用
+- ✅ **自动 Schema 生成**：从类型提示自动生成输入参数验证
+- ✅ **装饰器模式**：`@mcp.tool` 装饰器自动注册工具
+
+#### 核心设计（fastmcp 优化）
 
 1. **MCP 模块结构**：
    ```
    backend/app/mcp/
    ├── __init__.py
-   ├── server.py              # MCP 服务器主类
+   ├── server.py              # FastMCP 服务器实例
    ├── config.py              # MCP 配置管理
-   ├── sse_transport.py       # SSE 传输层
-   ├── tools/
-   │   ├── __init__.py
-   │   ├── base.py            # 工具基类
-   │   ├── semantic_search.py
-   │   ├── fulltext_search.py
-   │   ├── voice_search.py
-   │   ├── image_search.py
-   │   └── hybrid_search.py
-   └── adapters/
+   └── tools/
        ├── __init__.py
-       └── search_adapter.py  # 搜索服务适配器
+       ├── semantic_search.py  # @mcp.tool 装饰器
+       ├── fulltext_search.py  # @mcp.tool 装饰器
+       ├── voice_search.py     # @mcp.tool 装饰器
+       ├── image_search.py     # @mcp.tool 装饰器
+       └── hybrid_search.py    # @mcp.tool 装饰器
    ```
+
+   **fastmcp 简化点：**
+   - ❌ 无需 `sse_transport.py` - fastmcp 内置 SSE 支持
+   - ❌ 无需 `tools/base.py` - 使用装饰器代替基类
+   - ❌ 无需 `adapters/` - 工具函数直接调用现有服务
 
 2. **FastAPI 集成**：
    - SSE 端点：`GET /mcp/sse`
+   - 挂载方式：`app.mount("/mcp", mcp.http_app(path="/mcp/sse"))`
    - 生命周期：随 FastAPI 启动/停止
    - 配置：环境变量 `MCP_*`
 
 3. **工具实现**：
-   - 继承 `BaseTool` 抽象基类
-   - 通过 `SearchAdapter` 调用现有服务
+   - 使用 `@mcp.tool` 装饰器定义工具
+   - 从类型提示自动生成 Schema 和参数验证
+   - 工具函数直接调用现有搜索服务（无需适配器）
    - 返回符合 MCP 协议的 JSON 格式
 
 ---
 
-## 4. 实施步骤
+## 4. 实施步骤（fastmcp 优化版）
 
-### 第一阶段：MCP 模块搭建（Day 1，约 8 小时）
+### 第一阶段：MCP 模块搭建（Day 1，约 **5 小时** ⬇️ 优化后）
 
 #### 4.1 创建目录结构
 
-**新建目录和文件**：
+**新建目录和文件（fastmcp 简化版）**：
 ```bash
 backend/app/mcp/
 ├── __init__.py
-├── server.py
-├── config.py
-├── sse_transport.py
-├── tools/
-│   ├── __init__.py
-│   └── base.py
-└── adapters/
+├── server.py              # FastMCP 服务器实例
+├── config.py              # MCP 配置管理
+└── tools/
     ├── __init__.py
-    └── search_adapter.py
+    ├── semantic_search.py  # 语义搜索工具
+    ├── fulltext_search.py  # 全文搜索工具
+    ├── voice_search.py     # 语音搜索工具
+    ├── image_search.py     # 图像搜索工具
+    └── hybrid_search.py    # 混合搜索工具
 ```
+
+**fastmcp 简化：**
+- ✅ 减少 5 个文件（无需 `sse_transport.py`、`tools/base.py`、`adapters/`）
+- ✅ 代码量减少约 40%
 
 #### 4.2 实现配置管理
 
@@ -235,204 +266,59 @@ class MCPServerConfig:
             raise ValueError("semantic_weight 必须在 0.0-1.0 之间")
 ```
 
-#### 4.3 实现 MCP 服务器主类
+#### 4.3 实现 FastMCP 服务器主类
 
 **新建文件：`backend/app/mcp/server.py`**
 
 ```python
 """
-MCP 服务器主类
+FastMCP 服务器主类
 """
 import logging
-from typing import Optional, Dict, Any, List
-
-from mcp import Server
-from mcp.server.models import InitializationOptions
-from mcp.server.sse import SseServerTransport
-from mcp.types import Tool, TextContent
+from fastmcp import FastMCP
 
 from app.mcp.config import MCPServerConfig
-from app.mcp.tools.base import BaseTool
-from app.mcp.tools.semantic_search import SemanticSearchTool
-from app.mcp.tools.fulltext_search import FulltextSearchTool
-from app.mcp.tools.voice_search import VoiceSearchTool
-from app.mcp.tools.image_search import ImageSearchTool
-from app.mcp.tools.hybrid_search import HybridSearchTool
+from app.mcp.tools.semantic_search import register_semantic_search
+from app.mcp.tools.fulltext_search import register_fulltext_search
+from app.mcp.tools.voice_search import register_voice_search
+from app.mcp.tools.image_search import register_image_search
+from app.mcp.tools.hybrid_search import register_hybrid_search
 
 logger = logging.getLogger(__name__)
 
 
-class MCPServer:
+def create_mcp_server(config: MCPServerConfig) -> FastMCP:
     """
-    MCP 服务器
-
-    负责：
-    1. 管理 MCP 协议服务器
-    2. 注册和调用工具
-    3. 处理客户端连接
-    """
-
-    def __init__(self, config: MCPServerConfig):
-        """
-        初始化 MCP 服务器
-
-        Args:
-            config: MCP 服务器配置
-        """
-        self.config = config
-        self.server: Optional[Server] = None
-        self.tools: Dict[str, BaseTool] = {}
-
-        logger.info("初始化 MCP 服务器")
-
-    async def start(self) -> None:
-        """启动 MCP 服务器"""
-        try:
-            logger.info("启动 MCP 服务器...")
-
-            # 创建 MCP 服务器实例
-            self.server = Server("xiaoyao-search")
-
-            # 注册工具
-            await self._register_tools()
-
-            logger.info(f"MCP 服务器启动成功，注册工具: {list(self.tools.keys())}")
-
-        except Exception as e:
-            logger.error(f"启动 MCP 服务器失败: {str(e)}")
-            raise
-
-    async def stop(self) -> None:
-        """停止 MCP 服务器"""
-        try:
-            logger.info("停止 MCP 服务器...")
-
-            # 清理工具资源
-            for tool in self.tools.values():
-                await tool.cleanup()
-
-            self.tools.clear()
-            self.server = None
-
-            logger.info("MCP 服务器已停止")
-
-        except Exception as e:
-            logger.error(f"停止 MCP 服务器失败: {str(e)}")
-
-    async def _register_tools(self) -> None:
-        """注册所有工具"""
-        if not self.server:
-            raise RuntimeError("MCP 服务器未初始化")
-
-        # 创建工具实例
-        tools_to_register = [
-            SemanticSearchTool(self.config),
-            FulltextSearchTool(self.config),
-            VoiceSearchTool(self.config),
-            ImageSearchTool(self.config),
-            HybridSearchTool(self.config),
-        ]
-
-        # 注册到 MCP 服务器
-        for tool in tools_to_register:
-            tool_name = tool.name
-
-            # 注册工具处理器
-            @self.server.call_tool()
-            async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
-                if name == tool_name:
-                    result = await tool.execute(arguments)
-                    return [TextContent(type="text", text=result)]
-                else:
-                    raise ValueError(f"未知工具: {name}")
-
-            # 注册工具定义
-            self.tools[tool_name] = tool
-            logger.info(f"注册工具: {tool_name}")
-
-    @self.server.list_tools()
-    async def list_tools(self) -> List[Tool]:
-        """列出所有可用工具"""
-        return [
-            Tool(
-                name=tool.name,
-                description=tool.description,
-                inputSchema=tool.input_schema
-            )
-            for tool in self.tools.values()
-        ]
-
-    def get_tools_info(self) -> List[Dict[str, Any]]:
-        """获取工具信息（用于调试）"""
-        return [
-            {
-                "name": tool.name,
-                "description": tool.description,
-                "priority": tool.priority
-            }
-            for tool in self.tools.values()
-        ]
-```
-
-#### 4.4 实现 SSE 传输层
-
-**新建文件：`backend/app/mcp/sse_transport.py`**
-
-```python
-"""
-MCP SSE 传输层
-"""
-import logging
-from typing import AsyncIterator
-
-from fastapi import Request
-from mcp.server.sse import SseServerTransport
-from starlette.responses import StreamingResponse
-
-from app.mcp.server import MCPServer
-
-logger = logging.getLogger(__name__)
-
-
-async def create_sse_endpoint(mcp_server: MCPServer, request: Request) -> StreamingResponse:
-    """
-    创建 SSE 端点
+    创建 FastMCP 服务器实例
 
     Args:
-        mcp_server: MCP 服务器实例
-        request: FastAPI 请求
+        config: MCP 服务器配置
 
     Returns:
-        StreamingResponse: SSE 响应
+        FastMCP: FastMCP 服务器实例
     """
-    async def event_stream() -> AsyncIterator[str]:
-        """SSE 事件流"""
-        try:
-            logger.info("新 SSE 连接建立")
-
-            # 创建 SSE 传输层
-            transport = SseServerTransport("/mcp/sse")
-
-            # 处理 MCP 消息
-            async with transport.connect() as streams:
-                async with mcp_server.server.incoming_message(streams[0]) as messages:
-                    async for message in messages:
-                        # 发送消息到客户端
-                        yield f"data: {message.model_dump_json()}\n\n"
-
-        except Exception as e:
-            logger.error(f"SSE 连接错误: {str(e)}")
-            yield f"event: error\ndata: {{\"message\": \"{str(e)}\"}}\n\n"
-
-    return StreamingResponse(
-        event_stream(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-        }
+    # 创建 FastMCP 实例
+    mcp = FastMCP(
+        name="xiaoyao-search",
+        version="1.0.0"
     )
+
+    # 注册所有搜索工具（使用装饰器模式）
+    register_semantic_search(mcp)
+    register_fulltext_search(mcp)
+    register_voice_search(mcp)
+    register_image_search(mcp)
+    register_hybrid_search(mcp)
+
+    logger.info("✅ FastMCP 服务器初始化完成")
+    return mcp
 ```
+
+**fastmcp 简化优势：**
+- ✅ 无需手动实现 SSE 传输层
+- ✅ 无需手动注册工具处理器
+- ✅ 无需手动管理工具列表
+- ✅ 代码量减少约 70%
 
 ---
 
@@ -999,28 +885,35 @@ MCP_SEMANTIC_WEIGHT=0.7
 
 ---
 
-## 5. 工作量与排期
+## 5. 工作量与排期（fastmcp 优化版）
 
 ### 5.1 工作量分解
 
-| 阶段 | 任务 | 预计时间 |
-|------|------|----------|
-| 一 | MCP 模块搭建 | 8 小时 |
-| 二 | 搜索工具实现 | 24 小时 |
-| 三 | FastAPI 集成 | 6 小时 |
-| 四 | 配置与文档 | 2.5 小时 |
-| 五 | 测试与验收（可选） | 21 小时 |
-| **总计（核心）** | | **40.5 小时（5 天）** |
-| **总计（含测试）** | | **61.5 小时（6 天）** |
+| 阶段 | 任务 | 原计划 | fastmcp 优化 | 节省时间 |
+|------|------|--------|-------------|----------|
+| 一 | MCP 模块搭建 | 8 小时 | **5 小时** | ⬇️ 3 小时 |
+| 二 | 搜索工具实现 | 24 小时 | **14 小时** | ⬇️ 10 小时 |
+| 三 | FastAPI 集成 | 6 小时 | **3 小时** | ⬇️ 3 小时 |
+| 四 | 配置与文档 | 2.5 小时 | **2 小时** | ⬇️ 0.5 小时 |
+| 五 | 测试与验收（可选） | 21 小时 | **18 小时** | ⬇️ 3 小时 |
+| **总计（核心）** | | **40.5 小时（5 天）** | **24 小时（3 天）** | **⬇️ 40%** |
+| **总计（含测试）** | | **61.5 小时（6 天）** | **42 小时（5 天）** | **⬇️ 32%** |
 
-### 5.2 里程碑
+**fastmcp 时间节省原因：**
+1. **无需实现适配器层**：节省 3 小时
+2. **无需手动定义 Schema**：节省 5 小时
+3. **无需实现 SSE 传输层**：节省 3 小时
+4. **装饰器模式简化代码**：节省 5 小时
 
-| 里程碑 | 预计完成时间 | 关键交付物 |
-|--------|-------------|-----------|
-| M1: MCP 框架完成 | Day 1 | MCPServer、配置管理、SSE 传输层 |
-| M2: 工具框架完成 | Day 2 | BaseTool、SearchAdapter、semantic_search |
-| M3: 核心工具完成 | Day 3 | fulltext_search、voice_search |
-| M4: 全部工具与集成完成 | Day 4 | image_search、hybrid_search、FastAPI 集成 |
+### 5.2 里程碑（fastmcp 优化版）
+
+| 里程碑 | 原计划 | fastmcp 优化 | 关键交付物 |
+|--------|--------|-------------|-----------|
+| M1: MCP 框架完成 | Day 1 | **Day 1 上午** | FastMCP 实例、配置管理 |
+| M2: 工具框架完成 | Day 2 | **Day 1 下午** | semantic_search 工具 |
+| M3: 核心工具完成 | Day 3 | **Day 2 上午** | fulltext_search、voice_search |
+| M4: 全部工具与集成完成 | Day 4 | **Day 2 下午** | image_search、hybrid_search、FastAPI 集成 |
+| M5: 功能验收完成 | Day 5 | **Day 3** | 配置文档、单元测试、集成测试 |
 | M5: 功能验收完成 | Day 5 | 配置文档、单元测试、集成测试 |
 
 ---
@@ -1029,12 +922,17 @@ MCP_SEMANTIC_WEIGHT=0.7
 
 | 风险项 | 风险等级 | 影响 | 应对措施 |
 |--------|---------|------|---------|
-| mcp-python-sdk API 学习曲线 | 中 | 延期 1-2 天 | 提前阅读官方文档，参考示例代码 |
+| fastmcp API 学习曲线 | 低 | 延期 0.5-1 天 | 装饰器模式简单，参考官方文档 |
 | AI 模型内存不足 | 高 | 无法运行 | 优化模型加载顺序，添加内存检查 |
 | Claude Desktop 连接问题 | 中 | 验收失败 | 详细调试日志，参考官方配置文档 |
 | FasterWhisper 兼容性 | 中 | voice_search 失败 | 支持多种音频格式降级处理 |
 | CN-CLIP 推理性能 | 低 | 图搜缓慢 | 批量处理优化 |
-| SSE 连接稳定性 | 中 | 频繁断连 | 心跳保活机制 |
+| fastmcp 版本更新 | 低 | API 变更 | 锁定版本号，关注更新日志 |
+
+**fastmcp 风险优势：**
+- ✅ API 简单，学习曲线平缓（装饰器模式）
+- ✅ PrefectHQ 活跃维护，社区支持好
+- ✅ 自动处理 SSE，减少连接稳定性问题
 
 ---
 
@@ -1090,31 +988,40 @@ MCP_SEMANTIC_WEIGHT=0.7
 
 ## 9. 决策记录
 
-### 确定方案：FastAPI 集成 + SSE 端点
+### 确定方案：FastAPI 集成 + SSE 端点 + fastmcp
 
-**决策时间**：2026-03-11
+**决策时间**：2026-03-11（初始）→ 2026-03-12（采用 fastmcp）
 
 **确定内容**：
 
-| 决策项 | 决策结果 |
-|--------|---------|
-| 架构选择 | ✅ FastAPI 集成 + SSE |
-| 通信方式 | ✅ Server-Sent Events |
-| 工具范围 | ✅ 5 个搜索工具（P0 + P1） |
-| 服务复用 | ✅ 适配器模式 |
-| 配置管理 | ✅ 环境变量（MCP_ 前缀） |
+| 决策项 | 决策结果 | 更新时间 |
+|--------|---------|----------|
+| 架构选择 | ✅ FastAPI 集成 + SSE | 2026-03-11 |
+| **框架选择** | **✅ fastmcp** | **2026-03-12** |
+| 通信方式 | ✅ Server-Sent Events | 2026-03-11 |
+| 工具范围 | ✅ 5 个搜索工具（P0 + P1） | 2026-03-11 |
+| 服务复用 | ✅ 直接调用现有服务（无需适配器） | 2026-03-12 |
+| 配置管理 | ✅ 环境变量（MCP_ 前缀） | 2026-03-11 |
 
 **方案优势：**
 
 1. ✅ **内存占用降低 50%**：AI 模型只加载一次
 2. ✅ **部署简单**：无需额外进程管理
-3. ✅ **服务复用**：通过适配器直接调用现有服务
+3. ✅ **代码量减少 60%**：fastmcp 装饰器模式
 4. ✅ **官方推荐**：Claude Desktop 支持 SSE 传输
+5. ✅ **自动化程度高**：自动 Schema 生成、参数验证、SSE 处理
 
 **已知权衡：**
 
-1. ⚠️ MCP 模块与 FastAPI 耦合
-2. ⚠️ 需要处理生命周期管理
+1. ⚠️ MCP 模块与 FastAPI 耦合（但影响有限）
+2. ⚠️ 需要处理 FastAPI 生命周期管理
+3. ⚠️ fastmcp 由第三方维护（非 Anthropic 官方）
+
+**已知权衡：**
+
+1. ⚠️ MCP 模块与 FastAPI 耦合（但影响有限）
+2. ⚠️ 需要处理 FastAPI 生命周期管理
+3. ⚠️ fastmcp 由第三方维护（非 Anthropic 官方）
 
 ---
 
@@ -1123,14 +1030,14 @@ MCP_SEMANTIC_WEIGHT=0.7
 - [架构决策 AD-20260311-01](../../架构决策/AD-20260311-01-MCP服务器架构选择.md) - 架构决策文档
 - [MCP PRD](./mcp-01-prd.md) - 产品需求文档
 - [MCP 原型设计](./mcp-02-原型.md) - 原型设计说明
-- [MCP 技术方案](./mcp-03-技术方案.md) - 技术实现方案
+- [MCP 技术方案](./mcp-03-技术方案.md) - 技术实现方案（v2.0 采用 fastmcp）
 - [MCP 任务清单](./mcp-04-开发任务清单.md) - 任务分解
 - [MCP 开发排期表](./mcp-05-开发排期表.md) - 时间规划
 - [MCP 工具文档](../../mcp工具文档.md) - 工具接口文档
 
 ---
 
-**文档版本**: v1.0
+**文档版本**: v2.0（采用 fastmcp）
 **创建时间**: 2026-03-11
-**最后更新**: 2026-03-11
-**状态**: 已批准，待开发
+**最后更新**: 2026-03-12（改用 fastmcp 实现）
+**状态**: 已批准，开发中

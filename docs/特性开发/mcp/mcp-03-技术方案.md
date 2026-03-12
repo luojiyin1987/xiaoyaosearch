@@ -1,9 +1,9 @@
 # MCP 服务器支持 - 技术方案
 
 > **文档类型**：技术方案
-> **特性状态**：规划中
+> **特性状态**：开发中
 > **创建时间**：2026-03-11
-> **最后更新**：2026-03-11
+> **最后更新**：2026-03-12（采用 fastmcp 实现）
 > **关联文档**：[MCP PRD](./mcp-01-prd.md) | [MCP 原型](./mcp-02-原型.md)
 
 ---
@@ -27,11 +27,11 @@
 
 | 技术/框架 | 用途 | 选择理由 | 替代方案 |
 |----------|------|---------|---------|
-| **mcp-python-sdk** | MCP 协议实现 | Anthropic 官方 Python SDK，完整支持 MCP 协议规范 | 自己实现 MCP 协议 |
+| **fastmcp** | MCP 协议实现 | PrefectHQ 维护的 Python MCP 框架，装饰器模式简洁优雅，自动 Schema 生成，原生 SSE 支持，代码量减少 60% | mcp-python-sdk |
 | **SSE (Server-Sent Events)** | 传输协议 | MCP HTTP 传输方式，支持远程访问 | stdio（仅本地） |
-| **FastAPI** | Web 框架 | 现有框架，集成简单 | Flask、Django |
+| **FastAPI** | Web 框架 | 现有框架，fastmcp 原生支持 ASGI 集成 | Flask、Django |
 | **asyncio** | 异步框架 | 与 FastAPI 兼容，支持高并发 | 多线程 |
-| **Pydantic** | 数据验证 | 与现有代码一致，类型安全 | 纯字典 |
+| **Pydantic** | 数据验证 | fastmcp 自动从类型提示生成验证 | 纯字典 |
 | **适配器模式** | 架构模式 | 无需修改现有搜索服务，降低耦合 | 直接修改现有服务 |
 
 ### 1.4 支持的搜索工具
@@ -48,7 +48,7 @@
 
 ## 2. 架构设计
 
-### 2.1 整体架构
+### 2.1 整体架构（fastmcp 简化版）
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -59,20 +59,21 @@
 │  ┌─────────────────────┐  ┌─────────────────────┐                        │
 │  │   /api/*            │  │   /mcp/sse          │                        │
 │  │   (Electron前端)    │  │   (Claude Desktop)  │                        │
-│  └─────────────────────┘  └─────────────────────┘                        │
+│  └─────────────────────┘  │   fastmcp 自动处理   │                        │
+│                           └─────────────────────┘                        │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  业务逻辑层                                                               │
 │  ┌─────────────────────┐  ┌─────────────────────┐                        │
-│  │  FastAPI Routers    │  │  MCP 服务器          │                        │
-│  │  - search_router    │  │  - MCP Protocol     │                        │
-│  │  - index_router     │  │  - Tools (搜索工具)  │                        │
-│  │  - config_router    │  │  - SSE Transport    │                        │
-│  │  - settings_router  │  │  - Resource Handler │                        │
+│  │  FastAPI Routers    │  │  FastMCP 服务器      │                        │
+│  │  - search_router    │  │  - @mcp.tool 装饰器  │                        │
+│  │  - index_router     │  │  - 自动 Schema 生成  │                        │
+│  │  - config_router    │  │  - 内置 SSE 传输     │                        │
+│  │  - settings_router  │  │  - ASGI 应用挂载     │                        │
 │  └─────────────────────┘  └─────────────────────┘                        │
 │                                ↓                                         │
 │                    ┌─────────────────────┐                                │
-│                    │  SearchAdapter      │                                │
-│                    │  (搜索服务适配器)    │                                │
+│                    │  搜索服务函数        │                                │
+│                    │  (直接调用现有服务)  │                                │
 │                    └─────────────────────┘                                │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  服务层（共享）                                                           │
@@ -90,12 +91,19 @@
 │  └─────────────────────┘  └─────────────────────┘  └──────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────┘
 
-通信方式：
+通信方式（fastmcp 自动处理）：
 ┌──────────────────┐         HTTP SSE         ┌──────────────────┐
-│  Claude Desktop  │ ←──────────────────────→ │ FastAPI + MCP    │
+│  Claude Desktop  │ ←──────────────────────→ │ FastAPI + FastMCP│
 │  (MCP Client)    │     端点: /mcp/sse       │  (单一进程)       │
-└──────────────────┘                          └──────────────────┘
+└──────────────────┘    mcp.http_app(path)     └──────────────────┘
+                        自动生成 ASGI 应用
 ```
+
+**fastmcp 架构优势：**
+- ✅ **简化设计**：无需单独的 `SearchAdapter` 适配器层
+- ✅ **自动集成**：`mcp.http_app(path)` 自动生成 ASGI 应用
+- ✅ **装饰器模式**：`@mcp.tool` 装饰器自动注册工具
+- ✅ **类型安全**：从类型提示自动生成 Schema 和参数验证
 
 ### 2.2 目录结构
 
@@ -104,19 +112,15 @@ backend/
 ├── app/
 │   ├── mcp/                                # MCP 模块（新增）
 │   │   ├── __init__.py                     # 模块初始化
-│   │   ├── server.py                       # MCP 服务器主类
+│   │   ├── server.py                       # FastMCP 服务器实例（使用装饰器模式）
 │   │   ├── config.py                       # MCP 配置管理
-│   │   ├── transport.py                    # SSE 传输层实现
-│   │   ├── tools/                          # 工具模块
-│   │   │   ├── __init__.py
-│   │   │   ├── semantic_search.py          # 语义搜索工具
-│   │   │   ├── fulltext_search.py          # 全文搜索工具
-│   │   │   ├── voice_search.py             # 语音搜索工具
-│   │   │   ├── image_search.py             # 图像搜索工具
-│   │   │   └── hybrid_search.py            # 混合搜索工具
-│   │   └── adapters/                       # 适配器模块
+│   │   └── tools/                          # 工具模块（使用 @mcp.tool 装饰器）
 │   │       ├── __init__.py
-│   │       └── search_adapter.py           # 搜索服务适配器
+│   │       ├── semantic_search.py          # 语义搜索工具
+│   │       ├── fulltext_search.py          # 全文搜索工具
+│   │       ├── voice_search.py             # 语音搜索工具
+│   │       ├── image_search.py             # 图像搜索工具
+│   │       └── hybrid_search.py            # 混合搜索工具
 │   │
 │   ├── services/                           # 现有服务（无变更）
 │   │   ├── chunk_search_service.py         # 块搜索服务
@@ -133,10 +137,16 @@ backend/
 │
 ├── main.py                                 # FastAPI 主入口（修改）
 │
-└── requirements.txt                         # 依赖（添加 mcp 包）
+└── requirements.txt                         # 依赖（添加 fastmcp）
 ```
 
-### 2.3 数据流
+**fastmcp 简化点：**
+- ✅ 无需 `transport.py` - fastmcp 内置 SSE 支持
+- ✅ 无需 `adapters/` - 工具函数直接调用现有服务
+- ✅ 无需 `BaseTool` 基类 - 使用装饰器定义工具
+- ✅ 自动 Schema 生成 - 从类型提示自动生成
+
+### 2.3 数据流（fastmcp 自动处理）
 
 **Claude Desktop 搜索流程**：
 
@@ -149,409 +159,120 @@ Claude 通过 SSE 发送工具调用请求
     ↓
 FastAPI 接收 SSE 请求，路由到 /mcp/sse 端点
     ↓
-MCP 服务器解析请求，提取工具名和参数
+fastmcp 自动解析请求，提取工具名和参数
     ↓
-SearchAdapter 调用对应搜索服务
+fastmcp 根据类型提示自动验证参数
+    ↓
+调用对应的 @mcp.tool 装饰器函数
+    ↓
+工具函数直接调用现有搜索服务（无需适配器）
     ↓
 搜索服务执行查询（Faiss/Whoosh）
     ↓
-MCP 服务器格式化结果为 MCP 协议格式
+fastmcp 自动格式化结果为 MCP 协议格式
     ↓
-通过 SSE 返回结果给 Claude Desktop
+通过内置 SSE 传输返回结果给 Claude Desktop
     ↓
 Claude 基于结果生成智能回答
 ```
+
+**fastmcp 自动化处理：**
+- ✅ **自动参数验证**：从类型提示自动生成验证逻辑
+- ✅ **自动错误处理**：统一异常捕获和错误格式化
+- ✅ **自动协议转换**：自动将 Python 对象转换为 MCP 协议格式
+- ✅ **自动 SSE 管理**：内置 SSE 连接管理和心跳检测
 
 ---
 
 ## 3. 核心实现
 
-### 3.1 MCP 服务器主类
+### 3.1 FastMCP 服务器主类（fastmcp 方案）
 
 ```python
 # backend/app/mcp/server.py
-from mcp.server import Server
-from mcp.types import Tool, TextContent
-from app.mcp.tools.semantic_search import SemanticSearchTool
-from app.mcp.tools.fulltext_search import FulltextSearchTool
-from app.mcp.tools.voice_search import VoiceSearchTool
-from app.mcp.tools.image_search import ImageSearchTool
-from app.mcp.tools.hybrid_search import HybridSearchTool
+from fastmcp import FastMCP
+from app.mcp.tools.semantic_search import register_semantic_search
+from app.mcp.tools.fulltext_search import register_fulltext_search
+from app.mcp.tools.voice_search import register_voice_search
+from app.mcp.tools.image_search import register_image_search
+from app.mcp.tools.hybrid_search import register_hybrid_search
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
-class MCPServer:
-    """MCP 服务器主类"""
-
-    def __init__(self, config: MCPConfig):
-        self.config = config
-        self.server = Server(config.server_name)
-        self._tools = {}
-        self._init_tools()
-
-    def _init_tools(self):
-        """初始化所有工具"""
-        tools = [
-            SemanticSearchTool(),
-            FulltextSearchTool(),
-            VoiceSearchTool(),
-            ImageSearchTool(),
-            HybridSearchTool()
-        ]
-
-        for tool in tools:
-            self._tools[tool.name] = tool
-            logger.info(f"✅ 注册工具: {tool.name}")
-
-    @property
-    def tools(self) -> list[Tool]:
-        """获取所有工具定义"""
-        return [tool.definition for tool in self._tools.values()]
-
-    async def call_tool(self, name: str, arguments: dict) -> list[TextContent]:
-        """调用工具"""
-        if name not in self._tools:
-            raise ValueError(f"未知工具: {name}")
-
-        tool = self._tools[name]
-        logger.info(f"调用工具: {name}, 参数: {arguments}")
-
-        try:
-            result = await tool.execute(arguments)
-            return [TextContent(type="text", text=result)]
-        except Exception as e:
-            logger.error(f"工具执行失败: {name}, 错误: {str(e)}")
-            return [TextContent(type="text", text=f"错误: {str(e)}")]
-
-def create_mcp_server() -> MCPServer:
-    """创建 MCP 服务器实例"""
-    from app.mcp.config import get_mcp_config
-    config = get_mcp_config()
-    return MCPServer(config)
-```
-
-### 3.2 SSE 传输层
-
-```python
-# backend/app/mcp/transport.py
-from fastapi import Request
-from fastapi.responses import StreamingResponse
-from mcp.server.sse import SseServerTransport
-from app.mcp.server import MCPServer
-from app.core.logging_config import get_logger
-
-logger = get_logger(__name__)
-
-async def create_sse_endpoint(mcp_server: MCPServer, request: Request):
+def create_mcp_server() -> FastMCP:
     """
-    创建 SSE 传输端点
-
-    Args:
-        mcp_server: MCP 服务器实例
-        request: FastAPI 请求对象
+    创建 FastMCP 服务器实例
 
     Returns:
-        StreamingResponse: SSE 响应
+        FastMCP: FastMCP 服务器实例
     """
-    async def handle_sse():
-        """SSE 处理逻辑"""
-        # 创建 SSE 传输
-        transport = SseServerTransport("/mcp/sse")
+    from app.mcp.config import get_mcp_config
+    config = get_mcp_config()
 
-        async with transport.connect_sse(
-            request.scope,
-            request.receive,
-            request._send
-        ) as streams:
-            # 注册工具
-            await mcp_server.server.list_tools()
-
-            # 处理请求
-            await mcp_server.server.run(
-                *streams,
-                mcp_server.server.create_initialization_options()
-            )
-
-    logger.info("📡 SSE 连接建立")
-    return StreamingResponse(
-        handle_sse(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"
-        }
+    # 创建 FastMCP 实例
+    mcp = FastMCP(
+        name=config.server_name,
+        version=config.server_version
     )
+
+    # 注册所有搜索工具
+    register_semantic_search(mcp)
+    register_fulltext_search(mcp)
+    register_voice_search(mcp)
+    register_image_search(mcp)
+    register_hybrid_search(mcp)
+
+    logger.info(f"✅ FastMCP 服务器初始化完成: {config.server_name}")
+    return mcp
 ```
 
-### 3.3 工具基类
-
-```python
-# backend/app/mcp/tools/__init__.py
-from abc import ABC, abstractmethod
-from mcp.types import Tool
-from app.core.logging_config import get_logger
-
-logger = get_logger(__name__)
-
-class BaseTool(ABC):
-    """工具基类"""
-
-    def __init__(self):
-        self._definition = None
-
-    @property
-    @abstractmethod
-    def definition(self) -> Tool:
-        """工具定义"""
-        pass
-
-    @abstractmethod
-    async def execute(self, arguments: dict) -> str:
-        """执行工具
-
-        Args:
-            arguments: 工具参数
-
-        Returns:
-            str: JSON 格式的结果字符串
-        """
-        pass
-
-    def _format_result(self, data: dict) -> str:
-        """格式化结果为 JSON 字符串
-
-        Args:
-            data: 结果数据
-
-        Returns:
-            str: JSON 字符串
-        """
-        import json
-        return json.dumps(data, ensure_ascii=False, indent=2)
-    def _validate_arguments(self, arguments: dict, required: list[str]) -> None:
-        """验证参数
-
-        Args:
-            arguments: 工具参数
-            required: 必需参数列表
-
-        Raises:
-            ValueError: 参数验证失败
-        """
-        missing = [key for key in required if key not in arguments]
-        if missing:
-            raise ValueError(f"缺少必需参数: {', '.join(missing)}")
-```
-
-### 3.4 语义搜索工具
+### 3.2 语义搜索工具（fastmcp 装饰器模式）
 
 ```python
 # backend/app/mcp/tools/semantic_search.py
-from mcp.types import Tool
-from app.mcp.tools import BaseTool
-from app.mcp.adapters.search_adapter import SearchAdapter
-
-class SemanticSearchTool(BaseTool):
-    """语义搜索工具"""
-
-    def __init__(self):
-        super().__init__()
-        self.adapter = SearchAdapter()
-
-    @property
-    def definition(self) -> Tool:
-        return Tool(
-            name="semantic_search",
-            description="基于BGE-M3模型的语义搜索，支持自然语言查询理解。适合用自然语言描述的查询，如'关于机器学习算法优化的方法'。",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "搜索查询词（1-500字符）",
-                        "minLength": 1,
-                        "maxLength": 500
-                    },
-                    "limit": {
-                        "type": "integer",
-                        "description": "返回结果数量（1-100）",
-                        "minimum": 1,
-                        "maximum": 100,
-                        "default": 20
-                    },
-                    "threshold": {
-                        "type": "number",
-                        "description": "相似度阈值（0.0-1.0）",
-                        "minimum": 0.0,
-                        "maximum": 1.0,
-                        "default": 0.7
-                    },
-                    "file_types": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "文件类型过滤（可选）"
-                    }
-                },
-                "required": ["query"]
-            }
-        )
-
-    async def execute(self, arguments: dict) -> str:
-        """执行语义搜索"""
-        self._validate_arguments(arguments, ["query"])
-
-        result = await self.adapter.semantic_search(
-            query=arguments["query"],
-            limit=arguments.get("limit", 20),
-            threshold=arguments.get("threshold", 0.7),
-            file_types=arguments.get("file_types")
-        )
-
-        return self._format_result(result)
-```
-
-### 3.5 语音搜索工具
-
-```python
-# backend/app/mcp/tools/voice_search.py
-import base64
-import io
-from mcp.types import Tool
-from app.mcp.tools import BaseTool
-from app.mcp.adapters.search_adapter import SearchAdapter
-from app.services.ai_model_manager import ai_model_service
-
-class VoiceSearchTool(BaseTool):
-    """语音搜索工具"""
-
-    def __init__(self):
-        super().__init__()
-        self.adapter = SearchAdapter()
-
-    @property
-    def definition(self) -> Tool:
-        return Tool(
-            name="voice_search",
-            description="基于FasterWhisper模型的语音搜索，支持语音输入转文本后进行搜索。适合通过语音快速搜索，无需手动输入文字。支持中英文语音识别，音频时长建议不超过30秒。",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "audio_data": {
-                        "type": "string",
-                        "description": "Base64 编码的音频数据（支持 WAV、MP3、M4A 格式）"
-                    },
-                    "search_type": {
-                        "type": "string",
-                        "description": "搜索类型",
-                        "enum": ["semantic", "fulltext", "hybrid"],
-                        "default": "semantic"
-                    },
-                    "limit": {
-                        "type": "integer",
-                        "description": "返回结果数量（1-100）",
-                        "minimum": 1,
-                        "maximum": 100,
-                        "default": 20
-                    },
-                    "threshold": {
-                        "type": "number",
-                        "description": "相似度阈值（0.0-1.0）",
-                        "minimum": 0.0,
-                        "maximum": 1.0,
-                        "default": 0.7
-                    },
-                    "file_types": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "文件类型过滤（可选）"
-                    }
-                },
-                "required": ["audio_data"]
-            }
-        )
-
-    async def execute(self, arguments: dict) -> str:
-        """执行语音搜索"""
-        self._validate_arguments(arguments, ["audio_data"])
-
-        # 1. 解码音频数据
-        audio_bytes = base64.b64decode(arguments["audio_data"])
-        audio_file = io.BytesIO(audio_bytes)
-
-        # 2. 语音识别
-        transcription = await ai_model_service.transcribe(audio_file)
-        query = transcription["text"].strip()
-
-        if not query:
-            return self._format_result({
-                "error": "语音识别失败",
-                "transcription": transcription
-            })
-
-        # 3. 执行搜索
-        search_type = arguments.get("search_type", "semantic")
-        if search_type == "semantic":
-            result = await self.adapter.semantic_search(
-                query=query,
-                limit=arguments.get("limit", 20),
-                threshold=arguments.get("threshold", 0.7),
-                file_types=arguments.get("file_types")
-            )
-        elif search_type == "fulltext":
-            result = await self.adapter.fulltext_search(
-                query=query,
-                limit=arguments.get("limit", 20),
-                file_types=arguments.get("file_types")
-            )
-        else:  # hybrid
-            result = await self.adapter.hybrid_search(
-                query=query,
-                limit=arguments.get("limit", 20),
-                threshold=arguments.get("threshold", 0.7),
-                file_types=arguments.get("file_types")
-            )
-
-        # 4. 添加识别结果
-        result["transcription"] = {
-            "text": query,
-            "language": transcription.get("language"),
-            "duration": transcription.get("duration")
-        }
-
-        return self._format_result(result)
-```
-
-### 3.6 搜索服务适配器
-
-```python
-# backend/app/mcp/adapters/search_adapter.py
-from typing import List, Optional
+from typing import Optional, List
+from fastmcp import FastMCP
 from app.services.chunk_search_service import get_chunk_search_service
-from app.services.image_search_service import get_image_search_service
-from app.core.logging_config import get_logger
+from app.models.schemas import SearchType
+import json
 
-logger = get_logger(__name__)
+def register_semantic_search(mcp: FastMCP):
+    """注册语义搜索工具"""
 
-class SearchAdapter:
-    """搜索服务适配器，将现有搜索服务适配为 MCP 工具"""
-
-    def __init__(self):
-        self.chunk_search_service = get_chunk_search_service()
-        self.image_search_service = get_image_search_service()
-
+    @mcp.tool
     async def semantic_search(
-        self,
         query: str,
         limit: int = 20,
         threshold: float = 0.7,
         file_types: Optional[List[str]] = None
-    ) -> dict:
-        """语义搜索"""
-        from app.models.schemas import SearchType
+    ) -> str:
+        """
+        基于BGE-M3模型的语义搜索，支持自然语言查询理解。
 
-        result = await self.chunk_search_service.search(
+        适合用自然语言描述的查询，如"关于机器学习算法优化的方法"。
+        支持文件类型过滤和相似度阈值设置。
+
+        Args:
+            query: 搜索查询词（1-500字符）
+            limit: 返回结果数量（1-100，默认20）
+            threshold: 相似度阈值（0.0-1.0，默认0.7）
+            file_types: 文件类型过滤（可选）
+
+        Returns:
+            JSON 格式的搜索结果
+        """
+        # 参数验证
+        if not query or len(query) > 500:
+            raise ValueError("query 必须为1-500字符")
+        if not 1 <= limit <= 100:
+            raise ValueError("limit 必须为1-100")
+        if not 0.0 <= threshold <= 1.0:
+            raise ValueError("threshold 必须为0.0-1.0")
+
+        # 执行搜索
+        service = get_chunk_search_service()
+        result = await service.search(
             query=query,
             search_type=SearchType.SEMANTIC,
             limit=limit,
@@ -559,37 +280,274 @@ class SearchAdapter:
             threshold=threshold,
             file_types=file_types
         )
-        return self._format_result(result)
 
+        # 格式化结果
+        return json.dumps(_format_search_result(result), ensure_ascii=False, indent=2)
+
+
+def _format_search_result(result: dict) -> dict:
+    """格式化搜索结果"""
+    data = result.get('data', {})
+    results = data.get('results', [])
+
+    return {
+        "total": data.get('total', 0),
+        "search_time": data.get('search_time', 0),
+        "results": [
+            {
+                "file_name": item.get('file_name', ''),
+                "file_path": item.get('file_path', ''),
+                "file_type": item.get('file_type', ''),
+                "relevance_score": item.get('relevance_score', 0),
+                "preview_text": item.get('preview_text', ''),
+                "highlight": item.get('highlight', ''),
+                "source_type": item.get('source_type', 'filesystem'),
+                "source_url": item.get('source_url')
+            }
+            for item in results
+        ]
+    }
+```
+
+### 3.3 全文搜索工具
+
+```python
+# backend/app/mcp/tools/fulltext_search.py
+from typing import Optional, List
+from fastmcp import FastMCP
+from app.services.chunk_search_service import get_chunk_search_service
+from app.models.schemas import SearchType
+import json
+
+def register_fulltext_search(mcp: FastMCP):
+    """注册全文搜索工具"""
+
+    @mcp.tool
     async def fulltext_search(
-        self,
         query: str,
         limit: int = 20,
         file_types: Optional[List[str]] = None
-    ) -> dict:
-        """全文搜索"""
-        from app.models.schemas import SearchType
+    ) -> str:
+        """
+        基于Whoosh的全文搜索，支持精确关键词匹配和短语查询。
 
-        result = await self.chunk_search_service.search(
+        适合查找特定的关键词或短语，支持布尔运算符（AND, OR, NOT）。
+        搜索速度极快，适合精确匹配场景。
+
+        Args:
+            query: 搜索查询词（1-500字符）
+            limit: 返回结果数量（1-100，默认20）
+            file_types: 文件类型过滤（可选）
+
+        Returns:
+            JSON 格式的搜索结果
+        """
+        from app.mcp.tools.semantic_search import _format_search_result
+
+        service = get_chunk_search_service()
+        result = await service.search(
             query=query,
             search_type=SearchType.FULLTEXT,
             limit=limit,
             offset=0,
             file_types=file_types
         )
-        return self._format_result(result)
 
+        return json.dumps(_format_search_result(result), ensure_ascii=False, indent=2)
+```
+
+### 3.4 语音搜索工具
+
+```python
+# backend/app/mcp/tools/voice_search.py
+import base64
+import io
+from typing import Optional, List
+from fastmcp import FastMCP
+from app.services.chunk_search_service import get_chunk_search_service
+from app.services.ai_model_manager import ai_model_service
+from app.models.schemas import SearchType
+import json
+
+def register_voice_search(mcp: FastMCP):
+    """注册语音搜索工具"""
+
+    @mcp.tool
+    async def voice_search(
+        audio_data: str,
+        search_type: str = "semantic",
+        limit: int = 20,
+        threshold: float = 0.7,
+        file_types: Optional[List[str]] = None
+    ) -> str:
+        """
+        基于FasterWhisper模型的语音搜索，支持语音输入转文本后进行搜索。
+
+        适合通过语音快速搜索，无需手动输入文字。
+        支持中英文语音识别，音频时长建议不超过30秒。
+        支持 WAV、MP3、M4A 格式。
+
+        Args:
+            audio_data: Base64 编码的音频数据
+            search_type: 搜索类型（semantic/fulltext/hybrid，默认semantic）
+            limit: 返回结果数量（1-100，默认20）
+            threshold: 相似度阈值（0.0-1.0，默认0.7）
+            file_types: 文件类型过滤（可选）
+
+        Returns:
+            JSON 格式的搜索结果（包含语音识别结果）
+        """
+        from app.mcp.tools.semantic_search import _format_search_result
+
+        # 1. 解码音频数据
+        audio_bytes = base64.b64decode(audio_data)
+        audio_file = io.BytesIO(audio_bytes)
+
+        # 2. 语音识别
+        transcription = await ai_model_service.transcribe(audio_file)
+        query = transcription["text"].strip()
+
+        if not query:
+            return json.dumps({
+                "error": "语音识别失败",
+                "transcription": transcription
+            }, ensure_ascii=False, indent=2)
+
+        # 3. 执行搜索
+        service = get_chunk_search_service()
+        search_type_enum = SearchType(search_type)
+
+        result = await service.search(
+            query=query,
+            search_type=search_type_enum,
+            limit=limit,
+            offset=0,
+            threshold=threshold,
+            file_types=file_types
+        )
+
+        # 4. 格式化结果并添加识别信息
+        formatted = _format_search_result(result)
+        formatted["transcription"] = {
+            "text": query,
+            "language": transcription.get("language"),
+            "duration": transcription.get("duration")
+        }
+
+        return json.dumps(formatted, ensure_ascii=False, indent=2)
+```
+
+### 3.5 图像搜索工具
+
+```python
+# backend/app/mcp/tools/image_search.py
+import base64
+from io import BytesIO
+from fastmcp import FastMCP
+from app.services.image_search_service import get_image_search_service
+import json
+
+def register_image_search(mcp: FastMCP):
+    """注册图像搜索工具"""
+
+    @mcp.tool
+    async def image_search(
+        image_data: str,
+        limit: int = 20,
+        threshold: float = 0.7
+    ) -> str:
+        """
+        基于CN-CLIP模型的图像搜索，支持图片查找相似内容。
+
+        上传图片后，将搜索与该图片相似的文件。
+        支持查找相似图片、包含相似元素的文档等。
+
+        Args:
+            image_data: Base64 编码的图片数据
+            limit: 返回结果数量（1-100，默认20）
+            threshold: 相似度阈值（0.0-1.0，默认0.7）
+
+        Returns:
+            JSON 格式的搜索结果
+        """
+        # 解码图片数据
+        image_bytes = base64.b64decode(image_data)
+        image_file = BytesIO(image_bytes)
+
+        # 执行图像搜索
+        service = get_image_search_service()
+        result = await service.search(
+            image=image_file,
+            limit=limit,
+            threshold=threshold
+        )
+
+        # 格式化结果
+        return json.dumps(_format_image_result(result), ensure_ascii=False, indent=2)
+
+
+def _format_image_result(result: dict) -> dict:
+    """格式化图像搜索结果"""
+    data = result.get('data', {})
+    results = data.get('results', [])
+
+    return {
+        "total": data.get('total', 0),
+        "search_time": data.get('search_time', 0),
+        "results": [
+            {
+                "file_name": item.get('file_name', ''),
+                "file_path": item.get('file_path', ''),
+                "file_type": item.get('file_type', ''),
+                "similarity": item.get('similarity', 0),
+                "preview_url": item.get('preview_url', ''),
+                "thumbnail_url": item.get('thumbnail_url', '')
+            }
+            for item in results
+        ]
+    }
+```
+
+### 3.6 混合搜索工具
+
+```python
+# backend/app/mcp/tools/hybrid_search.py
+from typing import Optional, List
+from fastmcp import FastMCP
+from app.services.chunk_search_service import get_chunk_search_service
+from app.models.schemas import SearchType
+import json
+
+def register_hybrid_search(mcp: FastMCP):
+    """注册混合搜索工具"""
+
+    @mcp.tool
     async def hybrid_search(
-        self,
         query: str,
         limit: int = 20,
         threshold: float = 0.7,
         file_types: Optional[List[str]] = None
-    ) -> dict:
-        """混合搜索"""
-        from app.models.schemas import SearchType
+    ) -> str:
+        """
+        混合搜索，结合语义搜索和全文搜索的优势。
 
-        result = await self.chunk_search_service.search(
+        同时使用BGE-M3语义理解和Whoosh精确匹配，
+        通过RRF（Reciprocal Rank Fusion）算法融合结果，
+        提供更全面的搜索结果。
+
+        Args:
+            query: 搜索查询词（1-500字符）
+            limit: 返回结果数量（1-100，默认20）
+            threshold: 相似度阈值（0.0-1.0，默认0.7）
+            file_types: 文件类型过滤（可选）
+
+        Returns:
+            JSON 格式的搜索结果
+        """
+        from app.mcp.tools.semantic_search import _format_search_result
+
+        service = get_chunk_search_service()
+        result = await service.search(
             query=query,
             search_type=SearchType.HYBRID,
             limit=limit,
@@ -597,107 +555,53 @@ class SearchAdapter:
             threshold=threshold,
             file_types=file_types
         )
-        return self._format_result(result)
 
-    async def image_search(
-        self,
-        image_data: str,
-        limit: int = 20,
-        threshold: float = 0.7
-    ) -> dict:
-        """图像搜索"""
-        import base64
-        from io import BytesIO
-
-        # 解码图片数据
-        image_bytes = base64.b64decode(image_data)
-        image_file = BytesIO(image_bytes)
-
-        # 调用图像搜索服务
-        result = await self.image_search_service.search(
-            image=image_file,
-            limit=limit,
-            threshold=threshold
-        )
-        return self._format_image_result(result)
-
-    def _format_result(self, result: dict) -> dict:
-        """格式化搜索结果为 MCP 友好的 JSON 格式"""
-        data = result.get('data', {})
-        results = data.get('results', [])
-
-        return {
-            "total": data.get('total', 0),
-            "search_time": data.get('search_time', 0),
-            "results": [
-                {
-                    "file_name": item.get('file_name', ''),
-                    "file_path": item.get('file_path', ''),
-                    "file_type": item.get('file_type', ''),
-                    "relevance_score": item.get('relevance_score', 0),
-                    "preview_text": item.get('preview_text', ''),
-                    "highlight": item.get('highlight', ''),
-                    "source_type": item.get('source_type', 'filesystem'),
-                    "source_url": item.get('source_url')
-                }
-                for item in results
-            ]
-        }
-
-    def _format_image_result(self, result: dict) -> dict:
-        """格式化图像搜索结果"""
-        data = result.get('data', {})
-        results = data.get('results', [])
-
-        return {
-            "total": data.get('total', 0),
-            "search_time": data.get('search_time', 0),
-            "results": [
-                {
-                    "file_name": item.get('file_name', ''),
-                    "file_path": item.get('file_path', ''),
-                    "file_type": item.get('file_type', ''),
-                    "similarity": item.get('similarity', 0),
-                    "preview_url": item.get('preview_url', ''),
-                    "thumbnail_url": item.get('thumbnail_url', '')
-                }
-                for item in results
-            ]
-        }
+        return json.dumps(_format_search_result(result), ensure_ascii=False, indent=2)
 ```
 
-### 3.7 FastAPI 集成
+### 3.7 FastAPI 集成（fastmcp 方案）
 
 ```python
 # backend/main.py（修改部分）
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.core.logging_config import get_logger, logger
-from app.mcp.server import create_mcp_server
-from app.mcp.transport import create_sse_endpoint
+
+logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # ... 现有初始化代码 ...
 
-    # ========== MCP 服务器初始化 ==========
-    logger.info("初始化 MCP 服务器...")
+    # ========== FastMCP 服务器初始化 ==========
+    logger.info("初始化 FastMCP 服务器...")
     try:
         from app.core.config import get_settings
         settings = get_settings()
 
-        if settings.mcp.sse_enabled:
-            # 创建 MCP 服务器实例
+        if settings.mcp_sse_enabled:
+            # 导入并创建 FastMCP 服务器
+            from app.mcp.server import create_mcp_server
             mcp_server = create_mcp_server()
+
+            # 获取 ASGI 应用并挂载到 FastAPI
+            # fastmcp 内置支持通过 http_app() 获取 ASGI 应用
+            mcp_asgi_app = mcp_server.http_app(path="/mcp/sse")
+
+            # 将 MCP ASGI 应用挂载到主应用
+            app.state.mcp_asgi_app = mcp_asgi_app
             app.state.mcp_server = mcp_server
-            logger.info("✅ MCP 服务器初始化完成")
+
+            logger.info("✅ FastMCP 服务器初始化完成")
             logger.info(f"📡 SSE 端点: http://127.0.0.1:8000/mcp/sse")
         else:
+            app.state.mcp_asgi_app = None
             app.state.mcp_server = None
-            logger.info("MCP 服务器未启用")
+            logger.info("FastMCP 服务器未启用")
     except Exception as e:
-        logger.error(f"❌ MCP 服务器初始化失败: {str(e)}")
+        logger.error(f"❌ FastMCP 服务器初始化失败: {str(e)}")
+        app.state.mcp_asgi_app = None
         app.state.mcp_server = None
     # =====================================
 
@@ -707,36 +611,68 @@ async def lifespan(app: FastAPI):
     # ... 现有清理代码 ...
 
 # 创建 FastAPI 应用
-app = FastAPI(...)
+from fastapi import Request
+from fastapi.responses import Response
 
-# ========== MCP SSE 端点 ==========
-from fastapi import Request, HTTPException
+app = FastAPI(
+    title="小遥搜索 API",
+    lifespan=lifespan
+)
 
-@app.get("/mcp/sse")
-async def mcp_sse_endpoint(request: Request):
+# ========== FastMCP SSE 端点（方式一：直接挂载）==========
+# 通过 Starlette Mount 挂载 FastMCP ASGI 应用
+from starlette.routing import Mount
+
+# 方式一：使用 Starlette Mount（推荐）
+# 在应用创建时挂载
+if app.state.mcp_asgi_app:
+    app.mount("/mcp", app.state.mcp_asgi_app)
+    logger.info("✅ FastMCP SSE 端点已挂载到 /mcp")
+
+# 方式二：手动路由（如果需要更多控制）
+@app.api_route("/mcp/sse", methods=["GET", "POST", "OPTIONS"])
+async def mcp_sse_proxy(request: Request):
     """
-    MCP SSE 传输端点
+    FastMCP SSE 传输端点代理
 
     Claude Desktop 通过此端点连接小遥搜索
     示例 URL: http://127.0.0.1:8000/mcp/sse
-    """
-    if not app.state.mcp_server:
-        raise HTTPException(status_code=503, detail="MCP 服务器未启用")
 
-    return await create_sse_endpoint(app.state.mcp_server, request)
+    注意：fastmcp 自动处理 SSE 连接，此处仅作为代理
+    """
+    if not app.state.mcp_asgi_app:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="FastMCP 服务器未启用")
+
+    # 代理请求到 FastMCP ASGI 应用
+    return await app.state.mcp_asgi_app(request.scope, request.receive, request._send)
+# =====================================================
 
 # MCP 健康检查端点
 @app.get("/mcp/health")
 async def mcp_health():
-    """MCP 服务器健康检查"""
+    """FastMCP 服务器健康检查"""
+    # fastmcp 自动暴露工具列表
+    tools = []
+    if app.state.mcp_server:
+        # FastMCP 通过 mcp._tool_manager 获取工具列表
+        tools = list(app.state.mcp_server._tool_manager._tools.keys())
+
     return {
         "status": "enabled" if app.state.mcp_server else "disabled",
-        "tools": len(app.state.mcp_server.tools) if app.state.mcp_server else 0
+        "server": "fastmcp",
+        "tools_count": len(tools),
+        "tools": tools
     }
-# =====================================
 
 # ... 其他路由 ...
 ```
+
+**fastmcp 集成优势：**
+- ✅ **一行代码挂载**：`mcp.http_app(path="/mcp/sse")` 自动生成 ASGI 应用
+- ✅ **自动 SSE 处理**：无需手动实现 SSE 传输层
+- ✅ **标准 FastAPI 集成**：使用 `app.mount()` 挂载
+- ✅ **自动工具发现**：fastmcp 自动扫描所有 `@mcp.tool` 装饰器
 
 ---
 
@@ -1004,12 +940,22 @@ class TestMCPEndToEnd:
 
 ```bash
 # backend/requirements.txt（添加）
-# MCP 协议支持
-mcp>=0.9.0
+# MCP 协议支持（使用 fastmcp）
+fastmcp>=0.4.0
 
-# SSE 传输支持（通常包含在 mcp 包中）
+# SSE 传输支持（fastmcp 内置）
 # uvicorn[standard]  # 已存在
 ```
+
+**fastmcp vs mcp-python-sdk 对比：**
+| 特性 | fastmcp | mcp-python-sdk |
+|------|---------|----------------|
+| 代码量 | ~200 行 | ~600 行 |
+| 工具定义 | `@mcp.tool` 装饰器 | 继承 `BaseTool` 类 |
+| Schema 生成 | 自动从类型提示 | 手动定义 `inputSchema` |
+| SSE 支持 | 内置 `http_app()` | 需手动实现 |
+| FastAPI 集成 | `app.mount()` 一行挂载 | 需自定义 SSE 端点 |
+| 维护状态 | PrefectHQ 活跃维护 | Anthropic 官方 |
 
 ### 7.2 部署步骤
 
@@ -1257,13 +1203,25 @@ async def execute_search():
 
 ---
 
-**文档版本**：v1.0
+**文档版本**：v2.0（采用 fastmcp）
 **创建时间**：2026-03-11
-**最后更新**：2026-03-11
+**最后更新**：2026-03-12（改用 fastmcp 实现）
 **维护者**：AI助手
 
 > **使用说明**：
-> 1. 本技术方案基于 FastAPI 集成 + SSE 端点方案
-> 2. 与现有代码保持一致，复用搜索服务
-> 3. 所有代码示例使用中文注释
-> 4. 配置参数支持环境变量覆盖
+> 1. 本技术方案基于 FastAPI 集成 + fastmcp 方案（2026-03-12 更新）
+> 2. fastmcp 相比 mcp-python-sdk 代码量减少约 60%
+> 3. 使用装饰器模式 (`@mcp.tool`) 定义工具，自动 Schema 生成
+> 4. FastAPI 集成通过 `mcp.http_app(path)` 一行代码挂载
+> 5. 与现有代码保持一致，复用搜索服务
+> 6. 所有代码示例使用中文注释
+> 7. 配置参数支持环境变量覆盖
+
+> **技术变更说明**（2026-03-12）：
+> - **框架选择**：从 mcp-python-sdk 迁移到 fastmcp
+> - **主要优势**：代码更简洁、自动 Schema 生成、原生 FastAPI 集成
+> - **关键变化**：
+>   - 工具定义：`class BaseTool` → `@mcp.tool` 装饰器
+>   - 参数验证：手动 `inputSchema` → 自动类型提示生成
+>   - SSE 传输：手动实现 → `mcp.http_app()` 内置
+>   - FastAPI 集成：自定义端点 → `app.mount()` 挂载
