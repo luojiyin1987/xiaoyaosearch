@@ -47,6 +47,7 @@ IT解决方案架构师 | 一人公司实践者
 - **⚡ 高性能**：基于Faiss向量搜索和Whoosh全文搜索的混合检索架构
 - **🔒 隐私安全**：本地运行，数据不上传云端，支持隐私模式
 - **🎨 现代界面**：基于Electron + Vue 3 + TypeScript的现代化桌面应用
+- **🤖 MCP 服务器支持**：支持 Model Context Protocol，可被 Claude Desktop 连接进行本地文件智能搜索
 
 <div align="center">
 
@@ -482,6 +483,135 @@ git push origin feature/你的功能名称
 想要开发新的数据源插件？
 
 **📖 [插件开发文档](docs/技术文档/插件开发文档.md)**
+
+---
+
+## 🔥 MCP 服务器支持
+
+小遥搜索现已支持 **Model Context Protocol (MCP)**，可被 Claude Desktop 等 AI 应用连接，进行本地文件智能搜索。
+
+### 什么是 MCP？
+
+MCP (Model Context Protocol) 是 Anthropic 推出的开源协议，允许 AI 应用（如 Claude Desktop）连接到本地数据源。通过 MCP，Claude 可以直接搜索和访问您的本地文件，提供更智能的问答和帮助。
+
+### 支持的搜索工具
+
+| 工具名称 | 说明 | AI 模型 |
+|---------|------|---------|
+| semantic_search | 语义搜索，支持自然语言查询理解 | BGE-M3 |
+| fulltext_search | 全文搜索，支持精确关键词匹配和中文分词 | Whoosh |
+| voice_search | 语音搜索，支持语音输入转文本后搜索 | FasterWhisper |
+| image_search | 图像搜索，支持图片上传查找相似内容 | CN-CLIP |
+| hybrid_search | 混合搜索，结合语义和全文搜索的优势 | BGE-M3 + Whoosh |
+
+### 配置 Claude Desktop
+
+1. **启动小遥搜索后端服务**
+
+确保小遥搜索后端服务正在运行（默认端口 8000）：
+```bash
+cd backend
+python main.py
+```
+
+2. **配置 Claude Desktop**
+
+编辑 Claude Desktop 配置文件：
+
+**Windows**:
+```
+%APPDATA%\Claude\claude_desktop_config.json
+```
+
+**macOS**:
+```
+~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+**Linux**:
+```
+~/.config/Claude/claude_desktop_config.json
+```
+
+添加以下配置：
+```json
+{
+  "mcpServers": {
+    "xiaoyao-search": {
+      "url": "http://127.0.0.1:8000/mcp/sse"
+    }
+  }
+}
+```
+
+3. **重启 Claude Desktop**
+
+重启后，Claude Desktop 会自动连接到小遥搜索 MCP 服务器。
+
+### 使用示例
+
+配置完成后，您可以在 Claude Desktop 中进行以下操作：
+
+**语义搜索**：
+```
+用户：帮我找一下关于异步编程的文档
+Claude：[调用 semantic_search 工具] 找到 5 个相关文档...
+```
+
+**全文搜索**：
+```
+用户：搜索包含 "async def" 的代码文件
+Claude：[调用 fulltext_search 工具] 找到 3 个代码文件...
+```
+
+**图像搜索**：
+```
+用户：[上传图片] 找找类似的图表
+Claude：[调用 image_search 工具] 找到 2 个相似的图表...
+```
+
+### 验证 MCP 连接
+
+访问健康检查端点验证 MCP 服务状态：
+```bash
+curl http://127.0.0.1:8000/mcp/health
+```
+
+返回示例：
+```json
+{
+  "status": "enabled",
+  "server": "fastmcp",
+  "tools_count": 5,
+  "tools": ["semantic_search", "fulltext_search", "voice_search", "image_search", "hybrid_search"]
+}
+```
+
+### 配置选项
+
+在 `backend/.env` 中配置 MCP 服务：
+
+```bash
+# MCP 服务器配置
+MCP_SSE_ENABLED=true              # 是否启用 MCP SSE 服务
+MCP_SERVER_NAME=xiaoyao-search    # 服务器名称
+MCP_DEFAULT_LIMIT=20              # 默认结果数量
+MCP_DEFAULT_THRESHOLD=0.5         # 默认相似度阈值
+MCP_VOICE_ENABLED=true            # 是否启用语音搜索
+```
+
+### 技术实现
+
+- **协议实现**：使用 [fastmcp](https://github.com/PrefectHQ/fastmcp) 框架
+- **传输方式**：HTTP SSE (Server-Sent Events)
+- **架构模式**：FastAPI 集成，共享 AI 模型和搜索服务
+- **内存优化**：单一进程，模型只加载一次，节省 4-6GB 内存
+
+### 详细文档
+
+- [MCP PRD](docs/特性开发/mcp/mcp-01-prd.md) - 产品需求文档
+- [MCP 技术方案](docs/特性开发/mcp/mcp-03-技术方案.md) - 技术实现方案
+- [MCP 官方文档](https://modelcontextprotocol.io/) - MCP 协议规范
 
 ---
 

@@ -47,6 +47,7 @@ IT Solution Architect | One-Person Company Practitioner
 - **⚡ High Performance**: Hybrid retrieval architecture based on Faiss vector search and Whoosh full-text search
 - **🔒 Privacy & Security**: Runs locally, data is not uploaded to the cloud, supports privacy mode
 - **🎨 Modern Interface**: Modern desktop application based on Electron + Vue 3 + TypeScript
+- **🤖 MCP Server Support**: Supports Model Context Protocol, can be connected by Claude Desktop for intelligent local file search
 
 <div align="center">
 
@@ -482,6 +483,135 @@ View the complete data source plugins list (13 types):
 Want to develop a new data source plugin?
 
 **📖 [Plugin Development Guide](docs/技术文档/插件开发文档.md)**
+
+---
+
+## 🔥 MCP Server Support
+
+XiaoyaoSearch now supports **Model Context Protocol (MCP)**, which can be connected by AI applications like Claude Desktop for intelligent local file search.
+
+### What is MCP?
+
+MCP (Model Context Protocol) is an open-source protocol introduced by Anthropic that allows AI applications (such as Claude Desktop) to connect to local data sources. Through MCP, Claude can directly search and access your local files, providing smarter Q&A and assistance.
+
+### Supported Search Tools
+
+| Tool Name | Description | AI Model |
+|-----------|-------------|----------|
+| semantic_search | Semantic search with natural language query understanding | BGE-M3 |
+| fulltext_search | Full-text search with precise keyword matching and Chinese word segmentation | Whoosh |
+| voice_search | Voice search with speech-to-text conversion | FasterWhisper |
+| image_search | Image search with similarity-based content retrieval | CN-CLIP |
+| hybrid_search | Hybrid search combining semantic and full-text search advantages | BGE-M3 + Whoosh |
+
+### Configure Claude Desktop
+
+1. **Start XiaoyaoSearch Backend Service**
+
+Ensure XiaoyaoSearch backend service is running (default port 8000):
+```bash
+cd backend
+python main.py
+```
+
+2. **Configure Claude Desktop**
+
+Edit Claude Desktop configuration file:
+
+**Windows**:
+```
+%APPDATA%\Claude\claude_desktop_config.json
+```
+
+**macOS**:
+```
+~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+**Linux**:
+```
+~/.config/Claude/claude_desktop_config.json
+```
+
+Add the following configuration:
+```json
+{
+  "mcpServers": {
+    "xiaoyao-search": {
+      "url": "http://127.0.0.1:8000/mcp/sse"
+    }
+  }
+}
+```
+
+3. **Restart Claude Desktop**
+
+After restarting, Claude Desktop will automatically connect to XiaoyaoSearch MCP server.
+
+### Usage Examples
+
+Once configured, you can perform the following operations in Claude Desktop:
+
+**Semantic Search**:
+```
+User: Help me find documents about asynchronous programming
+Claude: [Calls semantic_search tool] Found 5 related documents...
+```
+
+**Full-text Search**:
+```
+User: Search for code files containing "async def"
+Claude: [Calls fulltext_search tool] Found 3 code files...
+```
+
+**Image Search**:
+```
+User: [Uploads image] Find similar charts
+Claude: [Calls image_search tool] Found 2 similar charts...
+```
+
+### Verify MCP Connection
+
+Visit the health check endpoint to verify MCP service status:
+```bash
+curl http://127.0.0.1:8000/mcp/health
+```
+
+Response example:
+```json
+{
+  "status": "enabled",
+  "server": "fastmcp",
+  "tools_count": 5,
+  "tools": ["semantic_search", "fulltext_search", "voice_search", "image_search", "hybrid_search"]
+}
+```
+
+### Configuration Options
+
+Configure MCP service in `backend/.env`:
+
+```bash
+# MCP Server Configuration
+MCP_SSE_ENABLED=true              # Whether to enable MCP SSE service
+MCP_SERVER_NAME=xiaoyao-search    # Server name
+MCP_DEFAULT_LIMIT=20              # Default result count
+MCP_DEFAULT_THRESHOLD=0.5         # Default similarity threshold
+MCP_VOICE_ENABLED=true            # Whether to enable voice search
+```
+
+### Technical Implementation
+
+- **Protocol Implementation**: Using [fastmcp](https://github.com/PrefectHQ/fastmcp) framework
+- **Transport Method**: HTTP SSE (Server-Sent Events)
+- **Architecture Pattern**: FastAPI integration, sharing AI models and search services
+- **Memory Optimization**: Single process, models loaded only once, saving 4-6GB memory
+
+### Detailed Documentation
+
+- [MCP PRD](docs/特性开发/mcp/mcp-01-prd.md) - Product Requirements Document
+- [MCP Technical Solution](docs/特性开发/mcp/mcp-03-技术方案.md) - Technical Implementation Solution
+- [MCP Official Documentation](https://modelcontextprotocol.io/) - MCP Protocol Specification
 
 ---
 
