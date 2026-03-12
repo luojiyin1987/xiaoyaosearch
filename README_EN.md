@@ -504,49 +504,41 @@ MCP (Model Context Protocol) is an open-source protocol introduced by Anthropic 
 | image_search | Image search with similarity-based content retrieval | CN-CLIP |
 | hybrid_search | Hybrid search combining semantic and full-text search advantages | BGE-M3 + Whoosh |
 
-### Configure Claude Desktop
+### MCP Client Configuration
 
-1. **Start XiaoyaoSearch Backend Service**
+XiaoyaoSearch MCP server uses **HTTP transport protocol**. Any client that supports HTTP MCP can connect.
 
-Ensure XiaoyaoSearch backend service is running (default port 8000):
+#### Claude Code CLI Configuration
+
+Official command-line tool for quick configuration:
+
 ```bash
-cd backend
-python main.py
+# Add HTTP MCP server
+claude mcp add --transport http xiaoyao-search http://127.0.0.1:8000/mcp
+
+# Check if MCP was added successfully (ensure MCP is running first)
+claude mcp list
 ```
 
-2. **Configure Claude Desktop**
+#### Other MCP-Enabled Clients
 
-Edit Claude Desktop configuration file:
+Any client that supports the MCP protocol can connect to: `http://127.0.0.1:8000/mcp`
 
-**Windows**:
-```
-%APPDATA%\Claude\claude_desktop_config.json
-```
+**Basic Configuration Template**:
 
-**macOS**:
-```
-~/Library/Application Support/Claude/claude_desktop_config.json
-```
-
-**Linux**:
-```
-~/.config/Claude/claude_desktop_config.json
-```
-
-Add the following configuration:
 ```json
 {
-  "mcpServers": {
-    "xiaoyao-search": {
-      "url": "http://127.0.0.1:8000/mcp/sse"
-    }
-  }
+  "name": "xiaoyao-search",
+  "url": "http://127.0.0.1:8000/mcp",
+  "type": "sse"
 }
 ```
 
-3. **Restart Claude Desktop**
+**Common Client Configuration Examples**:
 
-After restarting, Claude Desktop will automatically connect to XiaoyaoSearch MCP server.
+- **Cline (VSCode Extension)**: Search for `cline.mcpServers` in VSCode settings and add the above configuration
+- **Cursor**: Add the above configuration in Cursor's MCP server settings
+- **Other MCP Clients**: Refer to the client documentation and use SSE transport
 
 ### Usage Examples
 

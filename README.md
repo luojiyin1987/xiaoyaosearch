@@ -494,6 +494,43 @@ git push origin feature/你的功能名称
 
 MCP (Model Context Protocol) 是 Anthropic 推出的开源协议，允许 AI 应用（如 Claude Desktop）连接到本地数据源。通过 MCP，Claude 可以直接搜索和访问您的本地文件，提供更智能的问答和帮助。
 
+
+### MCP 客户端配置
+
+小遥搜索 MCP 服务器使用 **HTTP 传输协议**，任何支持 HTTP MCP 的客户端都可以连接。
+
+#### Claude Code CLI 配置
+
+官方命令行工具，快速配置：
+
+```bash
+# 添加 HTTP MCP 服务器
+claude mcp add --transport http xiaoyao-search http://127.0.0.1:8000/mcp
+
+# 检查 MCP 是否添加成功（确保 MCP 已经启动的前提下，运行下面命令）
+claude mcp list
+```
+
+#### 其他支持 MCP 的客户端
+
+任何支持 MCP 协议的客户端都可以连接到：`http://127.0.0.1:8000/mcp`
+
+**基本配置模板**：
+
+```json
+{
+  "name": "xiaoyao-search",
+  "url": "http://127.0.0.1:8000/mcp",
+  "type": "sse"
+}
+```
+
+**常用客户端配置示例**：
+
+- **Cline (VSCode 插件)**: 在 VSCode 设置中搜索 `cline.mcpServers`，添加上述配置
+- **Cursor**: 在 Cursor 设置的 MCP 服务器配置中添加上述配置
+- **其他 MCP 客户端**: 参考客户端文档，使用 SSE 传输方式连接
+
 ### 支持的搜索工具
 
 | 工具名称 | 说明 | AI 模型 |
@@ -503,50 +540,6 @@ MCP (Model Context Protocol) 是 Anthropic 推出的开源协议，允许 AI 应
 | voice_search | 语音搜索，支持语音输入转文本后搜索 | FasterWhisper |
 | image_search | 图像搜索，支持图片上传查找相似内容 | CN-CLIP |
 | hybrid_search | 混合搜索，结合语义和全文搜索的优势 | BGE-M3 + Whoosh |
-
-### 配置 Claude Desktop
-
-1. **启动小遥搜索后端服务**
-
-确保小遥搜索后端服务正在运行（默认端口 8000）：
-```bash
-cd backend
-python main.py
-```
-
-2. **配置 Claude Desktop**
-
-编辑 Claude Desktop 配置文件：
-
-**Windows**:
-```
-%APPDATA%\Claude\claude_desktop_config.json
-```
-
-**macOS**:
-```
-~/Library/Application Support/Claude/claude_desktop_config.json
-```
-
-**Linux**:
-```
-~/.config/Claude/claude_desktop_config.json
-```
-
-添加以下配置：
-```json
-{
-  "mcpServers": {
-    "xiaoyao-search": {
-      "url": "http://127.0.0.1:8000/mcp/sse"
-    }
-  }
-}
-```
-
-3. **重启 Claude Desktop**
-
-重启后，Claude Desktop 会自动连接到小遥搜索 MCP 服务器。
 
 ### 使用示例
 
