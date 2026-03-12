@@ -1,9 +1,9 @@
 ﻿# Web框架 - 核心依赖
 fastapi==0.115.12                 # Python Web框架
 uvicorn[standard]==0.35.0        # ASGI服务器
-pydantic==2.12.4                 # 数据验证 - 更新到当前安装版本，解决依赖冲突
+pydantic==2.12.4                 # 数据验证
 pydantic-settings==2.5.2         # 配置管理
-python-multipart==0.0.6          # 文件上传
+python-multipart==0.0.9          # 文件上传
 
 # 数据库
 sqlalchemy==2.0.23               # SQL工具包
@@ -85,7 +85,7 @@ pytest==7.4.3                   # 测试框架
 pytest-asyncio==0.21.1           # 异步测试
 
 # MCP
-fastmcp==2.1.0          # 
+fastmcp==2.14.5        # 
 
 # 注意事项：
 # 1. 如需GPU加速，将faiss-cpu替换为faiss-gpu

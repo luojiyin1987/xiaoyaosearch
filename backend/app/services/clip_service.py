@@ -7,7 +7,7 @@ import logging
 import os
 import tempfile
 import time
-from typing import Dict, Any, Optional, List, Union, Tuple, BinaryIO
+from typing import Dict, Any, Optional, List, Union, Tuple
 from pathlib import Path
 import numpy as np
 import torch
@@ -15,7 +15,7 @@ import torch.nn.functional as F
 from PIL import Image, ImageOps
 from transformers import CLIPProcessor, CLIPModel, ChineseCLIPProcessor, ChineseCLIPModel
 import requests
-from io import BytesIO
+from io import BytesIO, IOBase
 
 from app.services.ai_model_base import BaseAIModel, ModelType, ProviderType, ModelStatus, AIModelException
 from app.utils.enum_helpers import get_enum_value
@@ -168,7 +168,7 @@ class CLIPVisionService(BaseAIModel):
             logger.error(error_msg)
             return False
 
-    async def predict(self, inputs: Union[str, bytes, BinaryIO, Image.Image], texts: List[str], **kwargs) -> Dict[str, Any]:
+    async def predict(self, inputs: Union[str, bytes, IOBase, Image.Image], texts: List[str], **kwargs) -> Dict[str, Any]:
         """
         图像-文本匹配预测
 
@@ -219,7 +219,7 @@ class CLIPVisionService(BaseAIModel):
             logger.error(error_msg)
             raise AIModelException(error_msg, model_name=self.model_name)
 
-    async def _preprocess_image(self, image_input: Union[str, bytes, BinaryIO, Image.Image]) -> Image.Image:
+    async def _preprocess_image(self, image_input: Union[str, bytes, IOBase, Image.Image]) -> Image.Image:
         """
         预处理图像输入
 
@@ -262,7 +262,7 @@ class CLIPVisionService(BaseAIModel):
                 return Image.open(image_input).convert("RGB")
 
         # 如果是字节数据或文件对象
-        elif isinstance(image_input, (bytes, BinaryIO)):
+        elif isinstance(image_input, (bytes, IOBase)):
             try:
                 if isinstance(image_input, bytes):
                     image = Image.open(BytesIO(image_input))
@@ -419,7 +419,7 @@ class CLIPVisionService(BaseAIModel):
 
         return image
 
-    async def encode_image(self, image_input: Union[str, bytes, BinaryIO, Image.Image]) -> np.ndarray:
+    async def encode_image(self, image_input: Union[str, bytes, IOBase, Image.Image]) -> np.ndarray:
         """
         编码图像为嵌入向量
 
@@ -547,7 +547,7 @@ class CLIPVisionService(BaseAIModel):
             logger.error(error_msg)
             raise AIModelException(error_msg, model_name=self.model_name)
 
-    async def batch_match(self, image_inputs: List[Union[str, bytes, BinaryIO, Image.Image]], texts: List[str], **kwargs) -> List[Dict[str, Any]]:
+    async def batch_match(self, image_inputs: List[Union[str, bytes, IOBase, Image.Image]], texts: List[str], **kwargs) -> List[Dict[str, Any]]:
         """
         批量图像-文本匹配
 

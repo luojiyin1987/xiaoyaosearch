@@ -51,6 +51,11 @@ def register_semantic_search(mcp: FastMCP):
 
         logger.info(f"执行语义搜索: query={query}, limit={limit}")
 
+        # 转换 file_types 为 filters
+        filters = None
+        if file_types:
+            filters = {"file_types": file_types}
+
         # 执行搜索（直接调用现有服务）
         service = get_chunk_search_service()
         result = await service.search(
@@ -59,7 +64,7 @@ def register_semantic_search(mcp: FastMCP):
             limit=limit,
             offset=0,
             threshold=threshold,
-            file_types=file_types
+            filters=filters
         )
 
         return format_search_result(result)

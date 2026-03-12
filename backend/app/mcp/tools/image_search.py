@@ -46,9 +46,18 @@ def register_image_search(mcp: FastMCP):
         logger.info(f"执行图像搜索: limit={limit}, threshold={threshold}")
 
         # 执行图像搜索
-        service = get_image_search_service()
-        result = await service.search(
-            image=image_file,
+        from app.services.ai_model_manager import ai_model_service
+        from app.services.image_search_service import ensure_image_search_service
+
+        # 确保图像搜索服务已初始化
+        service = await ensure_image_search_service()
+
+        # 使用 AI 模型管理器对图片进行编码（复用全局 CLIP 模型）
+        query_vector = await ai_model_service.encode_image(image_file)
+
+        # 2. 使用向量进行搜索
+        result = await service.search_similar_images(
+            query_vector=query_vector,
             limit=limit,
             threshold=threshold
         )

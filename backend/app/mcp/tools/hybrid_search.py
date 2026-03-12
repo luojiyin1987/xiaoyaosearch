@@ -51,6 +51,11 @@ def register_hybrid_search(mcp: FastMCP):
 
         logger.info(f"执行混合搜索: query={query}, limit={limit}")
 
+        # 转换 file_types 为 filters
+        filters = None
+        if file_types:
+            filters = {"file_types": file_types}
+
         service = get_chunk_search_service()
         result = await service.search(
             query=query,
@@ -58,7 +63,7 @@ def register_hybrid_search(mcp: FastMCP):
             limit=limit,
             offset=0,
             threshold=threshold,
-            file_types=file_types
+            filters=filters
         )
 
         return format_search_result(result)

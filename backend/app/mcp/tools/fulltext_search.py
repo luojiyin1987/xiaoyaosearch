@@ -45,13 +45,18 @@ def register_fulltext_search(mcp: FastMCP):
 
         logger.info(f"执行全文搜索: query={query}, limit={limit}")
 
+        # 转换 file_types 为 filters
+        filters = None
+        if file_types:
+            filters = {"file_types": file_types}
+
         service = get_chunk_search_service()
         result = await service.search(
             query=query,
             search_type=SearchType.FULLTEXT,
             limit=limit,
             offset=0,
-            file_types=file_types
+            filters=filters
         )
 
         return format_search_result(result)

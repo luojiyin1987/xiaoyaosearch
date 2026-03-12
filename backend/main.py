@@ -148,26 +148,29 @@ async def lifespan(app: FastAPI):
                 # 注册所有工具
                 register_mcp_tools(mcp_server)
 
-                # 获取 SSE 应用（Starlette 应用）
-                mcp_sse_app = mcp_server.sse_app()
+                # 获取 HTTP 应用（Starlette 应用）
+                # 使用 transport="sse" 保持与 Claude Desktop 的兼容性
+                mcp_app = mcp_server.http_app(path="/", transport="sse")
 
                 # 挂载到 FastAPI（SSE 端点将是 /mcp/sse）
-                app.mount("/mcp", mcp_sse_app)
+                # 注意：SSE 返回的 endpoint 路径是 /messages/...
+                # 客户端需要将其视为 /mcp/messages/... 来访问
+                app.mount("/mcp", mcp_app)
 
                 # 保存到 app.state
                 app.state.mcp_server = mcp_server
-                app.state.mcp_sse_app = mcp_sse_app
+                app.state.mcp_app = mcp_app
 
                 logger.info("✅ FastMCP 服务器初始化完成")
-                logger.info(f"📡 SSE 端点: http://127.0.0.1:8000/mcp/sse")
+                logger.info(f"📡 MCP 端点: http://127.0.0.1:8000/mcp/sse")
             else:
                 app.state.mcp_server = None
-                app.state.mcp_sse_app = None
+                app.state.mcp_app = None
                 logger.info("FastMCP 服务器未启用")
         except Exception as e:
             logger.error(f"❌ FastMCP 服务器初始化失败: {str(e)}")
             app.state.mcp_server = None
-            app.state.mcp_sse_app = None
+            app.state.mcp_app = None
         # =====================================
 
         # 初始化索引缓存

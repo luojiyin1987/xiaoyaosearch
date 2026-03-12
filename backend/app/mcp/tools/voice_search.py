@@ -61,8 +61,8 @@ def register_voice_search(mcp: FastMCP):
         audio_file = io.BytesIO(audio_bytes)
 
         # 2. 语音识别
-        transcription = await ai_model_service.transcribe(audio_file)
-        query = transcription["text"].strip()
+        transcription = await ai_model_service.speech_to_text(audio_file)
+        query = transcription.get("text", "").strip()
 
         if not query:
             return json.dumps({
@@ -71,6 +71,11 @@ def register_voice_search(mcp: FastMCP):
             }, ensure_ascii=False, indent=2)
 
         logger.info(f"语音识别结果: {query}, 搜索类型: {search_type}")
+
+        # 转换 file_types 为 filters
+        filters = None
+        if file_types:
+            filters = {"file_types": file_types}
 
         # 3. 执行搜索
         service = get_chunk_search_service()
@@ -82,7 +87,7 @@ def register_voice_search(mcp: FastMCP):
             limit=limit,
             offset=0,
             threshold=threshold,
-            file_types=file_types
+            filters=filters
         )
 
         # 4. 格式化结果并添加识别信息

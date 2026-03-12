@@ -7,8 +7,9 @@ import logging
 import os
 import tempfile
 import time
-from typing import Dict, Any, Optional, List, Union, BinaryIO
+from typing import Dict, Any, Optional, List, Union
 from pathlib import Path
+from io import BytesIO, IOBase
 import numpy as np
 from faster_whisper import WhisperModel
 import torch
@@ -191,7 +192,7 @@ class WhisperTranscriptionService(BaseAIModel):
             logger.error(error_msg)
             return False
 
-    async def predict(self, audio_input: Union[str, bytes, BinaryIO, np.ndarray], **kwargs) -> Dict[str, Any]:
+    async def predict(self, audio_input: Union[str, bytes, IOBase, np.ndarray], **kwargs) -> Dict[str, Any]:
         """
         语音转文字预测
 
@@ -248,7 +249,7 @@ class WhisperTranscriptionService(BaseAIModel):
             logger.error(error_msg)
             raise AIModelException(error_msg, model_name=self.model_name)
 
-    async def _preprocess_audio(self, audio_input: Union[str, bytes, BinaryIO, np.ndarray], **kwargs) -> str:
+    async def _preprocess_audio(self, audio_input: Union[str, bytes, IOBase, np.ndarray], **kwargs) -> str:
         """
         预处理音频输入
 
@@ -301,7 +302,7 @@ class WhisperTranscriptionService(BaseAIModel):
             return audio_input
 
         # 如果是字节数据或文件对象，保存为临时文件
-        elif isinstance(audio_input, (bytes, BinaryIO)):
+        elif isinstance(audio_input, (bytes, IOBase)):
             temp_dir = tempfile.gettempdir()
             temp_file = os.path.join(temp_dir, f"whisper_input_{int(time.time())}.wav")
 

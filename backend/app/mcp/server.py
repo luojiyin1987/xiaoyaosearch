@@ -19,9 +19,10 @@ def create_mcp_server() -> FastMCP:
     config = settings.mcp
 
     # 创建 FastMCP 实例
+    # 注意：message_path 现在在 http_app() 调用时设置
     mcp = FastMCP(
         name=config.server_name,
-        version=config.server_version
+        version=config.server_version,
     )
 
     logger.info(f"✅ FastMCP 服务器初始化完成: {config.server_name}")
