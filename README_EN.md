@@ -342,6 +342,12 @@ npm run dev
 
 ---
 
+## 🔄 Version Upgrade Guide
+
+When you need to upgrade to a new version, please refer to the [Version Upgrade Guide](docs/技术文档/版本升级指南_EN.md) to easily preserve your index data and configurations.
+
+---
+
 ## 🤝 How to Contribute
 
 <div align="center">
