@@ -35,7 +35,7 @@
 {
   "mcpServers": {
     "xiaoyao-search": {
-      "url": "http://127.0.0.1:8000/mcp/sse",
+      "url": "http://127.0.0.1:8000/mcp",
       "disabled": false
     }
   }
@@ -46,7 +46,7 @@
 
 | 参数 | 类型 | 必填 | 说明 | 示例值 |
 |------|------|------|------|--------|
-| `url` | string | 是 | MCP SSE 端点地址 | `http://127.0.0.1:8000/mcp/sse` |
+| `url` | string | 是 | MCP SSE 端点地址 | `http://127.0.0.1:8000/mcp` |
 | `disabled` | boolean | 否 | 是否禁用此服务器 | `false` |
 | `timeout` | number | 否 | 连接超时时间（毫秒） | `30000` |
 | `retries` | number | 否 | 重连次数 | `3` |
@@ -57,7 +57,7 @@
 {
   "mcpServers": {
     "xiaoyao-search": {
-      "url": "http://127.0.0.1:8000/mcp/sse",
+      "url": "http://127.0.0.1:8000/mcp",
       "timeout": 30000,
       "retries": 3,
       "env": {
@@ -319,7 +319,7 @@ python main.py
    {
      "mcpServers": {
        "xiaoyao-search": {
-         "url": "http://127.0.0.1:8000/mcp/sse"
+         "url": "http://127.0.0.1:8000/mcp"
        }
      }
    }

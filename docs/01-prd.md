@@ -40,6 +40,7 @@
 - [ ] **OpenAI兼容大模型服务** 🚧 规划中 - 支持OpenAI兼容的云端大语言模型服务，用户可选择使用云端大模型（如阿里云通义千问、DeepSeek、Moonshot等）替代或补充本地Ollama模型（详见[特性PRD](特性开发/openai/openai-01-prd.md)）
 - [ ] **插件化架构与语雀数据源** 🚧 规划中 - 建立插件化框架支持多数据源扩展，优先实现语雀知识库数据源（详见[特性PRD](特性开发/plugins+yuque/plugins+yuque-01-prd.md)）
 - [ ] **MCP服务器支持** 🚧 规划中 - 为小遥搜索添加 Model Context Protocol (MCP) 服务器能力，使 Claude Desktop 等 AI 应用能够连接小遥搜索进行本地文件智能搜索（详见[特性PRD](特性开发/mcp/mcp-01-prd.md)）
+- [ ] **Agent Skill工具规范** 🚧 规划中 - 为 Claude Code 提供小遥搜索 MCP 工具调用能力的 Agent Skill 规范定义（详见[特性PRD](特性开发/agent-skills/agent-skills-01-prd.md)）
 - [ ] **视频画面搜索** ⏸️ 已暂停 - 通过图片搜索视频内容，快速定位视频中的关键画面（详见[特性PRD](特性开发/videosearch/videosearch-01-prd.md)）
 - [ ] 语音识别模型配置：支持云端API和本地FastWhisper
 - [ ] 视觉模型配置：支持云端API和本地视觉模型
@@ -185,6 +186,12 @@
   - 架构方案：集成到 FastAPI 进程，共享 AI 模型和搜索服务，节省内存
   - Claude集成：通过 SSE 传输端点连接 Claude Desktop，支持自然语言查询本地文档
   - 详见：[MCP服务器支持PRD](特性开发/mcp/mcp-01-prd.md)
+- **Agent Skill工具规范** 🚧 规划中
+  - 核心能力：为 Claude Code 提供小遥搜索 MCP 工具调用能力的 Agent Skill 规范定义
+  - 技术基础：Claude Code Skill 格式 + MCP 工具描述规范
+  - 工具定义：语义搜索、全文搜索、混合搜索、图像搜索、语音搜索
+  - 配置指导：MCP 服务器连接配置、工具调用示例
+  - 详见：[Agent Skill特性PRD](特性开发/agent-skills/agent-skills-01-prd.md)
 - **视频画面搜索** ⏸️ 已暂停
   - 核心能力：通过图片检索视频内容，快速定位视频中的关键画面
   - 暂停原因：优先开发插件化架构与语雀数据源特性

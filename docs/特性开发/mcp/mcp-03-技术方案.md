@@ -594,7 +594,7 @@ async def lifespan(app: FastAPI):
             app.state.mcp_server = mcp_server
 
             logger.info("✅ FastMCP 服务器初始化完成")
-            logger.info(f"📡 SSE 端点: http://127.0.0.1:8000/mcp/sse")
+            logger.info(f"📡 SSE 端点: http://127.0.0.1:8000/mcp")
         else:
             app.state.mcp_asgi_app = None
             app.state.mcp_server = None
@@ -636,7 +636,7 @@ async def mcp_sse_proxy(request: Request):
     FastMCP SSE 传输端点代理
 
     Claude Desktop 通过此端点连接小遥搜索
-    示例 URL: http://127.0.0.1:8000/mcp/sse
+    示例 URL: http://127.0.0.1:8000/mcp
 
     注意：fastmcp 自动处理 SSE 连接，此处仅作为代理
     """
@@ -779,7 +779,7 @@ Connection: keep-alive
 
 **示例请求**:
 ```bash
-curl -N http://127.0.0.1:8000/mcp/sse
+curl -N http://127.0.0.1:8000/mcp
 ```
 
 ### 5.2 健康检查端点
@@ -915,7 +915,7 @@ class TestMCPEndToEnd:
     async def test_full_search_flow(self):
         """测试完整搜索流程"""
         # 连接到 MCP 服务器
-        client = Client("http://127.0.0.1:8000/mcp/sse")
+        client = Client("http://127.0.0.1:8000/mcp")
         await client.connect()
 
         # 获取工具列表
@@ -982,7 +982,7 @@ fastmcp>=0.4.0
    curl http://127.0.0.1:8000/mcp/health
 
    # 检查 SSE 端点
-   curl -N http://127.0.0.1:8000/mcp/sse
+   curl -N http://127.0.0.1:8000/mcp
    ```
 
 ### 7.3 Claude Desktop 配置
@@ -991,7 +991,7 @@ fastmcp>=0.4.0
 {
   "mcpServers": {
     "xiaoyao-search": {
-      "url": "http://127.0.0.1:8000/mcp/sse"
+      "url": "http://127.0.0.1:8000/mcp"
     }
   }
 }

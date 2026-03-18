@@ -57,7 +57,7 @@ Cache-Control: no-cache
 Connection: keep-alive
 
 event: endpoint
-data: {"message":"endpoint","event":"http://127.0.0.1:8000/mcp/sse?sessionId=xxx"}
+data: {"message":"endpoint","event":"http://127.0.0.1:8000/mcp?sessionId=xxx"}
 ```
 
 **配置参数**：
@@ -74,7 +74,7 @@ data: {"message":"endpoint","event":"http://127.0.0.1:8000/mcp/sse?sessionId=xxx
 {
   "mcpServers": {
     "xiaoyao-search": {
-      "url": "http://127.0.0.1:8000/mcp/sse"
+      "url": "http://127.0.0.1:8000/mcp"
     }
   }
 }
@@ -787,7 +787,7 @@ import asyncio
 from mcp import ClientSession, SSEClientTransport
 
 async def test_mcp():
-    transport = SSEClientTransport("http://127.0.0.1:8000/mcp/sse")
+    transport = SSEClientTransport("http://127.0.0.1:8000/mcp")
     async with ClientSession(transport) as session:
         # 初始化
         await session.initialize()

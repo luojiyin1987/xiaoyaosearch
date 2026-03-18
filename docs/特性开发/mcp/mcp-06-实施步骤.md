@@ -707,7 +707,7 @@ async def lifespan(app: FastAPI):
             app.state.mcp_asgi_app = mcp_asgi_app
 
             logger.info("✅ FastMCP 服务器初始化完成")
-            logger.info(f"📡 SSE 端点: http://127.0.0.1:8000/mcp/sse")
+            logger.info(f"📡 SSE 端点: http://127.0.0.1:8000/mcp")
         else:
             app.state.mcp_server = None
             app.state.mcp_asgi_app = None
@@ -918,7 +918,7 @@ class TestMCPIntegration:
    {
      "mcpServers": {
        "xiaoyao-search": {
-         "url": "http://127.0.0.1:8000/mcp/sse"
+         "url": "http://127.0.0.1:8000/mcp"
        }
      }
    }
@@ -1014,7 +1014,7 @@ npm run electron:dev
 
 - [ ] 后端启动成功，无错误日志
 - [ ] 访问 `http://127.0.0.1:8000/mcp/health` 返回正确状态
-- [ ] SSE 端点 `http://127.0.0.1:8000/mcp/sse` 可访问
+- [ ] SSE 端点 `http://127.0.0.1:8000/mcp` 可访问
 - [ ] Claude Desktop 可连接到 MCP 服务器
 - [ ] Claude Desktop 可调用 `semantic_search` 工具
 - [ ] Claude Desktop 可调用 `fulltext_search` 工具

@@ -535,7 +535,7 @@ async def mcp_sse_endpoint(request: Request):
     MCP SSE 传输端点
 
     Claude Desktop 通过此端点连接小遥搜索
-    示例 URL: http://127.0.0.1:8000/mcp/sse
+    示例 URL: http://127.0.0.1:8000/mcp
     """
     if not app.state.mcp_server:
         raise HTTPException(status_code=503, detail="MCP 服务器未启用")
@@ -549,7 +549,7 @@ async def mcp_sse_endpoint(request: Request):
 {
   "mcpServers": {
     "xiaoyao-search": {
-      "url": "http://127.0.0.1:8000/mcp/sse"
+      "url": "http://127.0.0.1:8000/mcp"
     }
   }
 }
@@ -662,7 +662,7 @@ mcp>=0.9.0
   1. 启动 FastAPI 服务：`python backend/main.py`
   2. 观察服务器启动日志，确认 MCP 服务器初始化成功
   3. 访问健康检查端点：`http://127.0.0.1:8000/api/system/health`
-  4. 验证 SSE 端点可访问：`curl http://127.0.0.1:8000/mcp/sse`
+  4. 验证 SSE 端点可访问：`curl http://127.0.0.1:8000/mcp`
 - 预期结果：
   - FastAPI 服务成功启动
   - MCP 服务器初始化成功，日志显示 "✅ MCP 服务器初始化完成"
@@ -714,7 +714,7 @@ mcp>=0.9.0
   {
     "mcpServers": {
       "xiaoyao-search": {
-        "url": "http://127.0.0.1:8000/mcp/sse"
+        "url": "http://127.0.0.1:8000/mcp"
       }
     }
   }
@@ -881,7 +881,7 @@ mcp>=0.9.0
 A: 影响极小。MCP 服务器集成在 FastAPI 进程中，共享已加载的 AI 模型和搜索服务，不会重复加载资源。只有在 Claude Desktop 调用时才会产生额外的 SSE 通信开销（< 100MB 内存增量）。
 
 **Q2: 如何确认 MCP 服务器是否正常运行？**
-A: 启动 FastAPI 服务后，检查日志中是否显示 "✅ MCP 服务器初始化完成"。也可以通过 Claude Desktop 的 MCP 服务器状态查看，或者直接访问 SSE 端点：`curl http://127.0.0.1:8000/mcp/sse`。
+A: 启动 FastAPI 服务后，检查日志中是否显示 "✅ MCP 服务器初始化完成"。也可以通过 Claude Desktop 的 MCP 服务器状态查看，或者直接访问 SSE 端点：`curl http://127.0.0.1:8000/mcp`。
 
 **Q3: 是否需要关闭小遥搜索应用才能使用 MCP 服务器？**
 A: 不需要。MCP 服务器集成在 FastAPI 服务中，和小遥搜索应用共用同一个后端服务。只需确保后端服务正常运行即可。
@@ -895,7 +895,7 @@ A: 需要编辑 Claude Desktop 的配置文件（`%APPDATA%\Claude\claude_deskto
 {
   "mcpServers": {
     "xiaoyao-search": {
-      "url": "http://127.0.0.1:8000/mcp/sse"
+      "url": "http://127.0.0.1:8000/mcp"
     }
   }
 }

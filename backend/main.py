@@ -162,7 +162,7 @@ async def lifespan(app: FastAPI):
                 app.state.mcp_app = mcp_app
 
                 logger.info("✅ FastMCP 服务器初始化完成")
-                logger.info(f"📡 MCP 端点: http://127.0.0.1:8000/mcp/sse")
+                logger.info(f"📡 MCP 端点: http://127.0.0.1:8000/mcp")
             else:
                 app.state.mcp_server = None
                 app.state.mcp_app = None

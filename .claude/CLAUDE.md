@@ -67,9 +67,13 @@
 - **[插件化任务清单](docs/特性开发/plugins+yuque/plugins+yuque-04-开发任务清单.md)** - 开发任务分解
 - **[插件化排期表](docs/特性开发/plugins+yuque/plugins+yuque-05-开发排期表.md)** - 时间规划和里程碑
 
-### MCP 服务器支持 🔥 开发中（第一优先级）
+### Agent Skill：小遥搜索 MCP 能力 🔥 开发中
+- **[Agent Skill PRD](docs/特性开发/agent-skills/agent-skills-01-prd.md)** - Agent Skill 产品需求
+- **[Agent Skill 技术方案](docs/特性开发/agent-skills/agent-skills-03-技术方案.md)** - Agent Skill 技术实现
+- **[Agent Skill 实施步骤](docs/特性开发/agent-skills/agent-skills-06-实施步骤.md)** - 开发任务分解
+
+### MCP 服务器支持 ✅ 已完成
 - **[MCP PRD](docs/特性开发/mcp/mcp-01-prd.md)** - MCP服务器支持产品需求（925行）
-- **[MCP原型](docs/特性开发/mcp/mcp-02-原型.md)** - 原型设计和交互规范
 - **[MCP技术方案](docs/特性开发/mcp/mcp-03-技术方案.md)** - FastAPI集成 + SSE端点技术实现（1270行）
 - **[MCP任务清单](docs/特性开发/mcp/mcp-04-开发任务清单.md)** - 开发任务分解（622行）
 - **[MCP排期表](docs/特性开发/mcp/mcp-05-开发排期表.md)** - 时间规划和里程碑（509行）
@@ -142,14 +146,16 @@ npm run dev
 
 ## 📊 项目进度
 
-- **当前阶段**：特性开发阶段 - 插件化架构与语雀数据源
+- **当前阶段**：特性开发阶段 - Agent Skill
 - **开发周期**：8-10周（2025年11月-2026年2月）
 - **MVP开发**：100%完成
 - **i18n国际化**：100%完成，720+翻译键
 - **API接口**：36个接口全部实现
 - **OpenAI兼容大模型服务**：🚧 规划中，需求分析和原型设计完成
-- **插件化架构与语雀数据源**：规划中，需求分析完成
+- **插件化架构与语雀数据源**：🚧 规划中，需求分析完成
 - **视频画面搜索**：⏸️ 已暂停，优先开发插件化架构
+- **MCP服务器支持**：✅ 已完成
+- **Agent Skill**：🔥 开发中
 
 > **进度管理**：任务完成后必须更新 [开发进度文档](docs/开发进度.md)
 
@@ -188,13 +194,12 @@ npm run dev
 **设计完成度**：
 - ✅ 全局PRD文档同步
 - ✅ 全局技术方案同步
-- ✅ 特性PRD文档完成（925行）
-- ✅ 特性原型设计完成
-- ✅ 特性技术方案完成（1270行）
-- ✅ 特性任务清单完成（622行）
-- ✅ 特性排期表完成（509行）
-- 🚧 开发阶段（20%）：需求分析、系统设计、项目排期完成
-- ⏳ 待开发：MCP服务器类、工具实现、FastAPI集成、API接口
+- ✅ MCP PRD文档完成（925行）
+- ✅ MCP 技术方案完成（1270行）
+- ✅ MCP 任务清单完成（622行）
+- ✅ MCP 排期表完成（509行）
+- ✅ MCP 开发完成
+- 🚧 Agent Skill 开发中
 
 ### 文档导航
 | 需求类型 | 主要文档 |
@@ -214,11 +219,11 @@ npm run dev
 | 插件化架构PRD | [插件化PRD](docs/特性开发/plugins+yuque/plugins+yuque-01-prd.md) |
 | 插件化架构技术方案 | [插件化技术方案](docs/特性开发/plugins+yuque/plugins+yuque-03-技术方案.md) |
 | 视频画面搜索PRD | [视频搜索PRD](docs/特性开发/videosearch/videosearch-01-prd.md) |
+| **Agent Skill PRD** | **[Agent Skill PRD](docs/特性开发/agent-skills/agent-skills-01-prd.md)** |
+| **Agent Skill技术方案** | **[Agent Skill技术方案](docs/特性开发/agent-skills/agent-skills-03-技术方案.md)** |
 | **MCP服务器支持PRD** | **[MCP PRD](docs/特性开发/mcp/mcp-01-prd.md)** |
-| **MCP服务器支持原型** | **[MCP原型](docs/特性开发/mcp/mcp-02-原型.md)** |
 | **MCP服务器支持技术方案** | **[MCP技术方案](docs/特性开发/mcp/mcp-03-技术方案.md)** |
 | **MCP服务器支持任务清单** | **[MCP任务清单](docs/特性开发/mcp/mcp-04-开发任务清单.md)** |
-| **MCP服务器支持排期表** | **[MCP排期表](docs/特性开发/mcp/mcp-05-开发排期表.md)** |
 | API测试 | [测试文档目录](docs/测试文档/测试用例/) |
 
 ### 快速链接
@@ -234,19 +239,19 @@ npm run dev
 - 🗄️ OpenAI数据库设计 → [OpenAI兼容大模型服务数据库设计](docs/特性开发/openai/openai-增量-数据库设计文档.md)
 - 🔌 插件化架构 → [插件化架构PRD](docs/特性开发/plugins+yuque/plugins+yuque-01-prd.md)
 - 🎬 视频搜索 → [视频画面搜索PRD](docs/特性开发/videosearch/videosearch-01-prd.md)
-- 🔥 MCP服务器支持PRD → [MCP服务器支持PRD](docs/特性开发/mcp/mcp-01-prd.md)
-- 🎨 MCP服务器支持原型 → [MCP服务器支持原型](docs/特性开发/mcp/mcp-02-原型.md)
+- 🔥 Agent Skill PRD → [Agent Skill PRD](docs/特性开发/agent-skills/agent-skills-01-prd.md)
+- ⚙️ Agent Skill技术方案 → [Agent Skill技术方案](docs/特性开发/agent-skills/agent-skills-03-技术方案.md)
+- ✅ MCP服务器支持PRD → [MCP服务器支持PRD](docs/特性开发/mcp/mcp-01-prd.md)
 - ⚙️ MCP服务器支持技术方案 → [MCP服务器支持技术方案](docs/特性开发/mcp/mcp-03-技术方案.md)
 - 📋 MCP服务器支持任务清单 → [MCP服务器支持任务清单](docs/特性开发/mcp/mcp-04-开发任务清单.md)
-- 📅 MCP服务器支持排期表 → [MCP服务器支持排期表](docs/特性开发/mcp/mcp-05-开发排期表.md)
 
 ---
 
-**文档版本**：v11.0 (MCP 服务器支持开发版)
+**文档版本**：v12.0 (Agent Skill 开发版)
 **维护者**：AI助手
 **重要提醒**：所有AI回复、文档编写、代码注释必须使用中文
 
-**当前开发重点**：🔥 MCP 服务器支持特性（第一优先级，开发进度20%）
+**当前开发重点**：🔥 Agent Skill：小遥搜索 MCP 能力（第一优先级）
 
 **特性开发说明**：
 - 🤖 **OpenAI兼容大模型服务** 🚧 规划中
@@ -274,10 +279,18 @@ npm run dev
   - **全局文档**：已同步到PRD、原型、技术方案、技术选型、代码架构、数据库设计、索引构建逻辑
   - **特性文档**：PRD、原型、技术方案、任务清单、排期表
 
-- 🔥 **MCP 服务器支持** 🔥 开发中（第一优先级）
+- 🔥 **Agent Skill：小遥搜索 MCP 能力** 🔥 开发中（第一优先级）
+  - **技术栈**：MCP 协议 + Claude Agent Skills 规范 + SKILL.md
+  - **核心能力**：为 Claude Code 提供 MCP 工具调用能力、5个搜索工具（语义/全文/语音/图像/混合）
+  - **配置参数**：MCP SSE 端点 `http://127.0.0.1:8000/mcp`
+  - **开发状态**：需求分析和设计完成
+  - **全局文档**：待同步
+  - **特性文档**：PRD、技术方案、实施步骤
+
+- ✅ **MCP 服务器支持** 已完成
   - **技术栈**：mcp-python-sdk + SSE + FastAPI 集成 + 适配器模式
   - **核心能力**：MCP 协议实现、SSE 传输、5个搜索工具（语义/全文/语音/图像/混合）、适配器模式
   - **配置参数**：MCP_SSE_ENABLED、MCP_SERVER_NAME、MCP_DEFAULT_LIMIT、MCP_DEFAULT_THRESHOLD、MCP_VOICE_ENABLED
-  - **开发状态**：开发阶段（20%），需求分析、系统设计、项目排期完成，正式进入开发
+  - **开发状态**：已完成
   - **全局文档**：已同步到PRD、原型、技术方案
-  - **特性文档**：PRD（925行）、原型、技术方案（1270行）、任务清单（622行）、排期表（509行）
+  - **特性文档**：PRD（925行）、技术方案（1270行）、任务清单（622行）、排期表（509行）
