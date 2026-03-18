@@ -37,7 +37,7 @@
 ### 2.1 文件结构
 
 ```
-.claude/skills/
+skills/
 └── xiaoyao-search/                  # Skill 目录（必须与 name 一致）
     ├── SKILL.md                     # 必需：Skill 主文件
     └── rules/                       # 可选：详细规则目录
@@ -211,7 +211,7 @@ SKILL.md 文件应包含以下章节：
 调用：semantic_search(
   query="Python 异步编程",
   limit=10,
-  threshold=0.7
+  threshold=0.5
 )
 ```
 
@@ -311,7 +311,7 @@ curl http://127.0.0.1:8000/api/system/health
 
 | 步骤 | 内容 | 预计时间 | 状态 |
 |------|------|----------|------|
-| 1 | 创建 Skill 目录 `.claude/skills/xiaoyao-search/` | 0.5小时 | 待开始 |
+| 1 | 创建 Skill 目录 `skills/xiaoyao-search/` | 0.5小时 | 待开始 |
 | 2 | 编写 SKILL.md 主文件 | 1小时 | 待开始 |
 | 3 | 编写 rules/tools.md 工具详细定义 | 1小时 | 待开始 |
 | 4 | 编写 rules/connection.md 连接配置指南 | 0.5小时 | 待开始 |
@@ -321,7 +321,7 @@ curl http://127.0.0.1:8000/api/system/health
 ### 7.2 目录结构（完成后）
 
 ```
-.claude/skills/xiaoyao-search/
+skills/xiaoyao-search/
 ├── SKILL.md
 └── rules/
     ├── tools.md

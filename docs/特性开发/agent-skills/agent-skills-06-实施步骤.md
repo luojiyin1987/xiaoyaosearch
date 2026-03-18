@@ -28,13 +28,13 @@
 
 ```bash
 # 在项目根目录创建 Skill 目录
-mkdir -p .claude/skills/xiaoyao-search/rules
+mkdir -p skills/xiaoyao-search/rules
 ```
 
 **验证目录结构**：
 
 ```
-.claude/skills/xiaoyao-search/
+skills/xiaoyao-search/
 └── rules/                       # 空目录，等待创建文件
 ```
 
@@ -44,7 +44,7 @@ mkdir -p .claude/skills/xiaoyao-search/rules
 
 ### 2.1 创建 SKILL.md
 
-**文件路径**：`.claude/skills/xiaoyao-search/SKILL.md`
+**文件路径**：`skills/xiaoyao-search/SKILL.md`
 
 **完整内容**：
 
@@ -162,7 +162,7 @@ Claude Code 通过 MCP 协议自动发现和调用工具：
 调用：semantic_search(
   query="机器学习算法优化",
   limit=10,
-  threshold=0.7
+  threshold=0.5
 )
 ```
 
@@ -261,7 +261,7 @@ curl http://127.0.0.1:8000/api/system/health
 
 ### 3.1 创建 tools.md
 
-**文件路径**：`.claude/skills/xiaoyao-search/rules/tools.md`
+**文件路径**：`skills/xiaoyao-search/rules/tools.md`
 
 ```markdown
 # MCP 工具详细定义
@@ -431,7 +431,7 @@ curl http://127.0.0.1:8000/api/system/health
 
 ### 3.2 创建 connection.md
 
-**文件路径**：`.claude/skills/xiaoyao-search/rules/connection.md`
+**文件路径**：`skills/xiaoyao-search/rules/connection.md`
 
 ```markdown
 # 连接配置指南
@@ -527,7 +527,7 @@ MCP_SSE_ENABLED=true
 MCP_SERVER_NAME=xiaoyao-search
 MCP_SERVER_VERSION=1.0.0
 MCP_DEFAULT_LIMIT=20
-MCP_DEFAULT_THRESHOLD=0.7
+MCP_DEFAULT_threshold=0.5
 MCP_VOICE_ENABLED=true
 MCP_LOG_LEVEL=INFO
 ```
@@ -590,7 +590,7 @@ print([t.name for t in mcp._tools])
 
 ### 3.3 创建 examples.md
 
-**文件路径**：`.claude/skills/xiaoyao-search/rules/examples.md`
+**文件路径**：`skills/xiaoyao-search/rules/examples.md`
 
 ```markdown
 # 使用示例
@@ -609,7 +609,7 @@ print([t.name for t in mcp._tools])
 semantic_search(
     query="机器学习算法优化",
     limit=10,
-    threshold=0.7
+    threshold=0.5
 )
 ```
 
@@ -851,14 +851,14 @@ file_types=["jpg", "png", "gif"]
 
 ```bash
 # 列出所有文件
-ls -la .claude/skills/xiaoyao-search/
-ls -la .claude/skills/xiaoyao-search/rules/
+ls -la skills/xiaoyao-search/
+ls -la skills/xiaoyao-search/rules/
 ```
 
 **预期结果**：
 
 ```
-.claude/skills/xiaoyao-search/
+skills/xiaoyao-search/
 ├── SKILL.md
 └── rules/
     ├── tools.md
@@ -872,7 +872,7 @@ ls -la .claude/skills/xiaoyao-search/rules/
 
 ```bash
 # 使用 Python 检查 YAML 语法
-python -c "import yaml; yaml.safe_load(open('.claude/skills/xiaoyao-search/SKILL.md').read().split('---')[1])"
+python -c "import yaml; yaml.safe_load(open('skills/xiaoyao-search/SKILL.md').read().split('---')[1])"
 ```
 
 ### 4.3 验证 Markdown 语法
@@ -884,7 +884,7 @@ python -c "import yaml; yaml.safe_load(open('.claude/skills/xiaoyao-search/SKILL
 npm install -g markdownlint
 
 # 检查语法
-markdownlint .claude/skills/xiaoyao-search/
+markdownlint skills/xiaoyao-search/
 ```
 
 ---
@@ -893,10 +893,10 @@ markdownlint .claude/skills/xiaoyao-search/
 
 ### 文件验收
 
-- [ ] `.claude/skills/xiaoyao-search/SKILL.md` 存在
-- [ ] `.claude/skills/xiaoyao-search/rules/tools.md` 存在
-- [ ] `.claude/skills/xiaoyao-search/rules/connection.md` 存在
-- [ ] `.claude/skills/xiaoyao-search/rules/examples.md` 存在
+- [ ] `skills/xiaoyao-search/SKILL.md` 存在
+- [ ] `skills/xiaoyao-search/rules/tools.md` 存在
+- [ ] `skills/xiaoyao-search/rules/connection.md` 存在
+- [ ] `skills/xiaoyao-search/rules/examples.md` 存在
 
 ### 内容验收
 

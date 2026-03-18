@@ -100,7 +100,7 @@ class MCPConfig(BaseModel):
 
     # 搜索配置
     default_limit: int = Field(default=20, ge=1, le=100, description="默认结果数量")
-    default_threshold: float = Field(default=0.7, ge=0.0, le=1.0, description="默认相似度阈值")
+    default_threshold: float = Field(default=0.5, ge=0.0, le=1.0, description="默认相似度阈值")
 
     # 语音搜索配置
     voice_enabled: bool = Field(default=True, description="是否启用语音搜索")
@@ -144,7 +144,7 @@ class Settings(BaseSettings):
     # MCP 配置
     mcp_sse_enabled: bool = Field(default=True, description="是否启用 MCP SSE 服务")
     mcp_default_limit: int = Field(default=20, ge=1, le=100, description="MCP 默认结果数量")
-    mcp_default_threshold: float = Field(default=0.7, ge=0.0, le=1.0, description="MCP 默认相似度阈值")
+    mcp_default_threshold: float = Field(default=0.5, ge=0.0, le=1.0, description="MCP 默认相似度阈值")
 
     class Config:
         env_prefix = ""
@@ -160,7 +160,7 @@ MCP_SSE_ENABLED=true
 MCP_SERVER_NAME=xiaoyao-search
 MCP_SERVER_VERSION=1.0.0
 MCP_DEFAULT_LIMIT=20
-MCP_DEFAULT_THRESHOLD=0.7
+MCP_DEFAULT_THRESHOLD=0.5
 MCP_VOICE_ENABLED=true
 MCP_VOICE_MAX_DURATION=30
 MCP_LOG_LEVEL=INFO
@@ -335,7 +335,7 @@ def register_semantic_search(mcp: FastMCP):
     async def semantic_search(
         query: str,
         limit: int = 20,
-        threshold: float = 0.7,
+        threshold: float = 0.5,
         file_types: Optional[List[str]] = None
     ) -> str:
         """
@@ -466,7 +466,7 @@ def register_voice_search(mcp: FastMCP):
         audio_data: str,
         search_type: str = "semantic",
         limit: int = 20,
-        threshold: float = 0.7,
+        threshold: float = 0.5,
         file_types: Optional[List[str]] = None
     ) -> str:
         """
@@ -551,7 +551,7 @@ def register_image_search(mcp: FastMCP):
     async def image_search(
         image_data: str,
         limit: int = 20,
-        threshold: float = 0.7
+        threshold: float = 0.5
     ) -> str:
         """
         基于CN-CLIP模型的图像搜索，支持图片查找相似内容。
@@ -609,7 +609,7 @@ def register_hybrid_search(mcp: FastMCP):
     async def hybrid_search(
         query: str,
         limit: int = 20,
-        threshold: float = 0.7,
+        threshold: float = 0.5,
         file_types: Optional[List[str]] = None
     ) -> str:
         """
@@ -799,7 +799,7 @@ class TestSemanticSearch:
         result = await mcp_server._tool_manager._tools['semantic_search'](
             query="测试查询",
             limit=10,
-            threshold=0.7
+            threshold=0.5
         )
 
         # 验证结果
@@ -959,7 +959,7 @@ async def test_semantic_search_performance():
     result = await mcp._tool_manager._tools['semantic_search'](
         query="机器学习算法优化",
         limit=20,
-        threshold=0.7
+        threshold=0.5
     )
 
     # 计算耗时

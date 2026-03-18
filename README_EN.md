@@ -500,6 +500,22 @@ XiaoyaoSearch now supports **Model Context Protocol (MCP)**, which can be connec
 
 MCP (Model Context Protocol) is an open-source protocol introduced by Anthropic that allows AI applications (such as Claude Desktop) to connect to local data sources. Through MCP, Claude can directly search and access your local files, providing smarter Q&A and assistance.
 
+### Agent Skills Support
+
+XiaoyaoSearch now supports **Agent Skills**, providing standardized MCP tool calling capabilities for AI assistants like Claude Code, VS Code, and Cursor.
+
+**Install Skill**:
+
+```bash
+# Project level
+cp -r skills/ .claude/skills/
+
+# Or global level
+cp -r skills/ ~/.claude/skills/
+```
+
+After installation, AI assistants can automatically discover XiaoyaoSearch's MCP tools and provide correct usage guidance.
+
 ### Supported Search Tools
 
 | Tool Name | Description | AI Model |

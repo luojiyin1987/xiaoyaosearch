@@ -500,6 +500,21 @@ git push origin feature/你的功能名称
 
 MCP (Model Context Protocol) 是 Anthropic 推出的开源协议，允许 AI 应用（如 Claude Desktop）连接到本地数据源。通过 MCP，Claude 可以直接搜索和访问您的本地文件，提供更智能的问答和帮助。
 
+### Agent Skills 支持
+
+小遥搜索现已支持 **Agent Skills**，为 Claude Code、VS Code、Cursor 等 AI 助手提供标准化的 MCP 工具调用能力。
+
+**安装 Skill**：
+
+```bash
+# 项目级别
+cp -r skills/ .claude/skills/
+
+# 或全局级别
+cp -r skills/ ~/.claude/skills/
+```
+
+安装后，AI 助手可自动发现小遥搜索的 MCP 工具，并提供正确使用指导。
 
 ### MCP 客户端配置
 

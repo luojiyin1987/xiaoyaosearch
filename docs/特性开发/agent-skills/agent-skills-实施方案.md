@@ -19,7 +19,7 @@
 | 决策项 | 决策结果 | 状态 |
 |--------|---------|------|
 | **Skill 名称** | `xiaoyao-search` | ✅ 已确定 |
-| **目录位置** | `.claude/skills/xiaoyao-search/` | ✅ 已确定 |
+| **目录位置** | `skills/xiaoyao-search/` | ✅ 已确定 |
 | **协议标准** | MCP 协议（通用标准） | ✅ 已确定 |
 | **工具范围** | 5 个搜索工具 | ✅ 已确定 |
 | **配置方式** | YAML frontmatter | ✅ 已确定 |
@@ -39,7 +39,7 @@
 ### 2.1 需要创建的文件
 
 ```
-.claude/skills/xiaoyao-search/
+skills/xiaoyao-search/
 ├── SKILL.md                     # Skill 主文件（必需）
 └── rules/                       # 详细规则目录（可选）
     ├── tools.md                 # 工具详细定义
@@ -62,12 +62,12 @@
 #### 步骤 1：创建 Skill 目录
 
 ```bash
-mkdir -p .claude/skills/xiaoyao-search/rules
+mkdir -p skills/xiaoyao-search/rules
 ```
 
 #### 步骤 2：编写 SKILL.md 主文件
 
-**文件**: `.claude/skills/xiaoyao-search/SKILL.md`
+**文件**: `skills/xiaoyao-search/SKILL.md`
 
 包含内容：
 - YAML frontmatter（name, description, metadata）
@@ -84,7 +84,7 @@ mkdir -p .claude/skills/xiaoyao-search/rules
 
 #### 步骤 3：编写 tools.md 工具详细定义
 
-**文件**: `.claude/skills/xiaoyao-search/rules/tools.md`
+**文件**: `skills/xiaoyao-search/rules/tools.md`
 
 包含内容：
 - 每个工具的完整参数定义
@@ -96,7 +96,7 @@ mkdir -p .claude/skills/xiaoyao-search/rules
 
 #### 步骤 4：编写 connection.md 连接配置指南
 
-**文件**: `.claude/skills/xiaoyao-search/rules/connection.md`
+**文件**: `skills/xiaoyao-search/rules/connection.md`
 
 包含内容：
 - MCP SSE 端点说明
@@ -108,7 +108,7 @@ mkdir -p .claude/skills/xiaoyao-search/rules
 
 #### 步骤 5：编写 examples.md 使用示例
 
-**文件**: `.claude/skills/xiaoyao-search/rules/examples.md`
+**文件**: `skills/xiaoyao-search/rules/examples.md`
 
 包含内容：
 - 5 种搜索场景的完整示例

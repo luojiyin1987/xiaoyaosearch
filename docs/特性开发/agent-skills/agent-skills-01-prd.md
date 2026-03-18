@@ -51,7 +51,7 @@
   - 依赖现有搜索服务（ChunkSearchService、ImageSearchService）
 
 - **影响范围**：
-  - 新增 `.claude/skills/xiaoyao-search/` 目录
+  - 新增 `skills/xiaoyao-search/` 目录
   - 新增 Skill 文档和工具定义文件
 
 ---
@@ -107,7 +107,7 @@
 
 ### 4.1 Skill 主文件
 
-**文件**: `.claude/skills/xiaoyao-search/SKILL.md`
+**文件**: `skills/xiaoyao-search/SKILL.md`
 
 ```yaml
 ---
@@ -313,7 +313,7 @@ curl http://127.0.0.1:8000/api/system/health
 ### 5.1 Skill 目录结构
 
 ```
-.claude/skills/
+skills/
 └── xiaoyao-search/                     # Skill 名称
     ├── SKILL.md                        # Skill 主文件（必需）
     └── rules/                          # 规则目录（可选）
