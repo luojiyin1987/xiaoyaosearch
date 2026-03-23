@@ -2,7 +2,7 @@
 
 English | [简体中文](README.md)
 
-![XiaoyaoSearch](docs/产品文档/应用截图/小遥搜索.png)
+![XiaoyaoSearch](docs/产品文档/产品截图/小遥搜索.png)
 
 ## 📖 Project Introduction
 
@@ -13,31 +13,35 @@ XiaoyaoSearch is a cross-platform local desktop application (Windows/MacOS/Linux
 ## ⭐️ Important Notes
 - This project is completely free for non-commercial use, allowing modification and distribution (subject to preserving copyright notices and agreement); commercial use requires authorization. See [XiaoyaoSearch Software License Agreement](LICENSE_EN) for details
 - This project is entirely implemented through Vibe Coding, providing all source code and development documentation (context) for everyone to learn and exchange
-  ![Development Documentation](docs/产品文档/应用截图/开发文档.png)
+  ![Development Documentation](docs/产品文档/产品截图/开发文档.png)
 
-## 👨‍💻 Author Introduction
+## Author Introduction
 
-<div align="center">
+<p align="center">
+  <img src="docs/产品文档/产品截图/作者头像.jpg" alt="dtsola" width="120" height="120" style="border-radius: 50%;">
+</p>
 
-<table>
-<tr>
-<td align="center" width="120">
-<img src="docs/产品文档/应用截图/author-avatar.jpg" alt="dtsola" width="120" style="border-radius: 50%;">
-</td>
-<td>
+<p align="center">
+  <b>dtsola</b> — IT Architect | One-Person Company Practitioner
+</p>
 
-**dtsola**
-IT Solution Architect | One-Person Company Practitioner
+<p align="center">
+  🌐 <a href="https://www.dtsola.com">Website</a> &nbsp;|&nbsp;
+  📺 <a href="https://space.bilibili.com/736015">Bilibili</a> &nbsp;|&nbsp;
+  💬 WeChat: dtsola (Technical Exchange | Business Cooperation)
+</p>
 
-🌐 [Website](https://www.dtsola.com) &nbsp;|&nbsp; 📺 [Bilibili](https://space.bilibili.com/736015) &nbsp;|&nbsp; 💬 WeChat: dtsola (please state your purpose)
+<p align="center">
+  <img src="docs/产品文档/产品截图/个人二维码.png" alt="WeChat QR Code" width="120">
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/产品文档/产品截图/开发者交流群图.png" alt="Developer Community" width="120">
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/产品文档/产品截图/用户交流群图.png" alt="User Community" width="120">
+</p>
 
-</td>
-</tr>
-</table>
-
-![WeChat QR Code](docs/产品文档/应用截图/个人二维码.png)
-
-</div>
+<p align="center">
+  <small>WeChat Contact &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Developer Community &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; User Community</small>
+</p>
 
 ### ✨ Core Features
 
@@ -49,39 +53,33 @@ IT Solution Architect | One-Person Company Practitioner
 - **🎨 Modern Interface**: Modern desktop application based on Electron + Vue 3 + TypeScript
 - **🤖 MCP Server Support**: Supports Model Context Protocol, can be connected by Claude Desktop for intelligent local file search
 
-<div align="center">
-
-![User Community](docs/运营文档/用户交流群图.png)
-
-</div>
-
 ## 📖 Core Interfaces
 
 ### Search Interface
 
 #### Main Interface
-![Search Interface](docs/产品文档/应用截图/搜索界面-主界面.png)
+![Search Interface](docs/产品文档/产品截图/搜索界面-主界面.png)
 
 #### Text Search
-![Text Search](docs/产品文档/应用截图/搜索界面-文本搜索.png)
+![Text Search](docs/产品文档/产品截图/搜索界面-文本搜索.png)
 
 #### Voice Search
-![Voice Search](docs/产品文档/应用截图/搜索界面-语音搜索.png)
+![Voice Search](docs/产品文档/产品截图/搜索界面-语音搜索.png)
 
 #### Image Search
-![Image Search](docs/产品文档/应用截图/搜索界面-图片搜索.png)
+![Image Search](docs/产品文档/产品截图/搜索界面-图片搜索.png)
 
 ### Index Management Interface
-![Index Management Interface](docs/产品文档/应用截图/索引管理界面.png)
+![Index Management Interface](docs/产品文档/产品截图/索引管理界面.png)
 
 ### Settings Interface
-![Settings Interface](docs/产品文档/应用截图/设置界面.png)
+![Settings Interface](docs/产品文档/产品截图/设置界面.png)
 
 ## 🏗️ Technical Architecture
 
 ### System Architecture Diagram
 
-![System Architecture](docs/产品文档/应用截图/系统架构.png)
+![System Architecture](docs/产品文档/产品截图/系统架构.png)
 
 ### Tech Stack
 
@@ -349,12 +347,6 @@ When you need to upgrade to a new version, please refer to the [Version Upgrade 
 ---
 
 ## 🤝 How to Contribute
-
-<div align="center">
-
-![Developer Community](docs/运营文档/开发者交流群图.png)
-
-</div>
 
 Thank you for your interest in XiaoyaoSearch! We welcome contributions in any form, whether it's code, documentation, bug fixes, or new feature suggestions.
 

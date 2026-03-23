@@ -2,7 +2,7 @@
 
 [English Version](README_EN.md) | 简体中文
 
-![小遥搜索](docs/产品文档/应用截图/小遥搜索.png)
+![小遥搜索](docs/产品文档/产品截图/小遥搜索.png)
 
 ## 📖 项目简介
 
@@ -13,31 +13,35 @@
 ## ⭐️ 重要说明
 - 本项目非商业使用完全免费，允许修改和分发（需保留版权声明和协议）；商业目的需授权，详细见[小遥搜索软件授权协议](LICENSE)
 - 本项目完全通过Vibe Coding实现，提供所有源码及开发文档（上下文）供大家交流学习
-  ![开发文档](docs/产品文档/应用截图/开发文档.png)
+  ![开发文档](docs/产品文档/产品截图/开发文档.png)
 
-## 👨‍💻 作者介绍
+## 作者介绍
 
-<div align="center">
+<p align="center">
+  <img src="docs/产品文档/产品截图/author-avatar.jpg" alt="dtsola" width="120" height="120" style="border-radius: 50%;">
+</p>
 
-<table>
-<tr>
-<td align="center" width="120">
-<img src="docs/产品文档/应用截图/author-avatar.jpg" alt="dtsola" width="120" style="border-radius: 50%;">
-</td>
-<td>
+<p align="center">
+  <b>dtsola</b> — IT架构师 | 一人公司实践者
+</p>
 
-**dtsola**
-IT解决方案架构师 | 一人公司实践者
+<p align="center">
+  🌐 <a href="https://www.dtsola.com">个人站点</a> &nbsp;|&nbsp;
+  📺 <a href="https://space.bilibili.com/736015">B站</a> &nbsp;|&nbsp;
+  💬 微信：dtsola（技术交流 | 商务合作）
+</p>
 
-🌐 [个人网站](https://www.dtsola.com) &nbsp;|&nbsp; 📺 [B站](https://space.bilibili.com/736015) &nbsp;|&nbsp; 💬 微信：dtsola（请备注来意）
+<p align="center">
+  <img src="docs/产品文档/产品截图/个人二维码.png" alt="微信二维码" width="120">
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/产品文档/产品截图/开发者交流群图.png" alt="开发者交流群" width="120">
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/产品文档/产品截图/用户交流群图.png" alt="用户交流群" width="120">
+</p>
 
-</td>
-</tr>
-</table>
-
-![微信二维码](docs/产品文档/应用截图/个人二维码.png)
-
-</div>
+<p align="center">
+  <small>微信联系 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 开发者交流群 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用户交流群</small>
+</p>
 
 ### ✨ 核心特性
 
@@ -49,39 +53,33 @@ IT解决方案架构师 | 一人公司实践者
 - **🎨 现代界面**：基于Electron + Vue 3 + TypeScript的现代化桌面应用
 - **🤖 MCP 服务器支持**：支持 Model Context Protocol，可被 Claude Desktop 连接进行本地文件智能搜索
 
-<div align="center">
-
-![用户交流群](docs/运营文档/用户交流群图.png)
-
-</div>
-
 ## 📖 核心界面
 
 ### 搜索界面
 
 #### 主界面
-![搜索界面](docs/产品文档/应用截图/搜索界面-主界面.png)
+![搜索界面](docs/产品文档/产品截图/搜索界面-主界面.png)
 
 #### 通过文本搜索
-![通过文本搜索](docs/产品文档/应用截图/搜索界面-文本搜索.png)
+![通过文本搜索](docs/产品文档/产品截图/搜索界面-文本搜索.png)
 
 #### 通过语音搜索
-![通过语音搜索](docs/产品文档/应用截图/搜索界面-语音搜索.png)
+![通过语音搜索](docs/产品文档/产品截图/搜索界面-语音搜索.png)
 
 #### 通过图片搜索
-![通过图片搜索](docs/产品文档/应用截图/搜索界面-图片搜索.png)
+![通过图片搜索](docs/产品文档/产品截图/搜索界面-图片搜索.png)
 
 ### 索引管理界面
-![索引管理界面](docs/产品文档/应用截图/索引管理界面.png)
+![索引管理界面](docs/产品文档/产品截图/索引管理界面.png)
 
 ### 设置界面
-![设置界面](docs/产品文档/应用截图/设置界面.png)
+![设置界面](docs/产品文档/产品截图/设置界面.png)
 
 ## 🏗️ 技术架构
 
 ### 系统架构图
 
-![系统架构](docs/产品文档/应用截图/系统架构.png)
+![系统架构](docs/产品文档/产品截图/系统架构.png)
 
 ### 技术栈
 
@@ -349,12 +347,6 @@ npm run dev
 ---
 
 ## 🤝 如何共享代码
-
-<div align="center">
-
-![开发者交流群](docs/运营文档/开发者交流群图.png)
-
-</div>
 
 感谢你对小遥搜索的关注！我们欢迎任何形式的贡献，无论是代码、文档、Bug 修复还是新功能建议。
 
