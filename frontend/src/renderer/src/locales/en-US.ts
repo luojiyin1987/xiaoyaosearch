@@ -659,7 +659,7 @@ export default {
       },
       semantic: {
         title: 'Semantic Understanding',
-        description: 'BGE-M3 vector embedding + Ollama/OpenAI compatible LLM'
+        description: 'BGE-M3/Cloud embedding vector + Ollama/Cloud LLM understanding'
       }
     },
     tutorial: {
@@ -670,9 +670,9 @@ export default {
           step1: { label: 'Speech Recognition Model:', text: 'Settings → Speech Settings → Select FastWhisper model version (local)' },
           step2: { label: 'Large Language Model:', text: 'Settings → LLM Settings → Choose local Ollama or OpenAI compatible cloud service' },
           step3: { label: 'Vision Understanding Model:', text: 'Settings → Vision Model → Select CN-CLIP model (local)' },
-          step4: { label: 'Text Embedding Model:', text: 'Settings → Embedding Model → Select BGE-M3 model (local)' },
-          step5: { label: 'Cloud Service Config:', text: 'To use cloud LLM, configure API key and endpoint' },
-          tip: 'Tip: Local models offer better privacy, cloud models provide stronger understanding. Choose based on your needs'
+          step4: { label: 'Text Embedding Model:', text: 'Settings → Embedding Model → Choose local BGE-M3 or cloud embedding API' },
+          step5: { label: 'Cloud Service Config:', text: 'To use cloud LLM or cloud embedding, configure API key and endpoint' },
+          tip: 'Tip: Local models offer better privacy, cloud models provide stronger understanding. You choose the balance between performance and privacy'
         }
       },
       panel2: {
@@ -725,14 +725,16 @@ export default {
         header: 'What\'s the difference between local and cloud models?',
         content: {
           comparisonTitle: 'Comparison:',
-          comparison1: { label: 'Local Models (Ollama):', text: 'Run completely offline, data never leaves device, best privacy, requires higher hardware specs' },
+          comparison1: { label: 'Local Models (Ollama/BGE-M3):', text: 'Run completely offline, data never leaves device, best privacy, requires higher hardware specs' },
           comparison2: { label: 'Cloud Models (OpenAI Compatible):', text: 'Search queries sent to cloud, better understanding, no local hardware resources needed' },
+          comparison3: { label: 'Cloud Embedding Models:', text: 'Provide higher quality vector representations for improved search accuracy, queries sent to cloud' },
           choiceTitle: 'How to Choose:',
-          choice1: 'High privacy requirements → Use local Ollama models',
+          choice1: 'High privacy requirements → Use local models (Ollama + BGE-M3)',
           choice2: 'Pursue better understanding → Use cloud LLMs',
-          choice3: 'Limited hardware config → Use cloud LLMs',
-          choice4: 'Need offline use → Use local Ollama models',
-          note: 'Note: Text embedding, speech recognition, image understanding models currently only support local, no data uploaded'
+          choice3: 'Pursue more accurate search → Use cloud embedding models',
+          choice4: 'Limited hardware config → Use cloud services',
+          choice5: 'Need offline use → Use local models',
+          note: 'Note: Local files and index data are always stored locally, never uploaded. Only search queries are sent to cloud (when using cloud models)'
         }
       },
       panel1: {
@@ -762,12 +764,17 @@ export default {
           ollamaCommand1: 'Install model:',
           ollamaCommand2: 'View models:',
           ollamaCommand3: 'Run model:',
-          cloudTitle: 'Cloud OpenAI Compatible Service:',
-          cloud1: 'Check if API key is properly configured',
-          cloud2: 'Verify endpoint URL is accessible',
-          cloud3: 'Check network connection and proxy settings',
-          cloud4: 'Confirm API service is normal (check provider announcements)',
-          cloud5: 'Check account balance (some services charge by usage)'
+          cloudLlmTitle: 'Cloud LLM Service (OpenAI Compatible):',
+          cloudLlm1: 'Check if API key is properly configured',
+          cloudLlm2: 'Verify endpoint URL is accessible',
+          cloudLlm3: 'Check network connection and proxy settings',
+          cloudLlm4: 'Confirm API service is normal (check provider announcements)',
+          cloudLlm5: 'Check account balance (some services charge by usage)',
+          cloudEmbeddingTitle: 'Cloud Embedding Model Service:',
+          cloudEmbedding1: 'Check if API key is properly configured',
+          cloudEmbedding2: 'Verify endpoint URL is accessible',
+          cloudEmbedding3: 'Check network connection and proxy settings',
+          cloudEmbedding4: 'Confirm model name matches what the provider supports'
         }
       },
       panel3: {
@@ -818,7 +825,7 @@ export default {
     },
     about: {
       appDescription: 'Cross-platform local desktop application (Windows/MacOS/Linux) supporting multimodal AI intelligent search. Provides smarter file retrieval experience for knowledge workers through voice, text, and image inputs. Supports both local Ollama and OpenAI-compatible cloud LLMs for flexible deployment.',
-      tagline: 'Local First · Cloud Optional · Privacy Secure',
+      tagline: 'Local First · Cloud Optional · Privacy You Control',
       features: {
         voice: {
           title: 'Voice Search',
@@ -830,12 +837,12 @@ export default {
         },
         semantic: {
           title: 'Semantic Search',
-          description: 'BGE-M3 vector embedding + Ollama/Cloud LLM understanding'
+          description: 'BGE-M3/Cloud embedding vector + Ollama/Cloud LLM understanding'
         }
       },
       techHighlight: {
         title: 'Local First, Cloud Optional',
-        description: 'Supports both local Ollama and OpenAI-compatible cloud LLMs, flexible switching. Local files and index data always stored locally, only search queries sent to cloud (when using cloud models).'
+        description: 'Supports local Ollama/BGE-M3 and cloud OpenAI-compatible APIs, flexible switching. Local files and index data always stored locally, only search queries sent to cloud (when using cloud models). You choose the balance between performance and privacy.'
       }
     }
   }

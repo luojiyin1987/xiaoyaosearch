@@ -182,18 +182,38 @@
 
             <a-collapse-panel key="2" :header="t('help.faq.panel2.header')">
               <div class="faq-content">
-                <p><strong>{{ t('help.faq.panel2.content.checkTitle') }}</strong></p>
+                <!-- 本地 Ollama 服务 -->
+                <p><strong>{{ t('help.faq.panel2.content.ollamaTitle') }}</strong></p>
                 <ul>
-                  <li>{{ t('help.faq.panel2.content.check1') }}</li>
-                  <li>{{ t('help.faq.panel2.content.check2') }}</li>
-                  <li>{{ t('help.faq.panel2.content.check3') }}</li>
-                  <li>{{ t('help.faq.panel2.content.check4') }}</li>
+                  <li>{{ t('help.faq.panel2.content.ollama1') }}</li>
+                  <li>{{ t('help.faq.panel2.content.ollama2') }}</li>
+                  <li>{{ t('help.faq.panel2.content.ollama3') }}</li>
+                  <li>{{ t('help.faq.panel2.content.ollama4') }}</li>
                 </ul>
-                <p><strong>{{ t('help.faq.panel2.content.commandsTitle') }}</strong></p>
+                <p><strong>{{ t('help.faq.panel2.content.ollamaCommandsTitle') }}</strong></p>
                 <ul>
-                  <li>{{ t('help.faq.panel2.content.command1') }}<code>ollama pull qwen2.5:1.5b</code></li>
-                  <li>{{ t('help.faq.panel2.content.command2') }}<code>ollama list</code></li>
-                  <li>{{ t('help.faq.panel2.content.command3') }}<code>ollama run qwen2.5:1.5b</code></li>
+                  <li>{{ t('help.faq.panel2.content.ollamaCommand1') }}<code>ollama pull qwen2.5:1.5b</code></li>
+                  <li>{{ t('help.faq.panel2.content.ollamaCommand2') }}<code>ollama list</code></li>
+                  <li>{{ t('help.faq.panel2.content.ollamaCommand3') }}<code>ollama run qwen2.5:1.5b</code></li>
+                </ul>
+
+                <!-- 云端大模型服务 -->
+                <p><strong>{{ t('help.faq.panel2.content.cloudLlmTitle') }}</strong></p>
+                <ul>
+                  <li>{{ t('help.faq.panel2.content.cloudLlm1') }}</li>
+                  <li>{{ t('help.faq.panel2.content.cloudLlm2') }}</li>
+                  <li>{{ t('help.faq.panel2.content.cloudLlm3') }}</li>
+                  <li>{{ t('help.faq.panel2.content.cloudLlm4') }}</li>
+                  <li>{{ t('help.faq.panel2.content.cloudLlm5') }}</li>
+                </ul>
+
+                <!-- 云端嵌入模型服务 -->
+                <p><strong>{{ t('help.faq.panel2.content.cloudEmbeddingTitle') }}</strong></p>
+                <ul>
+                  <li>{{ t('help.faq.panel2.content.cloudEmbedding1') }}</li>
+                  <li>{{ t('help.faq.panel2.content.cloudEmbedding2') }}</li>
+                  <li>{{ t('help.faq.panel2.content.cloudEmbedding3') }}</li>
+                  <li>{{ t('help.faq.panel2.content.cloudEmbedding4') }}</li>
                 </ul>
               </div>
             </a-collapse-panel>
@@ -319,6 +339,8 @@
                 <a-tag color="orange">CN-CLIP</a-tag>
                 <a-tag color="purple">BGE-M3</a-tag>
                 <a-tag color="cyan">OpenAI API</a-tag>
+                <a-tag color="magenta">Cloud Embedding</a-tag>
+                <a-tag color="volcano">MCP & Agent Skills</a-tag>
               </div>
             </a-card>
           </div>
