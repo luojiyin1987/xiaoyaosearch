@@ -20,6 +20,7 @@ from app.services.ai_model_base import BaseAIModel, ModelType, ProviderType, Mod
 from app.utils.enum_helpers import get_enum_value
 from app.core.config import get_settings
 from app.services.bge_embedding_service import create_bge_service
+from app.services.openai_embedding_service import create_openai_embedding_service
 from app.services.whisper_service import create_whisper_service
 from app.services.clip_service import create_clip_service
 from app.services.ollama_service import create_ollama_service
@@ -172,13 +173,25 @@ class AIModelService:
 
                 try:
                     if model_type == "embedding":
-                        # 创建文本嵌入模型
-                        bge_service = create_bge_service(config)
-                        self.model_manager.register_model(model_id, bge_service)
+                        # ========== 新增：根据 provider 创建不同的嵌入服务 ==========
+                        if provider == "local":
+                            # 创建本地 BGE 嵌入模型服务
+                            embedding_service = create_bge_service(config)
+                        elif provider == "cloud":
+                            # 创建 OpenAI 兼容云端嵌入模型服务
+                            cloud_config = config.copy() if isinstance(config, dict) else {}
+                            cloud_config["model"] = model_config.get("model_name", "text-embedding-3-small")
+                            embedding_service = create_openai_embedding_service(cloud_config)
+                        else:
+                            logger.warning(f"不支持的 embedding provider: {provider}")
+                            continue
+                        # =========================================================
+
+                        self.model_manager.register_model(model_id, embedding_service)
                         self.default_models["embedding"] = model_id
                         # 立即加载模型
                         await self.model_manager.load_model(model_id)
-                        logger.info(f"创建并加载embedding模型: {model_id}")
+                        logger.info(f"创建并加载embedding模型: {model_id}, provider: {provider}")
 
                     elif model_type == "speech":
                         # 创建语音识别模型
@@ -552,7 +565,16 @@ class AIModelService:
 
             # 根据类型创建模型实例
             if model_type == "embedding":
-                model = create_bge_service(config)
+                # 根据 provider 创建不同的嵌入服务
+                if provider == "local":
+                    model = create_bge_service(config)
+                elif provider == "cloud":
+                    # 确保 config 包含 model 字段（从 model_name 映射）
+                    cloud_config = config.copy() if isinstance(config, dict) else {}
+                    cloud_config["model"] = model_config.get("model_name", "text-embedding-3-small")
+                    model = create_openai_embedding_service(cloud_config)
+                else:
+                    raise AIModelException(f"不支持的 embedding provider: {provider}")
             elif model_type == "speech":
                 model = create_whisper_service(config)
             elif model_type == "vision":
@@ -768,7 +790,21 @@ class AIModelService:
             # 根据模型类型创建新模型实例
             new_model = None
             if model_type == "embedding":
-                new_model = create_bge_service(config)
+                # 根据 provider 创建不同的嵌入服务
+                provider = new_model_config.get("provider", "local")
+                if provider == "local":
+                    new_model = create_bge_service(config)
+                elif provider == "cloud":
+                    # 确保 config 包含 model 字段（从 model_name 映射）
+                    cloud_config = config.copy() if isinstance(config, dict) else {}
+                    cloud_config["model"] = new_model_config.get("model_name", "text-embedding-3-small")
+                    new_model = create_openai_embedding_service(cloud_config)
+                else:
+                    return {
+                        "success": False,
+                        "message": f"不支持的 embedding provider: {provider}",
+                        "reload_time": time.time() - start_time
+                    }
             elif model_type == "speech":
                 new_model = create_whisper_service(config)
             elif model_type == "vision":

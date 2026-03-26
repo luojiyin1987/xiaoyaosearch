@@ -540,6 +540,11 @@ export default {
   settingsEmbedding: {
     title: '嵌入模型',
     subtitle: '配置文本嵌入模型',
+    // 新增：模型类型选择
+    modelType: '模型类型',
+    modelTypeLocal: '本地（BGE-M3，推荐）',
+    modelTypeCloud: '云端API（有隐私风险）',
+    // 本地配置
     textEmbeddingModel: '文本嵌入模型',
     localBgeM3Service: '本地BGE-M3模型',
     localBgeM3Desc: '使用本地部署的BGE-M3模型生成文本向量嵌入',
@@ -548,6 +553,24 @@ export default {
     runningDevice: '运行设备',
     deviceCpu: 'CPU',
     deviceCuda: 'CUDA (GPU)',
+    // 云端配置
+    cloudServiceInfo: {
+      title: '⚠️ 云端服务使用说明',
+      localDataSafe: '✅ 您的本地文件和索引数据存储在本地，不会上传',
+      querySent: '⚠️ 搜索查询会发送到云端服务进行嵌入处理',
+      allCompatible: '💡 支持所有兼容 OpenAI Embeddings API 标准的服务',
+      needRebuild: '💡 切换模型需要重建索引（不同模型的向量空间不兼容）',
+      privacyTip: '如需完全隐私保护，请使用本地模型'
+    },
+    apiKey: 'API 密钥',
+    endpoint: '端点地址',
+    endpointPlaceholder: 'https://api.openai.com/v1',
+    endpointHelp: '可选，默认为官方 API 地址',
+    modelPlaceholderCloud: 'text-embedding-3-small',
+    modelHelpCloud: '如 text-embedding-3-small、bge-large-zh 等',
+    timeout: '超时时间（秒）',
+    batchSize: '批处理大小',
+    // 操作
     testConnection: '测试连接',
     saveSuccessRestart: '嵌入模型配置保存成功，重启应用后生效',
     pleaseSaveFirst: '请先保存嵌入模型配置',

@@ -534,6 +534,11 @@ export default {
   settingsEmbedding: {
     title: 'Embedding Model',
     subtitle: 'Configure text embedding model',
+    // Model Type Selection
+    modelType: 'Model Type',
+    modelTypeLocal: 'Local (BGE-M3, Recommended)',
+    modelTypeCloud: 'Cloud API (Privacy Risk)',
+    // Local Configuration
     textEmbeddingModel: 'Text Embedding Model',
     localBgeM3Service: 'Local BGE-M3 Model',
     localBgeM3Desc: 'Use locally deployed BGE-M3 model to generate text vector embeddings',
@@ -542,6 +547,24 @@ export default {
     runningDevice: 'Running Device',
     deviceCpu: 'CPU',
     deviceCuda: 'CUDA (GPU)',
+    // Cloud Configuration
+    cloudServiceInfo: {
+      title: '⚠️ Cloud Service Usage Notes',
+      localDataSafe: '✅ Your local files and index data are stored locally, not uploaded',
+      querySent: '⚠️ Search queries will be sent to cloud service for embedding processing',
+      allCompatible: '💡 Supports all services compatible with OpenAI Embeddings API standard',
+      needRebuild: '💡 Switching models requires index rebuild (different vector spaces are incompatible)',
+      privacyTip: 'For complete privacy protection, please use local model'
+    },
+    apiKey: 'API Key',
+    endpoint: 'Endpoint',
+    endpointPlaceholder: 'https://api.openai.com/v1',
+    endpointHelp: 'Optional, defaults to official API address',
+    modelPlaceholderCloud: 'text-embedding-3-small',
+    modelHelpCloud: 'e.g. text-embedding-3-small, bge-large-zh, etc.',
+    timeout: 'Timeout (seconds)',
+    batchSize: 'Batch Size',
+    // Actions
     testConnection: 'Test Connection',
     saveSuccessRestart: 'Embedding model configuration saved successfully, restart application to take effect',
     pleaseSaveFirst: 'Please save embedding model configuration first',

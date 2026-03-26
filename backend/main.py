@@ -34,7 +34,8 @@ from app.api import (
     index_router,
     config_router,
     system_router,
-    settings_router
+    settings_router,
+    rebuild_router
 )
 
 
@@ -246,6 +247,7 @@ app.include_router(index_router)
 app.include_router(config_router)
 app.include_router(system_router)
 app.include_router(settings_router)
+app.include_router(rebuild_router)
 
 # 根路径
 @app.get("/")

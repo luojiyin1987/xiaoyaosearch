@@ -87,6 +87,11 @@ pytest-asyncio==0.21.1           # 异步测试
 # MCP
 fastmcp==2.14.5        # 
 
+# OpenAI 兼容 API 客户端
+aiohttp>=3.9.0
+# 重试机制
+tenacity>=8.2.0
+
 # 注意事项：
 # 1. 如需GPU加速，将faiss-cpu替换为faiss-gpu
 # 2. torch版本需要与你的CUDA版本匹配

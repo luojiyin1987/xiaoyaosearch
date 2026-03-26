@@ -234,28 +234,125 @@
         <div class="settings-section">
           <h3>{{ t('settingsEmbedding.title') }}</h3>
           <a-form layout="vertical">
-            <a-form-item :label="t('settingsEmbedding.textEmbeddingModel')">
-              <a-alert
-                :message="t('settingsEmbedding.localBgeM3Service')"
-                :description="t('settingsEmbedding.localBgeM3Desc')"
-                type="info"
-                show-icon
-              />
+            <!-- 模型类型选择器 -->
+            <a-form-item :label="t('settingsEmbedding.modelType')">
+              <a-select
+                v-model:value="embeddingConfig.provider"
+                style="width: 200px"
+                @change="handleEmbeddingProviderChange"
+              >
+                <a-select-option value="local">
+                  {{ t('settingsEmbedding.modelTypeLocal') }}
+                </a-select-option>
+                <a-select-option value="cloud">
+                  {{ t('settingsEmbedding.modelTypeCloud') }}
+                </a-select-option>
+              </a-select>
             </a-form-item>
 
-            <a-form-item :label="t('settingsEmbedding.modelVersion')">
-              <a-select v-model:value="embeddingConfig.model_name" style="width: 100%">
-                <a-select-option value="BAAI/bge-m3">{{ t('settingsEmbedding.modelBgeM3') }}</a-select-option>
-                <a-select-option value="BAAI/bge-small-zh">BGE-Small-zh ({{ t('fileType.text') }})</a-select-option>
-                <a-select-option value="BAAI/bge-large-zh">BGE-Large-zh ({{ t('fileType.text') }})</a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item :label="t('settingsEmbedding.runningDevice')">
-              <a-select v-model:value="embeddingConfig.device" style="width: 200px">
-                <a-select-option value="cpu">{{ t('settingsEmbedding.deviceCpu') }}</a-select-option>
-                <a-select-option value="cuda">{{ t('settingsEmbedding.deviceCuda') }}</a-select-option>
-              </a-select>
-            </a-form-item>
+            <!-- 本地配置表单 -->
+            <template v-if="embeddingConfig.provider === 'local'">
+              <a-form-item>
+                <a-alert
+                  :message="t('settingsEmbedding.localBgeM3Service')"
+                  :description="t('settingsEmbedding.localBgeM3Desc')"
+                  type="info"
+                  show-icon
+                />
+              </a-form-item>
+
+              <a-form-item :label="t('settingsEmbedding.modelVersion')">
+                <a-select v-model:value="embeddingConfig.model_name_local" style="width: 100%">
+                  <a-select-option value="BAAI/bge-m3">{{ t('settingsEmbedding.modelBgeM3') }}</a-select-option>
+                  <a-select-option value="BAAI/bge-small-zh">BGE-Small-zh ({{ t('fileType.text') }})</a-select-option>
+                  <a-select-option value="BAAI/bge-large-zh">BGE-Large-zh ({{ t('fileType.text') }})</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item :label="t('settingsEmbedding.runningDevice')">
+                <a-select v-model:value="embeddingConfig.device" style="width: 200px">
+                  <a-select-option value="cpu">{{ t('settingsEmbedding.deviceCpu') }}</a-select-option>
+                  <a-select-option value="cuda">{{ t('settingsEmbedding.deviceCuda') }}</a-select-option>
+                </a-select>
+              </a-form-item>
+            </template>
+
+            <!-- 云端配置表单 -->
+            <template v-else>
+              <!-- 云端服务说明卡片 -->
+              <a-form-item>
+                <a-alert
+                  type="warning"
+                  show-icon
+                  class="cloud-service-info"
+                >
+                  <template #message>
+                    <span>{{ t('settingsEmbedding.cloudServiceInfo.title') }}</span>
+                  </template>
+                  <template #description>
+                    <div class="cloud-service-info-content">
+                      <ul class="info-list">
+                        <li class="info-item-success">
+                          <span>{{ t('settingsEmbedding.cloudServiceInfo.localDataSafe') }}</span>
+                        </li>
+                        <li class="info-item-warning">
+                          <span>{{ t('settingsEmbedding.cloudServiceInfo.querySent') }}</span>
+                        </li>
+                        <li class="info-item-tip">
+                          <span>{{ t('settingsEmbedding.cloudServiceInfo.allCompatible') }}</span>
+                        </li>
+                        <li class="info-item-tip">
+                          <span>{{ t('settingsEmbedding.cloudServiceInfo.needRebuild') }}</span>
+                        </li>
+                      </ul>
+                      <p class="info-notice">
+                        {{ t('settingsEmbedding.cloudServiceInfo.privacyTip') }}
+                      </p>
+                    </div>
+                  </template>
+                </a-alert>
+              </a-form-item>
+
+              <a-form-item :label="t('settingsEmbedding.apiKey')">
+                <a-input-password
+                  v-model:value="embeddingConfig.api_key"
+                  :placeholder="'sk-*****************************************'"
+                />
+              </a-form-item>
+
+              <a-form-item :label="t('settingsEmbedding.endpoint')">
+                <a-input
+                  v-model:value="embeddingConfig.endpoint"
+                  :placeholder="t('settingsEmbedding.endpointPlaceholder')"
+                />
+                <div class="form-help">{{ t('settingsEmbedding.endpointHelp') }}</div>
+              </a-form-item>
+
+              <a-form-item :label="t('settingsEmbedding.modelVersion')">
+                <a-input
+                  v-model:value="embeddingConfig.model_name_cloud"
+                  :placeholder="t('settingsEmbedding.modelPlaceholderCloud')"
+                />
+                <div class="form-help">{{ t('settingsEmbedding.modelHelpCloud') }}</div>
+              </a-form-item>
+
+              <a-form-item :label="t('settingsEmbedding.timeout')">
+                <a-input-number
+                  v-model:value="embeddingConfig.timeout"
+                  :min="1"
+                  :max="120"
+                  style="width: 200px"
+                />
+              </a-form-item>
+
+              <a-form-item :label="t('settingsEmbedding.batchSize')">
+                <a-input-number
+                  v-model:value="embeddingConfig.batch_size"
+                  :min="1"
+                  :max="1000"
+                  style="width: 200px"
+                />
+              </a-form-item>
+            </template>
           </a-form>
         </div>
         <div class="settings-section">
@@ -360,8 +457,14 @@ const visionConfig = reactive({
 })
 
 const embeddingConfig = reactive({
-  model_name: 'BAAI/bge-m3',
+  provider: 'local',        // 'local' | 'cloud'
+  model_name_local: 'BAAI/bge-m3',
+  model_name_cloud: 'text-embedding-3-small',
   device: 'cpu',
+  api_key: '',
+  endpoint: 'https://api.openai.com/v1',
+  timeout: 30,
+  batch_size: 100,
   isLoading: false,
   isTesting: false
 })
@@ -373,6 +476,11 @@ const aiModels = ref<AIModelInfo[]>([])
 const handleProviderChange = (value: string) => {
   // 只需要切换 provider，model_name 已经分开存储了
   llmConfig.provider = value
+}
+
+// Embedding provider 切换处理
+const handleEmbeddingProviderChange = (value: string) => {
+  embeddingConfig.provider = value
 }
 
 // 加载所有AI模型配置
@@ -407,8 +515,17 @@ const loadAIModels = async () => {
             visionConfig.device = config.device || 'cpu'
             break
           case 'embedding':
-            embeddingConfig.model_name = model.model_name
-            embeddingConfig.device = config.device || 'cpu'
+            embeddingConfig.provider = model.provider || 'local'
+            if (model.provider === 'cloud') {
+              embeddingConfig.model_name_cloud = model.model_name
+              embeddingConfig.api_key = config.api_key || ''
+              embeddingConfig.endpoint = config.endpoint || 'https://api.openai.com/v1'
+              embeddingConfig.timeout = config.timeout || 30
+              embeddingConfig.batch_size = config.batch_size || 100
+            } else {
+              embeddingConfig.model_name_local = model.model_name
+              embeddingConfig.device = config.device || 'cpu'
+            }
             break
         }
       })
@@ -603,14 +720,28 @@ const testVisionModel = async () => {
 const saveEmbeddingConfig = async () => {
   embeddingConfig.isLoading = true
   try {
-    const response = await AIModelConfigService.updateAIModelConfig({
+    const config: any = {
       model_type: 'embedding',
-      provider: 'local',
-      model_name: embeddingConfig.model_name,
-      config: {
+      provider: embeddingConfig.provider,
+      model_name: embeddingConfig.provider === 'cloud' ? embeddingConfig.model_name_cloud : embeddingConfig.model_name_local,
+      config: {}
+    }
+
+    // 根据提供商添加不同配置
+    if (embeddingConfig.provider === 'local') {
+      config.config = {
         device: embeddingConfig.device
       }
-    })
+    } else {
+      config.config = {
+        api_key: embeddingConfig.api_key,
+        endpoint: embeddingConfig.endpoint,
+        timeout: embeddingConfig.timeout,
+        batch_size: embeddingConfig.batch_size
+      }
+    }
+
+    const response = await AIModelConfigService.updateAIModelConfig(config)
 
     if (response.success) {
       message.success(t('settingsEmbedding.saveSuccessRestart'))
