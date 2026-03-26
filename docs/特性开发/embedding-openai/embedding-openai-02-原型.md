@@ -14,6 +14,7 @@
 | v1.0 | 2026-03-26 | 初始版本 |
 | v1.1 | 2026-03-26 | 修改为与大语言模型一致的UI&UX，使用下拉选择器而非单选按钮组 |
 | v1.2 | 2026-03-26 | 移除提供商预设，支持所有OpenAI兼容API；添加向量维度配置选项 |
+| v1.3 | 2026-03-26 | 添加索引重建触发机制：自动检测、手动按钮、搜索警告 |
 
 ---
 
@@ -370,9 +371,16 @@ API密钥输入框默认显示：sk*******************
                    │                       ↓
                    │              发送 PUT /api/config/ai-model
                    │                       ↓
-                   │              ┌─ 成功 → 显示成功提示
-                   │              │          "设置已保存"
-                   │              │          "本地模型将在下次搜索时加载"
+                   │              ┌─ 成功 → 检查后端返回的 rebuild_level
+                   │              │          │
+                   │              │          ├─ mandatory → 显示强制重建模态框
+                   │              │          │                （见 3.5.1）
+                   │              │          │
+                   │              │          ├─ recommended → 显示建议重建通知
+                   │              │          │                  （见 3.5.2）
+                   │              │          │
+                   │              │          └─ none → 显示成功提示
+                   │              │                      "设置已保存"
                    │              │
                    │              └─ 失败 → 显示错误提示
                    │                          "保存失败：{错误信息}"
@@ -399,14 +407,91 @@ API密钥输入框默认显示：sk*******************
                                         ↓
                               发送 PUT /api/config/ai-model
                                         ↓
-                              ┌─ 成功 → 显示成功提示
-                              │          "设置已保存"
-                              │          "您的搜索将使用云端嵌入模型"
-                              │          "本地模型已卸载"
+                              ┌─ 成功 → 检查后端返回的 rebuild_level
+                              │          │
+                              │          ├─ mandatory → 显示强制重建模态框
+                              │          │                （见 3.5.1）
+                              │          │
+                              │          ├─ recommended → 显示建议重建通知
+                              │          │                  （见 3.5.2）
+                              │          │
+                              │          └─ none → 显示成功提示
+                              │                      "设置已保存"
+                              │                      "您的搜索将使用云端嵌入模型"
                               │
                               └─ 失败 → 显示错误提示
                                           "保存失败：{错误信息}"
 ```
+
+#### 3.5.1 强制重建模态框（mandatory）
+
+**触发条件**：向量维度不匹配（如 1024维 → 1536维）
+
+```
+┌─ [模态框] 需要重建索引 ────────────────────────────┐
+│                                                    │
+│  ⚠️ 向量维度不匹配，必须重建索引                     │
+│                                                    │
+│  原模型维度：1024维                                  │
+│  新模型维度：1536维                                  │
+│                                                    │
+│  影响：                                              │
+│  • 语义搜索将完全失效                               │
+│  • 必须重建索引才能继续使用                         │
+│                                                    │
+│  预计耗时：5-10 分钟                                 │
+│                                                    │
+│                                    [取消]  [立即重建]  │
+│                                                    │
+└────────────────────────────────────────────────────┘
+    ↓
+用户选择：
+    ├─ "取消" → 回滚到原模型配置
+    │
+    └─ "立即重建" → 开始重建流程（见 Section 10）
+```
+
+#### 3.5.2 建议重建通知（recommended）
+
+**触发条件**：维度相同但模型不同（如 BGE-M3 → text-embedding-v3）
+
+```
+┌─ [通知栏] 嵌入模型已更改 ────────────────────────────┐
+│                                                    │
+│  ⚠️ 嵌入模型已更改，建议重建索引以获得最佳搜索质量   │
+│                                                    │
+│  当前索引使用旧模型的向量空间，搜索结果可能不准确    │
+│                                    [重建索引]  [✕]  │
+│                                                    │
+└────────────────────────────────────────────────────┘
+    ↓
+用户选择：
+    ├─ 点击"重建索引" → 开始重建流程（见 Section 10）
+    │
+    ├─ 点击"✕" → 关闭通知，继续使用（搜索质量可能下降）
+    │
+    └─ 忽略通知 → 后续搜索时显示警告横幅（见 3.6）
+```
+
+#### 3.5.3 后端返回格式
+
+```json
+{
+  "success": true,
+  "message": "嵌入模型配置已更新",
+  "data": {
+    "requires_rebuild": true,
+    "rebuild_level": "mandatory",  // 或 "recommended" 或 "none"
+    "rebuild_reason": "向量维度不匹配：1024维 → 1536维",
+    "rebuild_impact": "语义搜索将完全失效，必须重建索引",
+    "estimated_time": "5-10 分钟"
+  }
+}
+```
+
+---
+
+## 6. 手动重建索引按钮
 
 ---
 
@@ -660,17 +745,62 @@ API密钥输入框默认显示：sk*******************
 
     <!-- 操作按钮 -->
     <div class="form-actions">
-      <a-button
-        type="default"
-        @click="handleTestConnection"
-        :loading="testingConnection"
-      >
-        {{ t('settingsEmbedding.testConnection') }}
-      </a-button>
-      <a-button type="primary" @click="handleSave">
-        {{ t('common.saveSettings') }}
-      </a-button>
+      <a-space>
+        <!-- 保存配置按钮 -->
+        <a-button
+          type="primary"
+          @click="handleSave"
+          :loading="isSaving"
+        >
+          {{ t('common.saveSettings') }}
+        </a-button>
+
+        <!-- 测试连接按钮 -->
+        <a-button
+          @click="handleTestConnection"
+          :loading="testingConnection"
+        >
+          {{ t('settingsEmbedding.testConnection') }}
+        </a-button>
+
+        <!-- 重建索引按钮（独立） -->
+        <a-button
+          type="default"
+          @click="confirmRebuildIndex"
+          :loading="isRebuilding"
+          :disabled="!hasIndex"
+        >
+          <RebuildOutlined />
+          {{ t('settingsEmbedding.rebuildIndex') }}
+        </a-button>
+      </a-space>
     </div>
+
+    <!-- 重建进度模态框 -->
+    <a-modal
+      v-model:open="showRebuildModal"
+      :title="t('indexRebuild.title')"
+      :footer="null"
+      :closable="!isRebuilding"
+      :maskClosable="!isRebuilding"
+    >
+      <div class="rebuild-progress">
+        <a-progress
+          :percent="rebuildProgress"
+          :status="rebuildStatus"
+        />
+        <p class="progress-info">{{ rebuildMessage }}</p>
+        <div class="progress-stats">
+          <p>{{ t('indexRebuild.processed') }}: {{ rebuildStats.processed }} / {{ rebuildStats.total }}</p>
+          <p>{{ t('indexRebuild.successRate') }}: {{ rebuildStats.success_rate }}%</p>
+          <p>{{ t('indexRebuild.remainingTime') }}: {{ rebuildStats.estimated_remaining }}</p>
+        </div>
+      </div>
+      <template #footer v-if="!isRebuilding">
+        <a-button @click="showRebuildModal = false">{{ t('common.close') }}</a-button>
+        <a-button type="primary" @click="startRebuild">{{ t('indexRebuild.start') }}</a-button>
+      </template>
+    </a-modal>
   </div>
 </template>
 
@@ -680,7 +810,8 @@ import { message, Modal } from 'ant-design-vue';
 import {
   CheckCircleOutlined,
   WarningOutlined,
-  BulbOutlined
+  BulbOutlined,
+  RebuildOutlined
 } from '@ant-design/icons-vue';
 import { useI18n } from 'vue-i18n';
 
@@ -704,6 +835,22 @@ const cloudConfig = reactive({
 
 const testingConnection = ref(false);
 const hasConfirmedSwitch = ref(false);
+const isSaving = ref(false);
+const isRebuilding = ref(false);
+const hasIndex = ref(true);
+
+// 重建相关状态
+const showRebuildModal = ref(false);
+const rebuildProgress = ref(0);
+const rebuildStatus = ref<'active' | 'success' | 'exception'>('active');
+const rebuildMessage = ref('');
+const rebuildStats = reactive({
+  total: 0,
+  processed: 0,
+  failed: 0,
+  success_rate: 100,
+  estimated_remaining: ''
+});
 
 const handleProviderChange = (value: string) => {
   if (value === 'cloud' && !hasConfirmedSwitch.value) {
@@ -731,9 +878,72 @@ const handleTestConnection = async () => {
   }, 1000);
 };
 
-const handleSave = () => {
-  // 保存配置逻辑...
-  message.success(t('settingsEmbedding.saveSuccess'));
+const handleSave = async () => {
+  isSaving.value = true;
+
+  try {
+    const response = await updateAIModelConfig(embeddingConfig);
+
+    if (response.data.requires_rebuild) {
+      const { rebuild_level, rebuild_reason, estimated_time } = response.data;
+
+      if (rebuild_level === 'mandatory') {
+        // 强制重建：显示模态框
+        Modal.confirm({
+          title: t('indexRebuild.mandatory.title'),
+          content: `${rebuild_reason}\n\n${response.data.rebuild_impact}\n\n${t('indexRebuild.estimatedTime')}: ${estimated_time}`,
+          okText: t('indexRebuild.rebuildNow'),
+          cancelText: t('common.cancel'),
+          onOk: () => startRebuildIndex(),
+          onCancel: () => revertModelConfig()
+        });
+      } else if (rebuild_level === 'recommended') {
+        // 建议重建：显示通知（带操作按钮）
+        notification.warning({
+          message: t('indexRebuild.recommended.title'),
+          description: `${rebuild_reason}\n${response.data.rebuild_impact}`,
+          duration: 0, // 不自动关闭
+          btn: (h) => h(Button, {
+            type: 'primary',
+            size: 'small',
+            onClick: () => startRebuildIndex()
+          }, t('indexRebuild.rebuildIndex'))
+        });
+      }
+    } else {
+      message.success(t('settingsEmbedding.saveSuccess'));
+    }
+  } catch (error) {
+    message.error(t('settingsEmbedding.saveFailed'));
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+// 手动重建索引
+const confirmRebuildIndex = () => {
+  showRebuildModal.value = true;
+};
+
+const startRebuild = async () => {
+  isRebuilding.value = true;
+  rebuildStatus.value = 'active';
+  rebuildMessage.value = t('indexRebuild.starting');
+
+  // 调用重建 API...
+  // 开始轮询进度
+};
+
+const startRebuildIndex = async () => {
+  isRebuilding.value = true;
+  showRebuildModal.value = true;
+
+  // 调用重建 API...
+};
+
+const revertModelConfig = () => {
+  // 回滚到原模型配置
+  message.info(t('indexRebuild.reverted'));
 };
 </script>
 
@@ -797,9 +1007,66 @@ const handleSave = () => {
 
 ---
 
-## 6. 响应式设计
+## 6. 手动重建索引按钮
 
-### 6.1 断点规范
+### 6.1 按钮设计
+
+**位置**：设置页面嵌入模型配置卡片底部，与"保存配置"和"测试连接"按钮并列
+
+**按钮样式**：
+```
+[ 保存配置 ]  [ 测试连接 ]  [ 🔄 重建索引 ]
+   主要         默认         默认
+```
+
+**状态设计**：
+
+| 状态 | 外观 | 行为 |
+|------|------|------|
+| 正常 | 默认样式，图标+文字 | 可点击，显示确认对话框 |
+| 禁用 | 灰色，不可点击 | 当没有索引时禁用 |
+| 加载中 | 转圈动画 | 重建进行中，按钮不可点击 |
+
+### 6.2 交互流程
+
+```
+用户点击"重建索引"按钮
+    ↓
+┌─ [确认对话框] 重建索引 ────────────────────────────┐
+│                                                    │
+│  重建索引将：                                       │
+│  • 备份当前索引                                     │
+│  • 使用当前嵌入模型重建                             │
+│  • 预计耗时：5-10 分钟                              │
+│                                                    │
+│  是否继续？                                         │
+│                                    [取消]  [确认]  │
+│                                                    │
+└────────────────────────────────────────────────────┘
+    ↓
+用户确认
+    ↓
+显示重建进度模态框（见 Section 10）
+```
+
+### 6.3 与自动检测的关系
+
+| 触发方式 | 触发时机 | 重建级别 | 用户体验 |
+|---------|---------|---------|----------|
+| 自动检测（mandatory） | 保存配置后，维度不匹配 | 强制 | 模态框阻止，必须重建 |
+| 自动检测（recommended） | 保存配置后，模型不同 | 建议 | 通知可关闭，可延后 |
+| 手动按钮 | 用户主动点击 | 用户决策 | 确认对话框，可取消 |
+
+**设计原则**：
+- 自动检测是主流程，覆盖大部分场景
+- 手动按钮是补充，供用户主动触发或延后重建
+- 两种方式最终使用相同的重建进度UI
+
+---
+
+## 7. 响应式设计
+
+### 7.1 断点规范
 
 | 断点 | 屏幕宽度 | 布局调整 |
 |------|----------|----------|
@@ -809,7 +1076,7 @@ const handleSave = () => {
 | lg | ≥ 992px | 单列布局，表单最大宽度700px |
 | xl | ≥ 1200px | 单列布局，表单最大宽度800px |
 
-### 6.2 移动端适配
+### 7.2 移动端适配
 
 **小屏幕布局（< 576px）**：
 
@@ -838,37 +1105,6 @@ const handleSave = () => {
 
 ---
 
-## 7. 状态设计
-
-### 7.1 配置状态
-
-| 状态 | 描述 | 视觉表现 |
-|------|------|----------|
-| 未配置 | 首次使用，未保存任何配置 | 显示默认本地配置，提示用户保存 |
-| 已配置本地 | 已保存本地配置 | 显示本地配置表单，显示"当前使用：本地" |
-| 已配置云端 | 已保存云端API配置 | 显示云端配置表单，显示"当前使用：云端API" |
-| 配置错误 | 配置验证失败 | 高亮错误字段，显示错误提示 |
-
-### 7.2 连接状态
-
-| 状态 | 描述 | 视觉表现 |
-|------|------|----------|
-| 未测试 | 未进行连接测试 | 按钮显示"测试连接"，蓝色 |
-| 测试中 | 正在测试连接 | 按钮显示"测试中..."，转圈动画 |
-| 测试成功 | 连接测试成功 | 按钮显示"✓ 连接成功"，绿色，3秒后恢复 |
-| 测试失败 | 连接测试失败 | 按钮显示"✗ 连接失败"，红色，保持状态 |
-
-### 7.3 保存状态
-
-| 状态 | 描述 | 视觉表现 |
-|------|------|----------|
-| 未保存 | 配置未保存 | 保存按钮可点击 |
-| 保存中 | 正在保存配置 | 保存按钮显示加载状态 |
-| 保存成功 | 配置保存成功 | 显示成功提示，保存按钮恢复 |
-| 保存失败 | 配置保存失败 | 显示错误提示，保存按钮恢复 |
-
----
-
 ## 8. 无障碍设计
 
 ### 8.1 键盘导航
@@ -894,9 +1130,9 @@ const handleSave = () => {
 
 ---
 
-## 9. 错误处理
+## 10. 错误处理
 
-### 9.1 表单验证错误
+### 10.1 表单验证错误
 
 | 错误类型 | 显示方式 | 消息示例 |
 |---------|---------|---------|
@@ -905,7 +1141,7 @@ const handleSave = () => {
 | 模型名称为空 | 字段下方红色文字 | "请输入模型名称" |
 | 端点地址格式错误 | 字段下方红色文字 | "请输入有效的URL" |
 
-### 9.2 连接测试错误
+### 10.2 连接测试错误
 
 | 错误类型 | 显示方式 | 处理方式 |
 |---------|---------|---------|
@@ -914,7 +1150,7 @@ const handleSave = () => {
 | 模型不存在 | 按钮变红，显示错误提示 | 提示检查模型名称 |
 | 服务器错误 | 按钮变红，显示错误提示 | 提示稍后重试 |
 
-### 9.3 保存错误
+### 10.3 保存错误
 
 | 错误类型 | 显示方式 | 处理方式 |
 |---------|---------|---------|
@@ -924,13 +1160,13 @@ const handleSave = () => {
 
 ---
 
-## 10. 索引重建进度UI
+## 11. 索引重建进度UI
 
-### 10.1 设计概述
+### 11.1 设计概述
 
 当用户切换嵌入模型时，系统需要重建索引。本节描述索引重建进度的UI设计。
 
-### 10.2 确认对话框
+### 11.2 确认对话框
 
 **本地 → 云端确认对话框**：
 
@@ -971,7 +1207,7 @@ const handleSave = () => {
 
 ---
 
-### 10.3 重建进度弹窗
+### 11.3 重建进度弹窗
 
 **进度弹窗设计**：
 
@@ -999,7 +1235,7 @@ const handleSave = () => {
 
 ---
 
-### 10.4 Vue 组件实现
+### 11.4 Vue 组件实现
 
 ```vue
 <template>
@@ -1318,7 +1554,7 @@ defineExpose({
 
 ---
 
-### 10.5 交互流程
+### 11.5 交互流程
 
 ```
 用户点击"保存设置"
@@ -1355,7 +1591,7 @@ defineExpose({
 
 ---
 
-### 10.6 状态设计
+### 11.6 状态设计
 
 | 重建状态 | 进度条状态 | 用户操作 |
 |---------|-----------|---------|
@@ -1368,7 +1604,7 @@ defineExpose({
 
 ---
 
-### 10.7 后台运行通知
+### 11.7 后台运行通知
 
 **通知栏设计**：
 
@@ -1389,9 +1625,9 @@ defineExpose({
 
 ---
 
-## 11. 图标资源
+## 12. 图标资源
 
-### 10.1 Ant Design Icons
+### 12.1 Ant Design Icons
 
 | 图标 | 用途 | 组件名 |
 |------|------|--------|
@@ -1415,3 +1651,7 @@ defineExpose({
 > 5. 支持所有兼容OpenAI Embeddings API标准的服务
 > 6. 向量维度配置用于后端归一化处理，确保与本地索引兼容
 > 7. 优先使用本地，保护用户隐私
+> 8. **索引重建触发机制**：仅在设置环节自动检测（mandatory/recommended）+ 手动按钮
+> 9. **三种重建级别**：强制重建（维度不匹配）、建议重建（模型不同）、无需重建
+> 10. **简化设计**：移除搜索时检测，仅在设置页面处理索引重建
+> 11. 参考架构决策：AD-20260326-02（嵌入模型切换索引重建触发机制）

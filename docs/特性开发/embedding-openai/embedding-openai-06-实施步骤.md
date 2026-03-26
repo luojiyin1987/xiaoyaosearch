@@ -17,9 +17,10 @@
 | 3️⃣ 模型管理器扩展 | 支持云端嵌入模型 | 2 小时 | P0 |
 | 4️⃣ 索引重建功能 | 方案B：独立端点 | 4 小时 | P0 |
 | 5️⃣ 前端界面修改 | 配置表单、状态管理 | 4 小时 | P0 |
-| 6️⃣ 国际化更新 | 翻译键更新 | 1 小时 | P0 |
-| 7️⃣ 测试验证 | 功能测试、集成测试 | 6 小时 | P0 |
-| **总计** | | **24 小时（3 天）** | |
+| 6️⃣ 索引重建触发机制 | 自动检测+手动按钮 | 3 小时 | P0 |
+| 7️⃣ 国际化更新 | 翻译键更新 | 1 小时 | P0 |
+| 8️⃣ 测试验证 | 功能测试、集成测试 | 6 小时 | P0 |
+| **总计** | | **27 小时（约 3.5 天）** | |
 
 ---
 
@@ -1186,7 +1187,535 @@ const handleSaveConfig = async () => {
 
 ---
 
-## 阶段 6：后端国际化（1 小时）
+## 阶段 6：索引重建触发机制（3 小时）
+
+> **参考架构决策**：[AD-20260326-02](../../../架构决策/AD-20260326-02-嵌入模型切换索引重建触发机制.md)
+
+### 步骤 6.1：后端自动检测逻辑
+
+**修改文件**：`backend/app/api/ai_model_config.py`
+
+在现有的模型配置更新接口中添加自动检测逻辑：
+
+```python
+"""
+AI 模型配置 API - 添加索引重建自动检测
+"""
+from fastapi import APIRouter, HTTPException, Header
+from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any
+
+from app.services.ai_model_manager import get_ai_model_manager
+from app.services.index_rebuild_service import get_index_rebuild_service
+from app.core.i18n import i18n, get_locale_from_header
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
+
+router = APIRouter(prefix="/api/config/ai-model", tags=["AI模型配置"])
+
+
+class AIModelConfigRequest(BaseModel):
+    """AI模型配置请求"""
+    model_type: str = Field(..., description="模型类型：embedding/llm/vision")
+    provider: str = Field(..., description="提供商：local/cloud")
+    model_name: str = Field(..., description="模型名称")
+    config: Dict[str, Any] = Field(default_factory=dict, description="模型配置")
+
+
+async def detect_model_dimension(model_service) -> int:
+    """
+    检测模型的向量维度
+
+    Args:
+        model_service: 模型服务实例
+
+    Returns:
+        向量维度
+    """
+    try:
+        # 调用一次测试来获取维度
+        test_embedding = await model_service.predict(["test"])
+        if test_embedding and len(test_embedding) > 0:
+            return len(test_embedding[0])
+        return 0
+    except Exception as e:
+        logger.error(f"检测模型维度失败: {str(e)}")
+        return 0
+
+
+def estimate_rebuild_time(file_count: int) -> str:
+    """
+    估算重建时间
+
+    Args:
+        file_count: 文件数量
+
+    Returns:
+        估算时间字符串
+    """
+    if file_count == 0:
+        return "0 分钟"
+
+    # 假设每分钟处理 100 个文件
+    minutes = max(1, (file_count // 100) + 1)
+
+    if minutes < 60:
+        return f"{minutes} 分钟"
+    else:
+        hours = minutes // 60
+        mins = minutes % 60
+        return f"{hours} 小时 {mins} 分钟"
+
+
+@router.put("/")
+async def update_ai_model_config(
+    request: AIModelConfigRequest,
+    accept_language: Optional[str] = Header(None)
+):
+    """
+    更新 AI 模型配置（自动检测是否需要重建索引）
+
+    Args:
+        request: 模型配置请求
+        accept_language: Accept-Language 头
+
+    Returns:
+        配置更新结果，包含重建建议
+    """
+    locale = get_locale_from_header(accept_language)
+    ai_manager = get_ai_model_manager()
+
+    # 只对嵌入模型进行自动检测
+    if request.model_type != "embedding":
+        # 其他模型类型直接保存
+        await ai_manager.load_model({
+            "model_type": request.model_type,
+            "provider": request.provider,
+            "model_name": request.model_name,
+            "config": request.config
+        })
+
+        return {
+            "success": True,
+            "message": i18n.t("model.config_saved", locale),
+            "data": {
+                "requires_rebuild": False
+            }
+        }
+
+    # ========== 嵌入模型：自动检测逻辑 ==========
+
+    # 1. 获取当前激活的嵌入模型
+    try:
+        current_model = ai_manager.get_model(ModelType.EMBEDDING)
+        if current_model:
+            old_provider = getattr(current_model, 'provider', 'unknown')
+            old_model_name = getattr(current_model, 'model_name', 'unknown')
+            old_dimension = await detect_model_dimension(current_model)
+        else:
+            old_provider = None
+            old_model_name = None
+            old_dimension = None
+    except Exception as e:
+        logger.warning(f"获取当前模型信息失败: {str(e)}")
+        old_provider = None
+        old_model_name = None
+        old_dimension = None
+
+    # 2. 保存新配置
+    try:
+        new_config = {
+            "model_type": request.model_type,
+            "provider": request.provider,
+            "model_name": request.model_name,
+            "config": request.config
+        }
+
+        # 临时加载新模型以检测维度
+        if request.provider == "local":
+            from app.services.bge_embedding_service import BGEEmbeddingService
+            temp_service = BGEEmbeddingService(request.config)
+        else:  # cloud
+            from app.services.openai_embedding_service import OpenAIEmbeddingService
+            temp_service = OpenAIEmbeddingService(request.config)
+
+        await temp_service.load_model()
+        new_dimension = await detect_model_dimension(temp_service)
+        await temp_service.unload_model()
+
+    except Exception as e:
+        logger.error(f"检测新模型维度失败: {str(e)}")
+        new_dimension = None
+
+    # 3. 判断场景并返回重建建议
+    rebuild_result = {
+        "requires_rebuild": False,
+        "rebuild_level": "none"
+    }
+
+    # 场景A：维度不匹配 - 强制重建
+    if old_dimension is not None and new_dimension is not None:
+        if old_dimension != new_dimension:
+            rebuild_result.update({
+                "requires_rebuild": True,
+                "rebuild_level": "mandatory",
+                "rebuild_reason": i18n.t("model.dimension_mismatch", locale,
+                    old_dimension=old_dimension, new_dimension=new_dimension),
+                "rebuild_impact": i18n.t("model.dimension_mismatch_impact", locale),
+                "estimated_time": estimate_rebuild_time(1000)  # TODO: 获取实际文件数
+            })
+
+    # 场景B：维度相同但模型不同 - 建议重建
+    if not rebuild_result["requires_rebuild"]:
+        if (old_provider != request.provider or
+            old_model_name != request.model_name):
+            if old_provider is not None:  # 有原模型才建议重建
+                rebuild_result.update({
+                    "requires_rebuild": True,
+                    "rebuild_level": "recommended",
+                    "rebuild_reason": i18n.t("model.model_changed", locale,
+                        old_model=old_model_name, new_model=request.model_name),
+                    "rebuild_impact": i18n.t("model.model_changed_impact", locale),
+                    "estimated_time": estimate_rebuild_time(1000)  # TODO: 获取实际文件数
+                })
+
+    # 4. 实际保存新配置
+    await ai_manager.load_embedding_model(new_config)
+
+    return {
+        "success": True,
+        "message": i18n.t("model.config_saved", locale),
+        "data": rebuild_result
+    }
+```
+
+---
+
+### 步骤 6.2：添加模型匹配检测端点
+
+**修改文件**：`backend/app/api/search.py`
+
+添加索引和模型匹配检测端点：
+
+```python
+@router.get("/check-model-match")
+async def check_index_model_match(
+    accept_language: Optional[str] = Header(None)
+):
+    """
+    检测索引和当前嵌入模型是否匹配
+
+    用于前端判断是否需要显示重建提示
+
+    Returns:
+        匹配检测结果
+    """
+    locale = get_locale_from_header(accept_language)
+
+    # TODO: 从索引元数据中获取创建索引时使用的模型信息
+    # 这里返回示例数据
+    index_model_info = {
+        "provider": "local",
+        "model_name": "BAAI/bge-m3",
+        "embedding_dim": 1024
+    }
+
+    # 获取当前激活的模型
+    ai_manager = get_ai_model_manager()
+    current_model = ai_manager.get_model(ModelType.EMBEDDING)
+
+    if not current_model:
+        return {
+            "success": True,
+            "data": {
+                "is_matched": True,
+                "message": "未配置嵌入模型"
+            }
+        }
+
+    current_provider = getattr(current_model, 'provider', 'unknown')
+    current_model_name = getattr(current_model, 'model_name', 'unknown')
+
+    # 检测当前模型维度
+    current_dimension = await detect_model_dimension(current_model)
+
+    # 判断是否匹配
+    is_matched = (
+        index_model_info["provider"] == current_provider and
+        index_model_info["model_name"] == current_model_name and
+        index_model_info["embedding_dim"] == current_dimension
+    )
+
+    if not is_matched:
+        warning = i18n.t("model.index_mismatch_warning", locale,
+            index_model=index_model_info["model_name"],
+            current_model=current_model_name,
+            index_dim=index_model_info["embedding_dim"],
+            current_dim=current_dimension)
+    else:
+        warning = None
+
+    return {
+        "success": True,
+        "data": {
+            "is_matched": is_matched,
+            "warning": warning,
+            "index_model": index_model_info,
+            "current_model": {
+                "provider": current_provider,
+                "model_name": current_model_name,
+                "embedding_dim": current_dimension
+            }
+        }
+    }
+```
+
+---
+
+### 步骤 6.3：前端响应式处理
+
+**修改文件**：`frontend/src/renderer/src/views/Settings.vue`
+
+更新保存配置的处理逻辑，支持自动检测响应：
+
+```vue
+<script setup lang="ts">
+import { ref, reactive } from 'vue';
+import { message, Modal, notification } from 'ant-design-vue';
+import { useI18n } from 'vue-i18n';
+import { RebuildOutlined } from '@ant-design/icons-vue';
+
+const { t } = useI18n();
+
+// 状态
+const isSaving = ref(false);
+const isRebuilding = ref(false);
+const hasIndex = ref(true);
+
+// 重建相关状态
+const showRebuildModal = ref(false);
+const rebuildProgress = ref(0);
+const rebuildStatus = ref<'active' | 'success' | 'exception'>('active');
+const rebuildMessage = ref('');
+const rebuildStats = reactive({
+  total: 0,
+  processed: 0,
+  failed: 0,
+  success_rate: 100,
+  estimated_remaining: ''
+});
+
+// 保存嵌入模型配置（更新处理自动检测）
+const handleSaveEmbeddingConfig = async () => {
+  isSaving.value = true;
+
+  try {
+    const config = embeddingProvider.value === 'cloud' ? cloudConfig : localConfig;
+
+    const response = await updateAIModelConfig({
+      model_type: 'embedding',
+      provider: embeddingProvider.value,
+      model_name: config.model_name || config.model,
+      config: config
+    });
+
+    if (response.data.requires_rebuild) {
+      const { rebuild_level, rebuild_reason, estimated_time } = response.data;
+
+      if (rebuild_level === 'mandatory') {
+        // 强制重建：显示模态框
+        Modal.confirm({
+          title: t('indexRebuild.mandatory.title'),
+          content: `${rebuild_reason}\n\n${response.data.rebuild_impact}\n\n${t('indexRebuild.estimatedTime')}: ${estimated_time}`,
+          okText: t('indexRebuild.rebuildNow'),
+          cancelText: t('common.cancel'),
+          onOk: () => startRebuildIndex(),
+          onCancel: () => revertModelConfig()
+        });
+      } else if (rebuild_level === 'recommended') {
+        // 建议重建：显示通知（带操作按钮）
+        notification.warning({
+          message: t('indexRebuild.recommended.title'),
+          description: `${rebuild_reason}\n${response.data.rebuild_impact}`,
+          duration: 0, // 不自动关闭
+          btn: () => h(Button, {
+            type: 'primary',
+            size: 'small',
+            onClick: () => startRebuildIndex()
+          }, () => t('indexRebuild.rebuildIndex'))
+        });
+      }
+    } else {
+      message.success(t('settingsEmbedding.saveSuccess'));
+    }
+  } catch (error) {
+    message.error(t('settingsEmbedding.saveFailed'));
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+// 手动重建索引
+const confirmRebuildIndex = () => {
+  showRebuildModal.value = true;
+};
+
+const startRebuild = async () => {
+  isRebuilding.value = true;
+  rebuildStatus.value = 'active';
+  rebuildMessage.value = t('indexRebuild.starting');
+
+  try {
+    // 调用重建 API
+    const response = await fetch('/api/index/rebuild/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model_config: {
+          provider: embeddingProvider.value,
+          model_name: embeddingProvider.value === 'cloud' ? cloudConfig.model : localConfig.model_name,
+          config: embeddingProvider.value === 'cloud' ? cloudConfig : localConfig
+        }
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      // 开始轮询进度
+      startPolling();
+    } else {
+      throw new Error(result.message || '启动重建失败');
+    }
+  } catch (error) {
+    message.error(t('indexRebuild.startFailed'));
+    isRebuilding.value = false;
+  }
+};
+
+const startRebuildIndex = async () => {
+  showRebuildModal.value = true;
+  await startRebuild();
+};
+
+const revertModelConfig = async () => {
+  // 回滚到原模型配置
+  message.info(t('indexRebuild.reverted'));
+  // TODO: 调用 API 恢复原配置
+};
+
+// 轮询重建进度
+const startPolling = () => {
+  const timer = setInterval(async () => {
+    try {
+      const response = await fetch('/api/index/rebuild/status');
+      const result = await response.json();
+
+      rebuildProgress.value = Math.round(result.data.progress);
+      rebuildStats.total = result.data.total_files;
+      rebuildStats.processed = result.data.processed_files;
+      rebuildStats.failed = result.data.failed_files;
+
+      if (result.data.status === 'completed') {
+        rebuildStatus.value = 'success';
+        rebuildMessage.value = t('indexRebuild.completed');
+        clearInterval(timer);
+        message.success(t('indexRebuild.completed'));
+        setTimeout(() => {
+          showRebuildModal.value = false;
+        }, 2000);
+      } else if (result.data.status === 'failed') {
+        rebuildStatus.value = 'exception';
+        rebuildMessage.value = t('indexRebuild.failed');
+        clearInterval(timer);
+      }
+    } catch (error) {
+      console.error('获取重建状态失败:', error);
+    }
+  }, 1000);
+};
+</script>
+```
+
+---
+
+### 步骤 6.4：添加重建索引按钮
+
+**修改文件**：`frontend/src/renderer/src/views/Settings.vue`
+
+在嵌入模型配置卡片的操作按钮区域添加重建索引按钮：
+
+```vue
+<template>
+  <a-card title="嵌入模型配置">
+    <!-- 模型选择器和配置表单... -->
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons" style="margin-top: 24px;">
+      <a-space>
+        <!-- 保存配置按钮 -->
+        <a-button
+          type="primary"
+          @click="handleSaveEmbeddingConfig"
+          :loading="isSaving"
+        >
+          {{ t('common.saveSettings') }}
+        </a-button>
+
+        <!-- 测试连接按钮 -->
+        <a-button
+          @click="handleTestConnection"
+          :loading="testing"
+        >
+          {{ t('settingsEmbedding.testConnection') }}
+        </a-button>
+
+        <!-- 重建索引按钮（独立） -->
+        <a-button
+          type="default"
+          @click="confirmRebuildIndex"
+          :loading="isRebuilding"
+          :disabled="!hasIndex"
+        >
+          <RebuildOutlined />
+          {{ t('settingsEmbedding.rebuildIndex') }}
+        </a-button>
+      </a-space>
+    </div>
+  </a-card>
+
+  <!-- 重建进度模态框 -->
+  <a-modal
+    v-model:open="showRebuildModal"
+    :title="t('indexRebuild.title')"
+    :footer="null"
+    :closable="!isRebuilding"
+    :maskClosable="!isRebuilding"
+  >
+    <div class="rebuild-progress">
+      <a-progress
+        :percent="rebuildProgress"
+        :status="rebuildStatus"
+      />
+      <p class="progress-info">{{ rebuildMessage }}</p>
+      <div class="progress-stats">
+        <p>{{ t('indexRebuild.processed') }}: {{ rebuildStats.processed }} / {{ rebuildStats.total }}</p>
+        <p>{{ t('indexRebuild.successRate') }}: {{ rebuildStats.success_rate }}%</p>
+        <p>{{ t('indexRebuild.remainingTime') }}: {{ rebuildStats.estimated_remaining }}</p>
+      </div>
+    </div>
+    <template #footer v-if="!isRebuilding">
+      <a-button @click="showRebuildModal = false">{{ t('common.close') }}</a-button>
+      <a-button type="primary" @click="startRebuild">{{ t('indexRebuild.start') }}</a-button>
+    </template>
+  </a-modal>
+</template>
+```
+
+---
+
+## 阶段 7：后端国际化（1 小时）
 
 ### 步骤 6.1：更新后端语言包 - 中文
 
@@ -1225,7 +1754,17 @@ const handleSaveConfig = async () => {
     "rebuild_failed": "索引重建失败：{error}",
     "rebuild_progress": "重建进度：{progress}%",
     "rebuild_current_file": "当前处理文件：{file}",
-    "rebuild_statistics": "重建统计：成功 {success}，失败 {failed}，总计 {total}"
+    "rebuild_statistics": "重建统计：成功 {success}，失败 {failed}，总计 {total}",
+
+    // ========== 索引重建触发机制 ==========
+    "dimension_mismatch": "向量维度不匹配：{old_dimension}维 → {new_dimension}维",
+    "dimension_mismatch_impact": "语义搜索将完全失效，必须重建索引",
+    "model_changed": "嵌入模型已从 {old_model} 更改为 {new_model}",
+    "model_changed_impact": "当前索引使用旧模型的向量空间，搜索结果可能不准确",
+    "index_mismatch_warning": "⚠️ 当前索引使用旧模型创建（{index_model}，{index_dim}维），当前模型为 {current_model}（{current_dim}维），搜索结果可能不准确",
+    "config_saved": "嵌入模型配置已更新",
+    "mandatory_rebuild_required": "需要重建索引",
+    "recommended_rebuild": "建议重建索引以获得最佳搜索质量"
   },
 
   // 新增：索引重建部分
@@ -1303,7 +1842,17 @@ const handleSaveConfig = async () => {
     "rebuild_failed": "Index rebuild failed: {error}",
     "rebuild_progress": "Rebuild progress: {progress}%",
     "rebuild_current_file": "Current file: {file}",
-    "rebuild_statistics": "Rebuild statistics: success {success}, failed {failed}, total {total}"
+    "rebuild_statistics": "Rebuild statistics: success {success}, failed {failed}, total {total}",
+
+    // ========== Index Rebuild Trigger Mechanism ==========
+    "dimension_mismatch": "Vector dimension mismatch: {old_dimension}D → {new_dimension}D",
+    "dimension_mismatch_impact": "Semantic search will be completely disabled, index rebuild is required",
+    "model_changed": "Embedding model changed from {old_model} to {new_model}",
+    "model_changed_impact": "Current index uses old model's vector space, search results may be inaccurate",
+    "index_mismatch_warning": "⚠️ Current index was created with {index_model} ({index_dim}D), current model is {current_model} ({current_dim}D), search results may be inaccurate",
+    "config_saved": "Embedding model configuration updated",
+    "mandatory_rebuild_required": "Index rebuild required",
+    "recommended_rebuild": "Index rebuild recommended for optimal search quality"
   },
 
   "index_rebuild": {
@@ -1592,9 +2141,9 @@ async def test_ai_model(
 
 ---
 
-## 阶段 7：前端国际化更新（1 小时）
+## 阶段 8：前端国际化更新（1 小时）
 
-### 步骤 7.1：更新前端中文翻译
+### 步骤 8.1：更新前端中文翻译
 
 **修改文件**：`frontend/src/locale/lang/zh-cn.ts`
 
@@ -1655,13 +2204,34 @@ embedding: {
   rebuildWarning: '重建期间搜索功能可能受影响，是否继续？',
   rebuildStarted: '索引重建已开始',
   rebuildCompleted: '索引重建完成',
-  rebuildFailed: '索引重建失败'
+  rebuildFailed: '索引重建失败',
+
+  // 索引重建触发机制
+  rebuildIndex: '重建索引',
+  rebuildNow: '立即重建',
+  mandatory: {
+    title: '需要重建索引',
+    dimensionMismatch: '向量维度不匹配',
+    searchDisabled: '语义搜索将完全失效',
+    mustRebuild: '必须重建索引才能继续使用'
+  },
+  recommended: {
+    title: '嵌入模型已更改',
+    modelChanged: '嵌入模型已更改，建议重建索引以获得最佳搜索质量',
+    qualityWarning: '当前索引使用旧模型的向量空间，搜索结果可能不准确'
+  },
+  starting: '正在启动...',
+  processed: '已处理',
+  successRate: '成功率',
+  remainingTime: '预计剩余',
+  reverted: '已恢复到原模型配置',
+  startFailed: '启动重建失败'
 }
 ```
 
 ---
 
-### 步骤 6.2：更新英文翻译
+### 步骤 8.2：更新英文翻译
 
 **修改文件**：`frontend/src/locale/lang/en-us.ts`
 
@@ -1715,15 +2285,36 @@ embedding: {
   rebuildWarning: 'Search functionality may be affected during rebuild, continue?',
   rebuildStarted: 'Index rebuild started',
   rebuildCompleted: 'Index rebuild completed',
-  rebuildFailed: 'Index rebuild failed'
+  rebuildFailed: 'Index rebuild failed',
+
+  // Index Rebuild Trigger Mechanism
+  rebuildIndex: 'Rebuild Index',
+  rebuildNow: 'Rebuild Now',
+  mandatory: {
+    title: 'Index Rebuild Required',
+    dimensionMismatch: 'Vector dimension mismatch',
+    searchDisabled: 'Semantic search will be completely disabled',
+    mustRebuild: 'Must rebuild index to continue using'
+  },
+  recommended: {
+    title: 'Embedding Model Changed',
+    modelChanged: 'Embedding model changed, index rebuild recommended for optimal search quality',
+    qualityWarning: 'Current index uses old model\'s vector space, search results may be inaccurate'
+  },
+  starting: 'Starting...',
+  processed: 'Processed',
+  successRate: 'Success Rate',
+  remainingTime: 'Remaining',
+  reverted: 'Restored to original model configuration',
+  startFailed: 'Failed to start rebuild'
 }
 ```
 
 ---
 
-## 阶段 7：测试验证（6 小时）
+## 阶段 9：测试验证（6 小时）
 
-### 步骤 7.1：单元测试
+### 步骤 9.1：单元测试
 
 **新建文件**：`backend/tests/test_openai_embedding_service.py`
 
@@ -1800,7 +2391,7 @@ class TestIndexRebuildService:
 
 ---
 
-### 步骤 7.2：集成测试
+### 步骤 9.2：集成测试
 
 **测试步骤**：
 
@@ -1901,6 +2492,11 @@ curl -X POST http://127.0.0.1:8000/api/search \
 - [ ] 索引重建 API 端点已添加
 - [ ] 路由已注册到 FastAPI
 - [ ] 前端配置表单已更新
+- [ ] **后端自动检测逻辑已实现**
+- [ ] **模型匹配检测端点已添加**
+- [ ] **前端响应式处理已实现**
+- [ ] **手动重建按钮已添加**
+- [ ] **重建进度模态框已实现**
 - [ ] 中文翻译已更新
 - [ ] 英文翻译已更新
 
@@ -1912,6 +2508,11 @@ curl -X POST http://127.0.0.1:8000/api/search \
 - [ ] 连接测试通过
 - [ ] 搜索功能测试通过
 - [ ] 本地/云端切换测试通过
+- [ ] **自动检测 mandatory 场景测试通过**
+- [ ] **自动检测 recommended 场景测试通过**
+- [ ] **手动重建按钮测试通过**
+- [ ] **重建进度显示测试通过**
+- [ ] **取消重建功能测试通过**
 
 ### 文档更新
 
@@ -1980,7 +2581,9 @@ netstat -ano | findstr :8000
 
 ---
 
-**文档版本**：v1.0
+**文档版本**：v1.1
 **创建时间**：2026-03-26
-**预计工期**：3 天（24 小时）
+**最后更新**：2026-03-26
+**预计工期**：约 3.5 天（27 小时）
 **维护者**：AI助手
+**更新内容**：新增阶段6 - 索引重建触发机制（自动检测 + 手动按钮）
