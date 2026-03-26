@@ -489,8 +489,8 @@ class ChunkSearchService:
         """合并分块搜索结果
 
         合并策略：
-        1. 语义搜索结果：优先添加，轻微提升权重
-        2. 全文搜索结果：补充添加，轻微降权避免"伪100%"
+        1. 语义搜索结果：优先添加，提升10%权重
+        2. 全文搜索结果：补充添加，降权49%（突出语义搜索优势）
         3. 使用chunk_id去重
         """
         seen_ids = set()
@@ -511,8 +511,8 @@ class ChunkSearchService:
             chunk_id = result.get('chunk_id')
             if chunk_id and chunk_id not in seen_ids:
                 seen_ids.add(chunk_id)
-                # 全文搜索轻微降权5%
-                result['relevance_score'] = result['relevance_score'] * 0.95
+                # 全文搜索降权49%
+                result['relevance_score'] = result['relevance_score'] * 0.51
                 merged.append(result)
 
         # 按相关性得分排序
