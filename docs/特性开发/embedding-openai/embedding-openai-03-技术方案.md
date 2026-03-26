@@ -7,6 +7,15 @@
 
 ---
 
+## 变更历史
+
+| 版本 | 日期 | 变更内容 |
+|-----|------|---------|
+| v2.0 | 2026-03-26 | 索引重建机制更新为简化方案（复用现有索引任务系统） |
+| v1.0 | 2026-03-26 | 初始版本 - 独立端点方案（方案B） |
+
+---
+
 ## 1. 方案概述
 
 ### 1.1 技术目标
@@ -922,10 +931,26 @@ class TestOpenAIEmbeddingService:
 - 不同云端模型之间向量空间也不兼容
 - 强制重建保证搜索质量
 
-**存储策略**：
-- 只保留一套活跃索引，切换时覆盖
-- 与现有索引任务系统**完全隔离**
-- 重建使用**独立状态管理**，不创建数据库任务记录
+**方案选择**：**简化方案 - 复用现有索引任务系统**
+
+**方案变更说明**：
+- ~~原方案（方案B）：独立端点，内存状态管理~~
+- **新方案（简化方案）：复用现有的 `run_full_index_task` 和 `IndexJobModel`**
+- 清空索引后，为每个历史已完成任务的 folder_path 创建新任务
+- 利用 BackgroundTasks 自动排队执行
+- 复用现有的 `/api/index/status/{id}` 查询进度
+
+**方案对比**：
+
+| 对比项 | 原方案（独立端点） | 简化方案（复用现有系统） |
+|--------|------------------|---------------------|
+| 新增接口 | 3个（start/status/cancel） | 1个（rebuild-all） |
+| 状态管理 | 内存（不持久化） | 数据库（复用IndexJobModel） |
+| 进度查询 | 新端点 | 复用现有端点 |
+| 任务排队 | 需实现 | 系统自动排队 |
+| 错误处理 | 需实现 | 已有！ |
+| 实施时间 | 7 小时 | 2 小时 |
+| 代码量 | ~500 行 | ~150 行 |
 
 ---
 
@@ -941,256 +966,112 @@ class TestOpenAIEmbeddingService:
 
 ---
 
-### 10.3 独立状态管理（方案B）
-
-**设计决策**：重建索引使用独立的状态管理，与现有索引任务系统隔离
-
-**架构对比**：
+### 10.3 用户操作流程
 
 ```
-现有索引任务系统（100条记录）          索引重建系统（独立）
-┌─────────────────────────┐         ┌─────────────────────────┐
-│ index_tasks 表          │         │ 内存状态（不写数据库）    │
-├─────────────────────────┤         ├─────────────────────────┤
-│ id: 1                   │         │ current_rebuild_task    │
-│ id: 2                   │         │   ├─ task_id            │
-│ ...                     │         │   ├─ status             │
-│ id: 100                 │         │   ├─ progress           │
-│                         │         │   └─ new_model          │
-│ 用于：新建索引           │         │                         │
-│ 来源：扫描文件夹         │         │ 用于：换模型重建索引     │
-│ 持久化：数据库表         │         │ 来源：当前索引文件列表   │
-└─────────────────────────┘         │ 持久化：无（内存）       │
-                                   └─────────────────────────┘
+用户切换嵌入模型配置
+    ↓
+保存配置
+    ↓
+后端验证并保存（不自动触发重建）
+    ↓
+前端显示引导提示
+┌─────────────────────────────────────────────┐
+│ ⚠️ 嵌入模型已更改                             │
+│                                             │
+│ 建议重启应用后在索引管理中重建索引              │
+│                                             │
+│ [重启应用]  [前往索引管理]                    │
+└─────────────────────────────────────────────┘
+    ↓
+用户选择"前往索引管理"
+    ↓
+跳转到索引管理页面
+    ↓
+点击"全量重建索引"按钮
+    ↓
+确认对话框
+┌─────────────────────────────────────────────┐
+│ 确认全量重建                                 │
+│                                             │
+│ 将清空所有索引并按历史任务逐一重建             │
+│ 预计耗时较长，是否继续？                      │
+│                                             │
+│              [取消]  [确认]                  │
+└─────────────────────────────────────────────┘
+    ↓
+用户确认
+    ↓
+POST /api/index/rebuild-all
+    ↓
+清空索引 + 创建重建任务
+    ↓
+显示重建进度列表
+    ↓
+全部完成
+    ↓
+显示成功提示
 ```
-
-**隔离原则**：
-1. **数据隔离**：重建不写入 `index_tasks` 表
-2. **接口隔离**：使用独立的 `/api/index/rebuild/*` 端点
-3. **状态隔离**：内存状态管理，重启后自动清除
-4. **查询隔离**：重建状态查询与索引任务查询分离
 
 ---
 
 ### 10.4 重建流程
 
 ```
-用户配置新嵌入模型并点击保存
-    ↓
-后端检测模型变更
-    ↓
-前端弹出确认对话框
-    ↓
-用户确认
+用户点击"全量重建索引"并确认
     ↓
 ┌─────────────────────────────────────────────┐
-│ 后端重建流程（独立状态管理）                   │
+│ 后端重建流程（复用现有索引任务系统）           │
 ├─────────────────────────────────────────────┤
-│ 1. 备份当前索引到 index.backup/             │
-│ 2. 从当前索引元数据获取文件列表（不扫描）     │
-│ 3. 创建内存重建任务（不写数据库）             │
-│    ├─ task_id: rebuild_1711478400           │
-│    ├─ status: running                       │
-│    ├─ previous_model: BAAI/bge-m3           │
-│    └─ new_model: text-embedding-3-small     │
-│ 4. 批量调用新模型API嵌入文件                 │
-│    ├─ 批处理大小：batch_size (默认100)      │
-│    ├─ 进度更新：每处理100个文件              │
-│    └─ 错误处理：记录失败文件，继续处理        │
-│ 5. 构建新 Faiss 索引                        │
-│ 6. 验证索引完整性                           │
-│ 7. 替换旧索引                               │
-│ 8. 更新系统配置：当前模型                    │
-│ 9. 清理内存任务状态                         │
-│ 10. 清理备份                                │
+│ 1. 清空 indexes 文件夹                       │
+│    ├─ 删除所有 Faiss 索引文件（*.index）     │
+│    ├─ 删除 Whoosh 索引目录                  │
+│    └─ 重置内存中的索引对象                   │
+│ 2. 查询历史已完成任务（按 folder_path 去重） │
+│    ├─ SELECT * FROM index_jobs             │
+│    │   WHERE status = 'completed'          │
+│    └─ 按 folder_path 分组去重               │
+│ 3. 为每个 folder_path 创建新的重建任务       │
+│    ├─ 创建新的 IndexJob 记录                │
+│    ├─ job_type = 'create'                  │
+│    └─ status = 'pending'                   │
+│ 4. 添加到后台任务队列（自动排队执行）         │
+│    ├─ background_tasks.add_task(           │
+│    │     run_full_index_task,              │
+│    │     index_id,                         │
+│    │     folder_path,                      │
+│    │     recursive=True,                   │
+│    │     file_types=None                   │
+│    │   )                                  │
+│    └─ 利用现有排队机制                     │
+│ 5. 返回任务列表                            │
 └─────────────────────────────────────────────┘
     ↓
-重建完成/失败通知
+前端并行轮询所有任务进度
+┌─────────────────────────────────────────────┐
+│ 重建进度                                      │
+│                                              │
+│ D:\\Documents                      [处理中] │
+│ ████████████░░░░░░░░░░░░░░░  60%                 │
+│ 已处理: 600 / 1000                           │
+│                                              │
+│ E:\\Projects                      [等待中] │
+│ ░░░░░░░░░░░░░░░░░░░░░░░░░  0%                   │
+│                                              │
+│ C:\\Work                         [等待中] │
+│ ░░░░░░░░░░░░░░░░░░░░░░░░░  0%                   │
+└─────────────────────────────────────────────┘
+    ↓
+全部完成
+    ↓
+显示成功提示
 ```
 
 ---
 
-### 10.5 状态管理实现
+### 10.5 API接口设计
 
-```python
-# backend/app/services/index_rebuild_service.py
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime
-from typing import Optional, Dict, Any
-from pathlib import Path
-import asyncio
-
-class RebuildStatus(Enum):
-    """索引重建状态"""
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
-
-@dataclass
-class RebuildTask:
-    """索引重建任务（内存状态，不持久化）"""
-    task_id: str                              # 任务ID
-    status: RebuildStatus                      # 当前状态
-    total_files: int                           # 总文件数
-    processed_files: int = 0                   # 已处理文件数
-    failed_files: int = 0                      # 失败文件数
-    start_time: datetime = None                # 开始时间
-    current_file: str = ""                      # 当前文件
-    error_message: str = ""                     # 错误信息
-
-    # 模型信息
-    previous_model: Dict[str, Any] = None       # 原模型配置
-    new_model: Dict[str, Any] = None            # 新模型配置
-
-    # 备份信息
-    backup_path: Path = None                    # 备份目录
-
-    @property
-    def progress_percent(self) -> float:
-        """进度百分比"""
-        if self.total_files == 0:
-            return 0.0
-        return (self.processed_files / self.total_files) * 100
-
-    @property
-    def elapsed_seconds(self) -> int:
-        """已用时间（秒）"""
-        if not self.start_time:
-            return 0
-        return int((datetime.now() - self.start_time).total_seconds())
-
-    @property
-    def estimated_remaining_seconds(self) -> int:
-        """预计剩余时间（秒）"""
-        if self.processed_files == 0:
-            return 0
-        elapsed = self.elapsed_seconds
-        per_file_time = elapsed / self.processed_files
-        remaining = self.total_files - self.processed_files
-        return int(remaining * per_file_time)
-
-
-class IndexRebuildService:
-    """索引重建服务（独立状态管理）"""
-
-    def __init__(self):
-        # 内存状态，不写数据库
-        self.current_task: Optional[RebuildTask] = None
-        self.backup_path = Path("index.backup")
-        self.index_path = Path("index")
-
-    async def start_rebuild(
-        self,
-        new_model_config: Dict[str, Any],
-        force: bool = False
-    ) -> Dict[str, Any]:
-        """开始索引重建"""
-
-        # 1. 检查是否已有任务
-        if self.current_task and self.current_task.status == RebuildStatus.RUNNING:
-            raise RuntimeError("重建任务正在进行，请等待完成或取消")
-
-        # 2. 获取当前模型配置
-        current_model = await self._get_current_model()
-
-        # 3. 备份当前索引
-        await self._backup_index()
-
-        # 4. 获取文件列表（从当前索引，不扫描）
-        files = await self._get_indexed_files()
-
-        # 5. 创建内存任务（不写数据库）
-        self.current_task = RebuildTask(
-            task_id=f"rebuild_{int(datetime.now().timestamp())}",
-            status=RebuildStatus.RUNNING,
-            total_files=len(files),
-            start_time=datetime.now(),
-            previous_model=current_model,
-            new_model=new_model_config,
-            backup_path=self.backup_path
-        )
-
-        # 6. 异步执行重建
-        asyncio.create_task(self._execute_rebuild(files))
-
-        return {
-            "task_id": self.current_task.task_id,
-            "status": "running",
-            "total_files": len(files),
-            "previous_model": current_model["model_name"],
-            "new_model": new_model_config["model"]
-        }
-
-    async def _get_current_model(self) -> Dict[str, Any]:
-        """获取当前嵌入模型配置"""
-        # 从系统配置或模型管理器获取
-        from app.services.ai_model_manager import ai_model_manager
-        model = ai_model_manager.get_model("embedding")
-        return {
-            "provider": model.provider,
-            "model_name": model.model_name,
-            "config": model.config
-        }
-
-    async def _get_indexed_files(self) -> list:
-        """获取当前索引的文件列表（不扫描）"""
-        # 从索引元数据或 Whoosh 索引获取
-        metadata_path = self.index_path / "metadata.json"
-        if metadata_path.exists():
-            import json
-            with open(metadata_path, 'r') as f:
-                metadata = json.load(f)
-                return metadata.get("files", [])
-
-        # 备选：从 Whoosh 索引读取
-        # ...
-        return []
-
-    def get_status(self) -> Dict[str, Any]:
-        """获取重建状态（内存查询）"""
-        if not self.current_task:
-            return {"status": "none"}
-
-        return {
-            "task_id": self.current_task.task_id,
-            "status": self.current_task.status.value,
-            "progress": self.current_task.progress_percent,
-            "total_files": self.current_task.total_files,
-            "processed_files": self.current_task.processed_files,
-            "failed_files": self.current_task.failed_files,
-            "current_file": self.current_task.current_file,
-            "elapsed_seconds": self.current_task.elapsed_seconds,
-            "estimated_remaining_seconds": self.current_task.estimated_remaining_seconds,
-            "previous_model": self.current_task.previous_model,
-            "new_model": self.current_task.new_model,
-            "error_message": self.current_task.error_message
-        }
-
-    async def cancel(self) -> Dict[str, Any]:
-        """取消重建"""
-        if not self.current_task:
-            raise RuntimeError("当前无重建任务")
-
-        self.current_task.status = RebuildStatus.CANCELLED
-
-        # 回滚
-        rollback_success = await self._rollback()
-
-        return {
-            "task_id": self.current_task.task_id,
-            "status": "cancelled",
-            "rollback_success": rollback_success
-        }
-```
-
----
-
-### 10.6 API接口设计
-
-**独立端点，与索引任务系统完全隔离**：
+**新增单一端点，复用现有进度查询**：
 
 ```python
 # backend/app/api/index.py（扩展）
@@ -1215,364 +1096,515 @@ async def list_index_tasks(...):
     ...
 
 
-# ===== 新增：索引重建接口（独立端点，内存状态）=====
-rebuild_service = IndexRebuildService()
+# ===== 新增：全量重建索引接口（复用现有系统）=====
+@router.post("/rebuild-all")
+async def rebuild_all_indexes(
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
+):
+    """
+    全量重建所有索引
 
-@router.post("/rebuild/start")
-async def start_rebuild(request: RebuildRequest):
-    """开始索引重建（内存状态，不写数据库）"""
-    result = await rebuild_service.start_rebuild(
-        new_model_config=request.model_config,
-        force=request.force
-    )
-    return {"success": True, "data": result}
+    流程：
+    1. 清空 indexes 文件夹
+    2. 查询所有历史索引任务（按 folder_path 去重）
+    3. 为每个 folder_path 创建新的重建任务
+    4. 任务排队执行
+    """
+    logger.info("开始全量重建所有索引")
 
-@router.get("/rebuild/status")
-async def get_rebuild_status():
-    """查询重建状态（内存状态）"""
-    status = rebuild_service.get_status()
-    return {"success": True, "data": status}
-
-@router.post("/rebuild/cancel")
-async def cancel_rebuild():
-    """取消重建（内存状态，自动回滚）"""
     try:
-        result = await rebuild_service.cancel()
-        return {"success": True, "message": "已取消", "data": result}
-    except RuntimeError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        # 1. 清空索引
+        index_service = get_file_index_service()
+        index_service.clear_index()
+
+        # 2. 查询所有已完成的历史任务（去重 folder_path）
+        completed_jobs = db.query(IndexJobModel).filter(
+            IndexJobModel.status == get_enum_value(JobStatus.COMPLETED)
+        ).all()
+
+        # 去重：每个 folder_path 只取一个（最新的）
+        unique_paths = {}
+        for job in completed_jobs:
+            if job.folder_path not in unique_paths:
+                unique_paths[job.folder_path] = job
+
+        folder_paths = list(unique_paths.keys())
+
+        if not folder_paths:
+            raise ValidationException(
+                i18n.t('index.no_completed_jobs', locale)
+            )
+
+        logger.info(f"找到 {len(folder_paths)} 个需要重建的路径")
+
+        # 3. 为每个路径创建新的重建任务
+        created_jobs = []
+        for folder_path in folder_paths:
+            # 创建新任务记录
+            index_job = IndexJobModel(
+                folder_path=folder_path,
+                job_type=JobType.CREATE,
+                status=get_enum_value(JobStatus.PENDING)
+            )
+            db.add(index_job)
+            db.commit()
+            db.refresh(index_job)
+
+            created_jobs.append(index_job)
+
+            # 4. 添加到后台任务队列（自动排队）
+            background_tasks.add_task(
+                run_full_index_task,
+                index_job.id,
+                folder_path,
+                recursive=True,
+                file_types=None
+            )
+
+            logger.info(f"重建任务已创建: id={index_job.id}, path={folder_path}")
+
+        return {
+            "success": True,
+            "data": [IndexJobInfo(**job.to_dict()) for job in created_jobs],
+            "message": i18n.t('index.rebuild_all_started', locale, count=len(created_jobs))
+        }
+
+    except ValidationException:
+        raise
+    except Exception as e:
+        logger.error(f"全量重建失败: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=i18n.t('index.rebuild_all_failed', locale) + f": {str(e)}"
+        )
+
+
+# ===== 清空索引方法（新增到 FileIndexService）=====
+def clear_index(self):
+    """
+    清空 indexes 文件夹下的所有索引数据
+
+    删除所有 Faiss 索引文件和 Whoosh 索引目录
+    重置内存中的索引对象
+    """
+    import os
+    import shutil
+    import glob
+
+    logger.info("开始清空 indexes 文件夹")
+
+    # 1. 删除所有 Faiss 索引文件
+    faiss_dir = os.path.dirname(self.faiss_index_path)
+    if os.path.exists(faiss_dir):
+        faiss_files = glob.glob(os.path.join(faiss_dir, "*.index"))
+        for faiss_file in faiss_files:
+            try:
+                os.remove(faiss_file)
+                logger.info(f"已删除: {faiss_file}")
+            except Exception as e:
+                logger.warning(f"删除失败: {faiss_file}, {e}")
+
+    # 2. 删除 Whoosh 索引目录
+    if os.path.exists(self.whoosh_index_path):
+        try:
+            shutil.rmtree(self.whoosh_index_path)
+            logger.info(f"已删除 Whoosh 索引: {self.whoosh_index_path}")
+        except Exception as e:
+            logger.warning(f"删除 Whoosh 失败: {e}")
+
+    # 3. 重置内存中的索引对象
+    self._faiss_index = None
+    self._whoosh_index = None
+
+    logger.info("indexes 文件夹清空完成")
 ```
 
----
-
-### 10.7 用户确认对话框
-
-**本地 → 云端**：
-
-```
-┌─────────────────────────────────────────────────────┐
-│ 切换嵌入模型                                         │
-│                                                     │
-│ 即将切换到云端嵌入模型：text-embedding-3-small        │
-│                                                     │
-│ ⚠️ 切换后需要重建索引                                │
-│ ⚠️ 预计耗时：5-10 分钟（取决于文件数量）              │
-│ ⚠️ 云端API调用将产生费用                             │
-│ ⚠️ 重建期间搜索功能暂时不可用                        │
-│                                                     │
-│ [取消]  [确认并重建]                                 │
-└─────────────────────────────────────────────────────┘
-```
-
-**云端 → 本地**：
-
-```
-┌─────────────────────────────────────────────────────┐
-│ 切换嵌入模型                                         │
-│                                                     │
-│ 即将切换到本地嵌入模型：BAAI/bge-m3                   │
-│                                                     │
-│ ⚠️ 切换后需要重建索引                                │
-│ ⚠️ 预计耗时：10-20 分钟（本地计算较慢）               │
-│ ⚠️ 重建期间搜索功能暂时不可用                        │
-│                                                     │
-│ [取消]  [确认并重建]                                 │
-└─────────────────────────────────────────────────────┘
-```
-
----
-
-### 10.5 进度跟踪
-
-**进度数据结构**：
-
-```python
-from dataclasses import dataclass
-from enum import Enum
-from datetime import datetime
-
-class RebuildStatus(Enum):
-    """索引重建状态"""
-    PENDING = "pending"        # 等待开始
-    RUNNING = "running"        # 正在重建
-    PAUSED = "paused"          # 已暂停
-    COMPLETED = "completed"    # 已完成
-    FAILED = "failed"          # 已失败
-    CANCELLED = "cancelled"    # 已取消
-
-@dataclass
-class IndexRebuildProgress:
-    """索引重建进度"""
-    status: RebuildStatus
-    total_files: int           # 总文件数
-    processed_files: int       # 已处理文件数
-    failed_files: int          # 失败文件数
-    start_time: datetime       # 开始时间
-    estimated_completion: datetime  # 预计完成时间
-    current_file: str          # 当前处理文件
-    error_message: str = ""    # 错误信息
-
-    @property
-    def progress_percent(self) -> float:
-        """进度百分比"""
-        if self.total_files == 0:
-            return 0.0
-        return (self.processed_files / self.total_files) * 100
-
-    @property
-    def estimated_remaining_seconds(self) -> int:
-        """预计剩余时间（秒）"""
-        if self.processed_files == 0:
-            return 0
-        elapsed = (datetime.now() - self.start_time).total_seconds()
-        per_file_time = elapsed / self.processed_files
-        remaining = self.total_files - self.processed_files
-        return int(remaining * per_file_time)
-```
-
----
-
-### 10.6 进度查询接口（复用现有）
-
-**GET /api/index/status/{index_id}**
-
-**说明**：复用现有索引状态查询接口，响应中增加重建相关字段。
-
-**响应示例**：
-
-```json
-{
-  "success": true,
-  "data": {
-    "index_id": 2,
-    "task_type": "rebuild",
-    "status": "processing",
-    "progress": 45,
-    "total_files": 10000,
-    "processed_files": 4500,
-    "failed_files": 5,
-    "rebuild_info": {
-      "new_model": "text-embedding-3-small",
-      "new_provider": "cloud",
-      "current_file": "/path/to/file.pdf",
-      "estimated_remaining_seconds": 180,
-      "previous_model": "BAAI/bge-m3"
-    }
-  }
-}
-```
-
-**接口复用说明**：
+**接口对照表**：
 
 | 功能 | 接口 | 说明 |
 |------|------|------|
-| 开始重建 | `POST /api/index/create` | 增加 `rebuild: true` 参数 |
-| 查询状态 | `GET /api/index/status/{index_id}` | 复用，增加 `rebuild_info` 字段 |
-| 取消任务 | `POST /api/index/{index_id}/cancel` | **新增**，支持重建回滚 |
-| 任务列表 | `GET /api/index/list` | 复用，通过 `task_type` 区分 |
+| 全量重建 | `POST /api/index/rebuild-all` | 新增，清空索引+按历史任务重建 |
+| 查询状态 | `GET /api/index/status/{id}` | 复用现有端点 |
+| 任务列表 | `GET /api/index/list` | 复用现有端点 |
 
 ---
 
-### 10.7 失败回滚机制
-
-**回滚触发条件**：
-- API 调用连续失败超过阈值
-- 用户主动取消
-- 系统错误（内存不足、磁盘空间不足等）
-
-**回滚流程**：
-
-```python
-async def rollback_index_rebuild():
-    """回滚索引重建"""
-
-    # 1. 停止重建任务
-    rebuild_task.cancel()
-
-    # 2. 检查备份是否存在
-    backup_path = Path("index.backup")
-    if not backup_path.exists():
-        raise RuntimeError("备份不存在，无法回滚")
-
-    # 3. 删除不完整的新索引
-    new_index_path = Path("index")
-    if new_index_path.exists():
-        shutil.rmtree(new_index_path)
-
-    # 4. 恢复备份索引
-    shutil.copytree(backup_path, new_index_path)
-
-    # 5. 恢复原模型配置
-    db.execute(
-        "UPDATE ai_models SET is_active = false WHERE model_type = 'embedding'"
-    )
-    db.execute(
-        "UPDATE ai_models SET is_active = true WHERE id = ?",
-        (previous_model_id,)
-    )
-
-    # 6. 重新加载原模型
-    await ai_model_manager.reload_embedding_model()
-
-    logger.info("索引重建已回滚")
-```
-
----
-
-### 10.8 前端进度显示
+### 10.6 前端进度显示
 
 ```vue
 <template>
-  <!-- 重建进度弹窗 -->
-  <a-modal
-    v-model:open="showRebuildProgress"
-    :title="$t('indexRebuild.title')"
-    :closable="false"
-    :maskClosable="false"
-  >
-    <div class="rebuild-progress">
-      <!-- 进度条 -->
-      <a-progress
-        :percent="progress.percent"
-        :status="progress.status"
-      />
+  <!-- 索引管理页面 -->
+  <a-card title="索引管理">
+    <!-- 统计信息 -->
+    <a-row :gutter="16" style="margin-bottom: 16px;">
+      <a-col :span="8">
+        <a-statistic title="索引文件" :value="status.indexed_files || 0" />
+      </a-col>
+      <a-col :span="8">
+        <a-statistic title="索引任务" :value="status.total_jobs || 0" />
+      </a-col>
+    </a-row>
 
-      <!-- 统计信息 -->
-      <div class="rebuild-stats">
-        <p>{{ $t('indexRebuild.processed') }}: {{ progress.processed }}/{{ progress.total }}</p>
-        <p>{{ $t('indexRebuild.failed') }}: {{ progress.failed }}</p>
-        <p>{{ $t('indexRebuild.remainingTime') }}: {{ progress.remainingTime }}</p>
-        <p>{{ $t('indexRebuild.currentFile') }}: {{ progress.currentFile }}</p>
-      </div>
-
-      <!-- 警告信息 -->
-      <a-alert
-        v-if="progress.status === 'running'"
-        type="warning"
-        :message="$t('indexRebuild.warning')"
-      />
-    </div>
-
-    <template #footer>
-      <a-button @click="runInBackground">
-        {{ $t('indexRebuild.runInBackground') }}
+    <!-- 操作按钮 -->
+    <a-space style="margin-bottom: 16px;">
+      <a-button @click="handleAddFiles">
+        <PlusOutlined />
+        添加文件
       </a-button>
-      <a-button danger @click="cancelRebuild">
-        {{ $t('common.cancel') }}
+
+      <a-button @click="handleUpdateIndex">
+        <SyncOutlined />
+        更新索引
       </a-button>
-    </template>
-  </a-modal>
+
+      <!-- 全量重建索引按钮 -->
+      <a-button
+        type="primary"
+        danger
+        @click="handleRebuildAll"
+        :loading="isRebuilding"
+      >
+        <RebuildOutlined />
+        {{ t('index.rebuildAll') }}
+      </a-button>
+    </a-space>
+
+    <!-- 重建进度列表 -->
+    <a-card
+      v-if="rebuildJobs.length > 0"
+      :title="t('index.rebuildProgress')"
+      size="small"
+    >
+      <a-list
+        :data-source="rebuildJobs"
+        size="small"
+      >
+        <template #renderItem="{ item }">
+          <a-list-item>
+            <template #actions>
+              <a-tag :color="getStatusColor(item.status)">
+                {{ getStatusText(item.status) }}
+              </a-tag>
+            </template>
+            <a-list-item-meta>
+              <template #title>
+                <a-typography-text ellipsis :content="item.folder_path" style="max-width: 500px;" />
+              </template>
+              <template #description>
+                <a-space>
+                  <span>{{ t('index.processed') }}: {{ item.processed_files }} / {{ item.total_files }}</span>
+                  <a-progress
+                    :percent="item.progress"
+                    size="small"
+                    :status="getProgressStatus(item.status)"
+                    style="width: 150px;"
+                  />
+                </a-space>
+              </template>
+            </a-list-item-meta>
+          </a-list-item>
+        </template>
+      </a-list>
+    </a-card>
+  </a-card>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
-import { useI18n } from 'vue-i18n';
+import { ref, onMounted, onUnmounted } from 'vue'
+import { Modal, message } from 'ant-design-vue'
+import { RebuildOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons-vue'
+import { useI18n } from 'vue-i18n'
 
-const { t } = useI18n();
+const { t } = useI18n()
 
-const showRebuildProgress = ref(false);
-const progress = ref({
-  percent: 0,
-  status: 'active' as 'active' | 'success' | 'exception',
-  processed: 0,
-  total: 0,
-  failed: 0,
-  remainingTime: '',
-  currentFile: ''
-});
+const isRebuilding = ref(false)
+const rebuildJobs = ref([])
+const status = ref({})
 
-let statusTimer: number | null = null;
+let pollTimer = null
 
-// 轮询重建状态
-const startPolling = () => {
-  statusTimer = window.setInterval(async () => {
-    const response = await fetch('/api/index/rebuild/status');
-    const data = await response.json();
+// 全量重建
+const handleRebuildAll = () => {
+  Modal.confirm({
+    title: t('index.rebuildAllConfirm'),
+    content: t('index.rebuildAllWarning'),
+    okText: t('common.confirm'),
+    cancelText: t('common.cancel'),
+    okButtonProps: { danger: true },
+    onOk: async () => {
+      isRebuilding.value = true
+      try {
+        const response = await fetch('/api/index/rebuild-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        const result = await response.json()
 
-    progress.value = {
-      percent: data.data.progress_percent,
-      status: data.data.status === 'running' ? 'active' :
-              data.data.status === 'completed' ? 'success' : 'exception',
-      processed: data.data.processed_files,
-      total: data.data.total_files,
-      failed: data.data.failed_files,
-      remainingTime: formatTime(data.data.estimated_remaining_seconds),
-      currentFile: data.data.current_file
-    };
+        if (result.success) {
+          message.success(t('index.rebuildAllStarted', { count: result.data.length }))
+          rebuildJobs.value = result.data
 
-    // 完成或失败时停止轮询
-    if (['completed', 'failed', 'cancelled'].includes(data.data.status)) {
-      stopPolling();
-      if (data.data.status === 'completed') {
-        message.success(t('indexRebuild.completed'));
-      } else if (data.data.status === 'failed') {
-        message.error(t('indexRebuild.failed'));
+          // 开始轮询所有任务的进度
+          startPolling()
+        }
+      } catch (error) {
+        message.error(t('index.rebuildAllFailed'))
+      } finally {
+        isRebuilding.value = false
       }
     }
-  }, 1000);
-};
+  })
+}
 
-const stopPolling = () => {
-  if (statusTimer) {
-    clearInterval(statusTimer);
-    statusTimer = null;
+// 轮询所有重建任务的进度
+const startPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
   }
-};
 
-const formatTime = (seconds: number) => {
-  const minutes = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${minutes}${t('common.minute')}${secs}${t('common.second')}`;
-};
+  pollTimer = setInterval(async () => {
+    try {
+      // 并行查询所有任务状态
+      const promises = rebuildJobs.value.map(job =>
+        fetch(`/api/index/status/${job.index_id}`)
+          .then(res => res.json())
+      )
 
-const runInBackground = () => {
-  showRebuildProgress.value = false;
-  message.info(t('indexRebuild.runningInBackground'));
-};
+      const results = await Promise.all(promises)
 
-const cancelRebuild = async () => {
+      rebuildJobs.value = results.map(r => r.data)
+
+      // 检查是否全部完成
+      const allCompleted = rebuildJobs.value.every(
+        job => job.status === 'completed' || job.status === 'failed'
+      )
+
+      if (allCompleted) {
+        clearInterval(pollTimer)
+        pollTimer = null
+
+        const completed = rebuildJobs.value.filter(
+          j => j.status === 'completed'
+        ).length
+        const failed = rebuildJobs.value.filter(
+          j => j.status === 'failed'
+        ).length
+
+        if (failed > 0) {
+          message.warning(t('index.rebuildAllPartial', { completed, failed }))
+        } else {
+          message.success(t('index.rebuildAllComplete', { count: completed }))
+        }
+
+        // 刷新状态
+        await fetchStatus()
+      }
+    } catch (error) {
+      console.error('轮询失败:', error)
+    }
+  }, 2000)
+}
+
+// 获取状态
+const fetchStatus = async () => {
   try {
-    await fetch('/api/index/rebuild/cancel', { method: 'POST' });
-    message.info(t('indexRebuild.cancelled'));
+    const response = await fetch('/api/index/status')
+    const result = await response.json()
+    if (result.success) {
+      status.value = result.data
+    }
   } catch (error) {
-    message.error(t('indexRebuild.cancelFailed'));
+    console.error('获取状态失败:', error)
   }
-};
+}
+
+const getStatusColor = (status: string) => {
+  const colors = {
+    pending: 'default',
+    processing: 'processing',
+    completed: 'success',
+    failed: 'error'
+  }
+  return colors[status] || 'default'
+}
+
+const getStatusText = (status: string) => {
+  return t(`index.jobStatus.${status}`)
+}
+
+const getProgressStatus = (status: string) => {
+  const statusMap = {
+    processing: 'active',
+    completed: 'success',
+    failed: 'exception'
+  }
+  return statusMap[status] || null
+}
+
+onMounted(() => {
+  fetchStatus()
+})
 
 onUnmounted(() => {
-  stopPolling();
-});
+  if (pollTimer) {
+    clearInterval(pollTimer)
+  }
+})
 </script>
 ```
 
 ---
 
-### 10.9 i18n 翻译键
+### 10.7 设置页面引导
+
+```vue
+<!-- 切换模型后的引导提示 -->
+<a-alert
+  v-if="showModelChangeWarning"
+  type="warning"
+  show-icon
+  closable
+  @close="showModelChangeWarning = false"
+  style="margin-bottom: 16px;"
+>
+  <template #message>
+    {{ t('settingsEmbedding.modelChanged') }}
+  </template>
+  <template #description>
+    <p>{{ t('settingsEmbedding.rebuildTip') }}</p>
+    <a-space>
+      <a-button type="primary" size="small" @click="restartApp">
+        <ReloadOutlined />
+        {{ t('common.restartApp') }}
+      </a-button>
+      <a-button size="small" @click="goToIndexManagement">
+        <FolderOpenOutlined />
+        {{ t('settingsEmbedding.goToIndex') }}
+      </a-button>
+    </a-space>
+  </template>
+</a-alert>
+
+<script setup lang="ts">
+const showModelChangeWarning = ref(false)
+
+// 保存配置后检测模型变化
+const handleSaveConfig = async () => {
+  // ... 保存逻辑 ...
+
+  const response = await updateAIModelConfig(config)
+
+  if (response.requires_rebuild) {
+    showModelChangeWarning.value = true
+  }
+}
+
+const restartApp = () => {
+  window.location.reload()
+}
+
+const goToIndexManagement = () => {
+  router.push('/index-management')
+}
+</script>
+```
+
+---
+
+### 10.8 i18n 翻译键
 
 ```json
 {
-  "indexRebuild": {
-    "title": "正在重建索引",
-    "required": "切换嵌入模型需要重建索引",
-    "estimatedTime": "预计耗时：{time}",
-    "cloudCostWarning": "⚠️ 云端API调用将产生费用",
-    "unavailableWarning": "⚠️ 重建期间搜索功能暂时不可用",
-    "confirm": "确认并重建",
+  "index": {
+    "rebuildAll": "全量重建索引",
+    "rebuildAllConfirm": "确认全量重建",
+    "rebuildAllWarning": "将清空所有索引并按历史任务逐一重建，预计耗时较长",
+    "rebuildAllStarted": "已启动 {count} 个重建任务",
+    "rebuildAllComplete": "全量重建完成！成功完成 {count} 个任务",
+    "rebuildAllPartial": "重建完成：成功 {completed} 个，失败 {failed} 个",
+    "rebuildAllFailed": "全量重建失败",
+    "rebuildProgress": "重建进度",
     "processed": "已处理",
-    "failed": "失败",
-    "remainingTime": "预计剩余时间",
-    "currentFile": "当前文件",
-    "warning": "重建期间请勿关闭应用",
-    "runInBackground": "后台运行",
-    "completed": "索引重建完成",
-    "failed": "索引重建失败",
-    "cancelled": "已取消重建",
-    "runningInBackground": "索引正在后台重建",
-    "cancelFailed": "取消失败",
-    "rollback": "已恢复到原模型配置"
+    "jobStatus": {
+      "pending": "等待中",
+      "processing": "处理中",
+      "completed": "已完成",
+      "failed": "失败"
+    }
+  },
+  "settingsEmbedding": {
+    "modelChanged": "嵌入模型已更改",
+    "rebuildTip": "建议重启应用后在索引管理中重建索引",
+    "goToIndex": "前往索引管理"
   }
 }
+```
+
+---
+
+### 10.9 前端调用示例
+
+```typescript
+// 1. 保存嵌入模型配置
+const saveConfig = async (config: AIModelConfig) => {
+  const response = await api.put('/api/config/ai-model', config);
+  const result = await response.json();
+
+  if (result.success) {
+    // 显示引导提示，不自动触发重建
+    showModelChangeWarning.value = true;
+  }
+};
+
+// 2. 用户前往索引管理页，点击全量重建
+const handleRebuildAll = async () => {
+  Modal.confirm({
+    title: t('index.rebuildAllConfirm'),
+    content: t('index.rebuildAllWarning'),
+    okButtonProps: { danger: true },
+    onOk: async () => {
+      const response = await api.post('/api/index/rebuild-all');
+      const result = await response.json();
+
+      if (result.success) {
+        message.success(t('index.rebuildAllStarted', { count: result.data.length }));
+        rebuildJobs.value = result.data;
+        startPolling();
+      }
+    }
+  });
+};
+
+// 3. 轮询所有任务进度（复用现有接口）
+const startPolling = () => {
+  const timer = setInterval(async () => {
+    const promises = rebuildJobs.value.map(job =>
+      api.get(`/api/index/status/${job.index_id}`)
+    );
+
+    const results = await Promise.all(promises);
+    rebuildJobs.value = results.map(r => r.data);
+
+    // 检查是否全部完成
+    const allCompleted = rebuildJobs.value.every(
+      job => job.status === 'completed' || job.status === 'failed'
+    );
+
+    if (allCompleted) {
+      clearInterval(timer);
+      const completed = rebuildJobs.value.filter(j => j.status === 'completed').length;
+      const failed = rebuildJobs.value.filter(j => j.status === 'failed').length;
+
+      if (failed > 0) {
+        message.warning(t('index.rebuildAllPartial', { completed, failed }));
+      } else {
+        message.success(t('index.rebuildAllComplete', { count: completed }));
+      }
+    }
+  }, 2000);
+};
 ```
 
 ---
@@ -1708,13 +1740,19 @@ logger.warning(f"API请求失败，重试 {retry_count}/{self.max_retries}: {err
 1. **服务实现**：`OpenAIEmbeddingService` 类，支持所有 OpenAI 兼容 API
 2. **原始维度**：使用模型的原始向量维度，不做任何归一化处理
 3. **索引重建**：切换模型必须重建索引，确保向量空间一致性
-4. **类型互斥**：与本地嵌入模型互斥，用户只能选择一种
-5. **向后兼容**：保持现有本地嵌入模型可用
-6. **安全优先**：API 密钥加密存储，日志脱敏处理
+4. **重建方案**：简化方案 - 复用现有索引任务系统，减少代码量
+5. **重建接口**：单一端点 `POST /api/index/rebuild-all`，复用现有进度查询
+6. **类型互斥**：与本地嵌入模型互斥，用户只能选择一种
+7. **向后兼容**：保持现有本地嵌入模型可用
+8. **安全优先**：API 密钥加密存储，日志脱敏处理
 
 ---
 
-**文档结束**
+**文档版本**：v2.0（简化方案）
+**最后更新**：2026-03-26
+**变更内容**：索引重建机制从独立端点方案（方案B）更新为简化方案（复用现有索引任务系统）
+
+---
 
 > **使用说明**：
 > 1. 本技术方案文档基于现有架构设计
@@ -1722,3 +1760,4 @@ logger.warning(f"API请求失败，重试 {retry_count}/{self.max_retries}: {err
 > 3. 与 OpenAI 兼容大模型服务保持一致的架构模式
 > 4. 支持所有兼容 OpenAI Embeddings API 标准的服务
 > 5. 切换嵌入模型时必须重建索引，保证向量空间一致性
+> 6. **索引重建采用简化方案**：复用现有 `run_full_index_task` 和 `IndexJobModel`

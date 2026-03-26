@@ -3,7 +3,7 @@
 > **文档类型**：实施步骤
 > **特性状态**：规划中
 > **创建时间**：2026-03-26
-> **预计工期**：3 天（24 小时）
+> **预计工期**：约 3 天（22 小时）
 > **关联文档**：[技术方案](./embedding-openai-03-技术方案.md) | [实施方案](./embedding-openai-实施方案.md)
 
 ---
@@ -15,12 +15,11 @@
 | 1️⃣ 环境准备 | 依赖安装、目录创建 | 1 小时 | P0 |
 | 2️⃣ 后端服务实现 | OpenAIEmbeddingService | 6 小时 | P0 |
 | 3️⃣ 模型管理器扩展 | 支持云端嵌入模型 | 2 小时 | P0 |
-| 4️⃣ 索引重建功能 | 方案B：独立端点 | 4 小时 | P0 |
-| 5️⃣ 前端界面修改 | 配置表单、状态管理 | 4 小时 | P0 |
-| 6️⃣ 索引重建触发机制 | 自动检测+手动按钮 | 3 小时 | P0 |
-| 7️⃣ 国际化更新 | 翻译键更新 | 1 小时 | P0 |
-| 8️⃣ 测试验证 | 功能测试、集成测试 | 6 小时 | P0 |
-| **总计** | | **27 小时（约 3.5 天）** | |
+| 4️⃣ 前端界面修改 | 配置表单、状态管理 | 4 小时 | P0 |
+| 5️⃣ 全量重建索引 | 复用现有任务系统 | 2 小时 | P0 |
+| 6️⃣ 国际化更新 | 翻译键更新 | 1 小时 | P0 |
+| 7️⃣ 测试验证 | 功能测试、集成测试 | 6 小时 | P0 |
+| **总计** | | **22 小时（约 3 天）** | |
 
 ---
 
@@ -1187,11 +1186,475 @@ const handleSaveConfig = async () => {
 
 ---
 
-## 阶段 6：索引重建触发机制（3 小时）
+## 阶段 5：全量重建索引（2 小时）
 
-> **参考架构决策**：[AD-20260326-02](../../../架构决策/AD-20260326-02-嵌入模型切换索引重建触发机制.md)
+> **参考方案**：[全量重建索引实施方案](./embedding-openai-全量重建索引-实施方案.md)
+>
+> **简化策略**：复用现有索引任务系统，无需独立重建服务
 
-### 步骤 6.1：后端自动检测逻辑
+### 设计概述
+
+**核心原则**：
+- 清空 indexes 文件夹（删除所有 .index 和 whoosh 文件）
+- 查询历史已完成任务（按 folder_path 去重）
+- 为每个 folder_path 创建新的重建任务
+- 复用现有的 `run_full_index_task` 和任务队列
+
+**职责分离**：
+- 设置页：切换模型后显示引导提示
+- 索引管理页：提供"全量重建索引"按钮
+
+---
+
+### 步骤 5.1：添加清空索引方法
+
+**修改文件**：`backend/app/services/file_index_service.py`
+
+在 `FileIndexService` 类中添加方法：
+
+```python
+def clear_index(self):
+    """
+    清空 indexes 文件夹下的所有索引数据
+
+    删除所有 Faiss 索引文件和 Whoosh 索引目录
+    重置内存中的索引对象
+    """
+    import os
+    import shutil
+    import glob
+
+    logger.info("开始清空 indexes 文件夹")
+
+    # 1. 删除所有 Faiss 索引文件
+    faiss_dir = os.path.dirname(self.faiss_index_path)
+    if os.path.exists(faiss_dir):
+        faiss_files = glob.glob(os.path.join(faiss_dir, "*.index"))
+        for faiss_file in faiss_files:
+            try:
+                os.remove(faiss_file)
+                logger.info(f"已删除: {faiss_file}")
+            except Exception as e:
+                logger.warning(f"删除失败: {faiss_file}, {e}")
+
+    # 2. 删除 Whoosh 索引目录
+    if os.path.exists(self.whoosh_index_path):
+        try:
+            shutil.rmtree(self.whoosh_index_path)
+            logger.info(f"已删除 Whoosh 索引: {self.whoosh_index_path}")
+        except Exception as e:
+            logger.warning(f"删除 Whoosh 失败: {e}")
+
+    # 3. 重置内存中的索引对象
+    self._faiss_index = None
+    self._whoosh_index = None
+
+    logger.info("indexes 文件夹清空完成")
+```
+
+**验证**：
+
+```bash
+python -c "from app.services.file_index_service import FileIndexService; print('模块导入成功')"
+```
+
+---
+
+### 步骤 5.2：添加全量重建 API 端点
+
+**修改文件**：`backend/app/api/index.py`
+
+在现有代码末尾添加：
+
+```python
+@router.post("/rebuild-all")
+async def rebuild_all_indexes(
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
+):
+    """
+    全量重建所有索引
+
+    流程：
+    1. 清空 indexes 文件夹
+    2. 查询所有历史索引任务（按 folder_path 去重）
+    3. 为每个 folder_path 创建新的重建任务
+    4. 任务排队执行
+    """
+    logger.info("开始全量重建所有索引")
+
+    try:
+        # 1. 清空索引
+        index_service = get_file_index_service()
+        index_service.clear_index()
+
+        # 2. 查询所有已完成的历史任务（去重 folder_path）
+        completed_jobs = db.query(IndexJobModel).filter(
+            IndexJobModel.status == get_enum_value(JobStatus.COMPLETED)
+        ).all()
+
+        # 去重：每个 folder_path 只取一个（最新的）
+        unique_paths = {}
+        for job in completed_jobs:
+            if job.folder_path not in unique_paths:
+                unique_paths[job.folder_path] = job
+
+        folder_paths = list(unique_paths.keys())
+
+        if not folder_paths:
+            raise ValidationException(
+                i18n.t('index.no_completed_jobs', locale)
+            )
+
+        logger.info(f"找到 {len(folder_paths)} 个需要重建的路径")
+
+        # 3. 为每个路径创建新的重建任务
+        created_jobs = []
+        for folder_path in folder_paths:
+            # 创建新任务记录
+            index_job = IndexJobModel(
+                folder_path=folder_path,
+                job_type=JobType.CREATE,
+                status=get_enum_value(JobStatus.PENDING)
+            )
+            db.add(index_job)
+            db.commit()
+            db.refresh(index_job)
+
+            created_jobs.append(index_job)
+
+            # 4. 添加到后台任务队列（自动排队）
+            background_tasks.add_task(
+                run_full_index_task,
+                index_job.id,
+                folder_path,
+                recursive=True,
+                file_types=None
+            )
+
+            logger.info(f"重建任务已创建: id={index_job.id}, path={folder_path}")
+
+        return {
+            "success": True,
+            "data": [IndexJobInfo(**job.to_dict()) for job in created_jobs],
+            "message": i18n.t('index.rebuild_all_started', locale, count=len(created_jobs))
+        }
+
+    except ValidationException:
+        raise
+    except Exception as e:
+        logger.error(f"全量重建失败: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=i18n.t('index.rebuild_all_failed', locale) + f": {str(e)}"
+        )
+```
+
+**验证**：
+
+```bash
+# 启动后端
+cd backend
+python main.py
+
+# 访问 API 文档，检查新端点
+# 浏览器打开：http://127.0.0.1:8000/docs
+# 应该能看到 POST /api/index/rebuild-all 端点
+```
+
+---
+
+### 步骤 5.3：前端重建按钮
+
+**修改文件**：`frontend/src/renderer/src/views/IndexManagement.vue`
+
+在操作按钮区域添加"全量重建索引"按钮：
+
+```vue
+<template>
+  <a-card title="索引管理">
+    <!-- 统计信息 -->
+    <a-row :gutter="16" style="margin-bottom: 16px;">
+      <a-col :span="8">
+        <a-statistic title="索引文件" :value="status.indexed_files || 0" />
+      </a-col>
+      <a-col :span="8">
+        <a-statistic title="索引任务" :value="status.total_jobs || 0" />
+      </a-col>
+    </a-row>
+
+    <!-- 操作按钮 -->
+    <a-space style="margin-bottom: 16px;">
+      <a-button @click="handleAddFiles">
+        <PlusOutlined />
+        添加文件
+      </a-button>
+
+      <a-button @click="handleUpdateIndex">
+        <SyncOutlined />
+        更新索引
+      </a-button>
+
+      <!-- 全量重建索引按钮 -->
+      <a-button
+        type="primary"
+        danger
+        @click="handleRebuildAll"
+        :loading="isRebuilding"
+      >
+        <RebuildOutlined />
+        {{ t('index.rebuildAll') }}
+      </a-button>
+    </a-space>
+
+    <!-- 重建进度列表 -->
+    <a-card
+      v-if="rebuildJobs.length > 0"
+      :title="t('index.rebuildProgress')"
+      size="small"
+    >
+      <a-list
+        :data-source="rebuildJobs"
+        size="small"
+      >
+        <template #renderItem="{ item }">
+          <a-list-item>
+            <template #actions>
+              <a-tag :color="getStatusColor(item.status)">
+                {{ getStatusText(item.status) }}
+              </a-tag>
+            </template>
+            <a-list-item-meta>
+              <template #title>
+                <a-typography-text
+                  ellipsis
+                  :content="item.folder_path"
+                  style="max-width: 500px;"
+                />
+              </template>
+              <template #description>
+                <a-space>
+                  <span>{{ t('index.processed') }}: {{ item.processed_files }} / {{ item.total_files }}</span>
+                  <a-progress
+                    :percent="item.progress"
+                    size="small"
+                    :status="getProgressStatus(item.status)"
+                    style="width: 150px;"
+                  />
+                </a-space>
+              </template>
+            </a-list-item-meta>
+          </a-list-item>
+        </template>
+      </a-list>
+    </a-card>
+  </a-card>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
+import { Modal, message } from 'ant-design-vue'
+import { RebuildOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons-vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
+const isRebuilding = ref(false)
+const rebuildJobs = ref([])
+const status = ref({})
+
+let pollTimer = null
+
+// 全量重建
+const handleRebuildAll = () => {
+  Modal.confirm({
+    title: t('index.rebuildAllConfirm'),
+    content: t('index.rebuildAllWarning'),
+    okText: t('common.confirm'),
+    cancelText: t('common.cancel'),
+    okButtonProps: { danger: true },
+    onOk: async () => {
+      isRebuilding.value = true
+      try {
+        const response = await fetch('/api/index/rebuild-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        const result = await response.json()
+
+        if (result.success) {
+          message.success(t('index.rebuildAllStarted', { count: result.data.length }))
+          rebuildJobs.value = result.data
+
+          // 开始轮询所有任务的进度
+          startPolling()
+        }
+      } catch (error) {
+        message.error(t('index.rebuildAllFailed'))
+      } finally {
+        isRebuilding.value = false
+      }
+    }
+  })
+}
+
+// 轮询所有重建任务的进度
+const startPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+  }
+
+  pollTimer = setInterval(async () => {
+    try {
+      // 并行查询所有任务状态
+      const promises = rebuildJobs.value.map(job =>
+        fetch(`/api/index/status/${job.index_id}`)
+          .then(res => res.json())
+      )
+
+      const results = await Promise.all(promises)
+
+      rebuildJobs.value = results.map(r => r.data)
+
+      // 检查是否全部完成
+      const allCompleted = rebuildJobs.value.every(
+        job => job.status === 'completed' || job.status === 'failed'
+      )
+
+      if (allCompleted) {
+        clearInterval(pollTimer)
+        pollTimer = null
+
+        const completed = rebuildJobs.value.filter(
+          j => j.status === 'completed'
+        ).length
+        const failed = rebuildJobs.value.filter(
+          j => j.status === 'failed'
+        ).length
+
+        if (failed > 0) {
+          message.warning(t('index.rebuildAllPartial', { completed, failed }))
+        } else {
+          message.success(t('index.rebuildAllComplete', { count: completed }))
+        }
+
+        // 刷新状态
+        await fetchStatus()
+      }
+    } catch (error) {
+      console.error('轮询失败:', error)
+    }
+  }, 2000)
+}
+
+// 获取状态
+const fetchStatus = async () => {
+  try {
+    const response = await fetch('/api/index/status')
+    const result = await response.json()
+    if (result.success) {
+      status.value = result.data
+    }
+  } catch (error) {
+    console.error('获取状态失败:', error)
+  }
+}
+
+const getStatusColor = (status: string) => {
+  const colors = {
+    pending: 'default',
+    processing: 'processing',
+    completed: 'success',
+    failed: 'error'
+  }
+  return colors[status] || 'default'
+}
+
+const getStatusText = (status: string) => {
+  return t(`index.jobStatus.${status}`)
+}
+
+const getProgressStatus = (status: string) => {
+  const statusMap = {
+    processing: 'active',
+    completed: 'success',
+    failed: 'exception'
+  }
+  return statusMap[status] || null
+}
+
+onUnmounted(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+  }
+})
+</script>
+```
+
+---
+
+### 步骤 5.4：设置页面引导提示
+
+**修改文件**：`frontend/src/renderer/src/views/Settings.vue`
+
+在保存配置后显示引导提示：
+
+```vue
+<!-- 切换模型后的引导提示 -->
+<a-alert
+  v-if="showModelChangeWarning"
+  type="warning"
+  show-icon
+  closable
+  @close="showModelChangeWarning = false"
+  style="margin-bottom: 16px;"
+>
+  <template #message>
+    {{ t('settingsEmbedding.modelChanged') }}
+  </template>
+  <template #description>
+    <p>{{ t('settingsEmbedding.rebuildTip') }}</p>
+    <a-space>
+      <a-button type="primary" size="small" @click="restartApp">
+        <ReloadOutlined />
+        {{ t('common.restartApp') }}
+      </a-button>
+      <a-button size="small" @click="goToIndexManagement">
+        <FolderOpenOutlined />
+        {{ t('settingsEmbedding.goToIndex') }}
+      </a-button>
+    </a-space>
+  </template>
+</a-alert>
+
+<script setup lang="ts">
+const showModelChangeWarning = ref(false)
+
+// 保存配置后检测模型变化
+const handleSaveConfig = async () => {
+  // ... 保存逻辑 ...
+
+  const response = await updateAIModelConfig(config)
+
+  if (response.requires_rebuild) {
+    showModelChangeWarning.value = true
+  }
+}
+
+const restartApp = () => {
+  window.location.reload()
+}
+
+const goToIndexManagement = () => {
+  router.push('/index-management')
+}
+</script>
+```
+
+---
+
+## 阶段 6：后端国际化（1 小时）
 
 **修改文件**：`backend/app/api/ai_model_config.py`
 

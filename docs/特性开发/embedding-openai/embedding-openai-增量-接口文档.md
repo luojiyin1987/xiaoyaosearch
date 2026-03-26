@@ -2,7 +2,7 @@
 
 > **文档类型**：增量接口文档
 > **基础版本**：基于 [主接口文档](../../接口文档.md)
-> **特性状态**：规划中
+> **特性状态**：开发中
 > **创建时间**：2026-03-26
 > **最后更新**：2026-03-26
 
@@ -18,6 +18,7 @@
 - **修改接口**：扩展现有接口参数，支持云端嵌入模型配置
 - **新增字段**：provider 字段新增可选值 "cloud"
 - **配置变更**：config 字段根据 provider 不同包含不同配置项
+- **新增接口**：全量重建索引接口（复用现有索引任务系统）
 
 ### 1.2 向后兼容性
 
@@ -26,9 +27,8 @@
 - 现有本地 BGE-M3 配置保持不变
 - 新增的云端配置为可选功能
 - 数据库表结构无变更
-- API 路径无变更
 - **向量维度**：使用模型原始维度，不做归一化处理
-- **索引重建**：切换模型时必须重建索引
+- **索引重建**：切换模型后需手动重建索引（在索引管理页操作）
 
 ---
 
@@ -383,31 +383,7 @@ Accept-Language: en-US
 
 ---
 
-### 4.3 参数化翻译
-
-**示例**：云端嵌入模型测试成功
-
-**中文**：
-```json
-{
-  "code": 200,
-  "message": "云端嵌入模型测试成功，向量维度: 1536，响应正常",
-  "data": { ... }
-}
-```
-
-**英文**：
-```json
-{
-  "code": 200,
-  "message": "Cloud embedding model test successful, vector dimension: 1536, response normal",
-  "data": { ... }
-}
-```
-
----
-
-### 4.4 新增翻译键
+### 4.3 新增翻译键
 
 **后端翻译键**（`backend/app/locales/`）：
 
@@ -415,22 +391,38 @@ Accept-Language: en-US
 |------|---------|---------|
 | `model.cloud_embedding_success` | 云端嵌入模型测试成功，向量维度: {dimension} | Cloud embedding model test successful, vector dimension: {dimension} |
 | `model.cloud_auth_failed` | 云端API认证失败：{error} | Cloud API authentication failed: {error} |
-| `model.rebuild_already_running` | 重建任务正在进行中，进度：{progress}% | Rebuild task is in progress, progress: {progress}% |
-| `index_rebuild.status_running` | 重建中 | Rebuilding |
+| `index.rebuild_all_started` | 已启动 {count} 个重建任务 | Started {count} rebuild tasks |
+| `index.rebuild_all_failed` | 全量重建失败 | Full rebuild failed |
+| `index.rebuild_all_partial` | 重建完成：成功 {completed} 个，失败 {failed} 个 | Rebuild completed: {completed} succeeded, {failed} failed |
+| `index.rebuild_all_complete` | 全量重建完成！成功完成 {count} 个任务 | Full rebuild completed! {count} tasks succeeded |
+| `index.no_completed_jobs` | 未找到已完成的历史索引任务，无法重建 | No completed index jobs found, cannot rebuild |
+| `index.rebuild_all_warning` | 将清空所有索引并按历史任务逐一重建，预计耗时较长，是否继续？ | This will clear all indexes and rebuild by historical tasks, taking a long time, continue? |
 
 **前端翻译键**（`frontend/src/locale/lang/`）：
 
 | 键名 | 中文示例 | 英文示例 |
 |------|---------|---------|
 | `embedding.providerLocal` | 本地（推荐，免费离线） | Local (Recommended, Free & Offline) |
+| `embedding.providerCloud` | 云端（高质量，需API密钥） | Cloud (High quality, requires API key) |
 | `embedding.cloudDataSafe` | 您的本地文件和索引数据存储在本地，不会上传 | Your local files and index data are stored locally, not uploaded |
 | `embedding.testConnection` | 测试连接 | Test Connection |
+| `embedding.modelChanged` | 嵌入模型已更改 | Embedding model has changed |
+| `embedding.rebuildTip` | 建议重启应用后在索引管理中重建索引 | Recommended to restart the app and rebuild indexes in index management |
+| `index.rebuildAll` | 全量重建索引 | Rebuild All Indexes |
+| `index.rebuildAllConfirm` | 确认全量重建 | Confirm Full Rebuild |
+| `index.rebuildAllWarning` | 将清空所有索引并按历史任务逐一重建，预计耗时较长 | This will clear all indexes and rebuild by historical tasks, taking a long time |
+| `index.rebuildProgress` | 重建进度 | Rebuild Progress |
+| `index.processed` | 已处理 | Processed |
+| `index.jobStatus.pending` | 等待中 | Pending |
+| `index.jobStatus.processing` | 处理中 | Processing |
+| `index.jobStatus.completed` | 已完成 | Completed |
+| `index.jobStatus.failed` | 失败 | Failed |
 
 ---
 
 ## 5. 错误码扩展
 
-### 4.1 新增错误码
+### 5.1 新增错误码
 
 | 错误码 | HTTP状态码 | 说明 | 建议处理 |
 |--------|-----------|------|---------|
@@ -441,15 +433,15 @@ Accept-Language: en-US
 
 ---
 
-## 5. 业务逻辑说明
+## 6. 业务逻辑说明
 
-### 5.1 本地/云端互斥切换
+### 6.1 本地/云端互斥切换
 
 **规则**：
 1. 同一时间只能有一个活跃的嵌入模型配置
 2. 切换到云端时，自动卸载本地模型
 3. 切换到本地时，自动关闭云端服务
-4. **切换模型必须重建索引**（不同模型的向量空间不兼容）
+4. **切换模型后需手动重建索引**（在索引管理页操作）
 
 **流程**：
 
@@ -470,15 +462,23 @@ Accept-Language: en-US
                                         ├─ 插入新配置，is_active=true
                                         ├─ 卸载本地嵌入模型
                                         ├─ 初始化云端嵌入服务
-                                        ├─ 返回成功 + need_rebuild=true
-                                        └─ 提示用户重建索引
+                                        └─ 返回成功
+                                        │
+                                        ↓
+                                    前端显示引导提示
+                                        │
+                                        ↓
+                                    用户前往索引管理页
+                                        │
+                                        ↓
+                                    手动点击"全量重建索引"
 ```
 
 ---
 
-## 6. 安全考虑
+## 7. 安全考虑
 
-### 6.1 API 密钥保护
+### 7.1 API 密钥保护
 
 **加密存储**：API 密钥使用 AES 加密后存储
 
@@ -500,7 +500,7 @@ def decrypt_api_key(encrypted_key: str) -> str:
 
 ---
 
-### 6.2 日志脱敏
+### 7.2 日志脱敏
 
 **规则**：日志中 API 密钥只显示前 8 位和后 4 位
 
@@ -511,9 +511,9 @@ def decrypt_api_key(encrypted_key: str) -> str:
 
 ---
 
-## 7. 支持的云端供应商
+## 8. 支持的云端供应商
 
-### 7.1 已验证供应商
+### 8.1 已验证供应商
 
 | 供应商 | 端点地址 | 推荐模型 | 状态 |
 |--------|---------|---------|------|
@@ -522,7 +522,7 @@ def decrypt_api_key(encrypted_key: str) -> str:
 | 阿里云 | https://dashscope.aliyuncs.com/compatible-mode/v1 | text-embedding-v3 | ✅ 已验证 |
 | Moonshot | https://api.moonshot.cn/v1 | moonshot-v1-embedding | ✅ 已验证 |
 
-### 7.2 其他兼容供应商
+### 8.2 其他兼容供应商
 
 所有兼容 OpenAI Embeddings API 标准的服务均可使用，用户只需配置：
 - `api_key`：供应商提供的 API 密钥
@@ -531,60 +531,46 @@ def decrypt_api_key(encrypted_key: str) -> str:
 
 ---
 
-## 8. 索引重建接口（独立端点，方案B）
+## 9. 全量重建索引接口
 
-### 8.1 设计说明
+### 9.1 设计说明
 
-**重建原则**：切换嵌入模型必须重建索引
+**方案**：简化方案 - 复用现有索引任务系统
 
-**独立状态管理**：索引重建使用独立的内存状态和API端点，与现有索引任务系统完全隔离。
+**核心原理**：
+- 清空索引文件后，为每个历史已完成的索引任务创建新的重建任务
+- 利用现有的 `run_full_index_task` 和 `IndexJobModel`
+- 通过 BackgroundTasks 自动排队执行
+- 复用现有的 `/api/index/status/{id}` 查询进度
 
-**架构隔离**：
+**与现有系统的关系**：
 
-| 系统 | 数据来源 | 状态存储 | API端点 | 用途 |
-|------|---------|---------|---------|------|
-| **索引任务系统** | 扫描文件夹 | 数据库表 | `/api/index/*` | 创建新索引 |
-| **索引重建系统** | 当前索引文件 | 内存（不持久化） | `/api/index/rebuild/*` | 换模型重建 |
-
-**隔离原因**：
-1. **数据隔离**：不污染现有100条索引任务记录
-2. **语义隔离**：重建是"换模型"，不是"新建索引"
-3. **状态隔离**：重建是临时操作，无需持久化
-4. **接口隔离**：独立的端点，避免混淆
+| 方面 | 说明 |
+|------|------|
+| 数据来源 | 查询 `index_jobs` 表中 `status='completed'` 的历史任务 |
+| 去重逻辑 | 按 `folder_path` 去重，每个路径创建一个重建任务 |
+| 任务创建 | 创建新的 `IndexJobModel` 记录 |
+| 任务执行 | 调用现有的 `run_full_index_task` |
+| 进度查询 | 复用 `/api/index/status/{id}` 端点 |
 
 ---
 
-### 8.2 开始重建
+### 9.2 全量重建索引
 
-**接口**：`POST /api/index/rebuild/start`
+**接口**：`POST /api/index/rebuild-all`
 
-**说明**：开始索引重建，创建内存任务状态（不写数据库）。
+**说明**：清空所有索引文件，按历史任务创建重建任务并排队执行。
 
 ---
 
 #### 请求体
 
-```json
-{
-  "model_config": {
-    "model_type": "embedding",
-    "provider": "cloud",
-    "model_name": "text-embedding-3-small",
-    "config": {
-      "api_key": "sk-xxx",
-      "endpoint": "https://api.openai.com/v1"
-    }
-  },
-  "force": false
-}
+```http
+POST /api/index/rebuild-all
+Content-Type: application/json
 ```
 
-**请求参数说明**：
-
-| 参数 | 类型 | 必填 | 默认值 | 说明 |
-|------|------|------|--------|------|
-| model_config | object | 是 | - | 新的嵌入模型配置 |
-| force | boolean | 否 | false | 是否强制重建（跳过确认） |
+**请求参数**：无
 
 ---
 
@@ -593,14 +579,27 @@ def decrypt_api_key(encrypted_key: str) -> str:
 ```json
 {
   "success": true,
-  "data": {
-    "task_id": "rebuild_1711478400",
-    "status": "running",
-    "total_files": 10000,
-    "previous_model": "BAAI/bge-m3",
-    "new_model": "text-embedding-3-small",
-    "estimated_time_minutes": 10
-  }
+  "data": [
+    {
+      "index_id": 101,
+      "folder_path": "D:\\Documents",
+      "status": "pending",
+      "total_files": 5000,
+      "processed_files": 0,
+      "progress": 0,
+      "created_at": "2026-03-26T10:00:00"
+    },
+    {
+      "index_id": 102,
+      "folder_path": "E:\\Projects",
+      "status": "pending",
+      "total_files": 3000,
+      "processed_files": 0,
+      "progress": 0,
+      "created_at": "2026-03-26T10:00:00"
+    }
+  ],
+  "message": "已启动 2 个重建任务"
 }
 ```
 
@@ -608,27 +607,39 @@ def decrypt_api_key(encrypted_key: str) -> str:
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| task_id | string | 重建任务ID（内存） |
-| status | string | 任务状态：running |
+| index_id | integer | 索引任务ID |
+| folder_path | string | 文件夹路径 |
+| status | string | 任务状态：pending/processing/completed/failed |
 | total_files | integer | 总文件数 |
-| previous_model | string | 原模型名称 |
-| new_model | string | 新模型名称 |
-| estimated_time_minutes | integer | 预计耗时（分钟） |
+| processed_files | integer | 已处理文件数 |
+| progress | float | 进度百分比（0-100） |
 
 ---
 
-#### 响应体（已有任务进行中）
+#### 响应体（无历史任务）
 
 ```json
 {
   "success": false,
   "error": {
-    "code": "REBUILD_JOB_RUNNING",
-    "message": "重建任务正在进行",
+    "code": "NO_COMPLETED_JOBS",
+    "message": "未找到已完成的历史索引任务，无法重建"
+  }
+}
+```
+
+---
+
+#### 响应体（清空索引失败）
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "CLEAR_INDEX_FAILED",
+    "message": "清空索引文件失败",
     "details": {
-      "task_id": "rebuild_1711478300",
-      "status": "running",
-      "progress": 35
+      "error": "权限不足或文件被占用"
     }
   }
 }
@@ -636,334 +647,118 @@ def decrypt_api_key(encrypted_key: str) -> str:
 
 ---
 
-### 8.3 查询重建状态
+### 9.3 查询任务状态（复用现有接口）
 
-**接口**：`GET /api/index/rebuild/status`
+**接口**：`GET /api/index/status/{index_id}`
 
-**说明**：查询当前重建任务状态（内存查询，不访问数据库）。
+**说明**：复用现有的索引任务状态查询接口。
 
 ---
 
-#### 响应体（重建中）
+#### 响应体（处理中）
 
 ```json
 {
   "success": true,
   "data": {
-    "task_id": "rebuild_1711478400",
-    "status": "running",
-    "progress": 45.5,
-    "total_files": 10000,
-    "processed_files": 4550,
-    "failed_files": 5,
-    "current_file": "/path/to/document.pdf",
-    "elapsed_seconds": 270,
-    "estimated_remaining_seconds": 330,
-    "previous_model": {
-      "provider": "local",
-      "model_name": "BAAI/bge-m3"
-    },
-    "new_model": {
-      "provider": "cloud",
-      "model_name": "text-embedding-3-small"
-    },
+    "index_id": 101,
+    "folder_path": "D:\\Documents",
+    "status": "processing",
+    "total_files": 5000,
+    "processed_files": 2500,
+    "progress": 50.0,
+    "current_file": "D:\\Documents\\report.pdf",
     "error_message": ""
   }
 }
 ```
 
-**响应字段说明**：
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| task_id | string | 任务ID |
-| status | string | 状态：running/completed/failed/cancelled |
-| progress | float | 进度百分比（0-100） |
-| total_files | integer | 总文件数 |
-| processed_files | integer | 已处理文件数 |
-| failed_files | integer | 失败文件数 |
-| current_file | string | 当前处理的文件路径 |
-| elapsed_seconds | integer | 已用时间（秒） |
-| estimated_remaining_seconds | integer | 预计剩余时间（秒） |
-| previous_model | object | 原模型配置 |
-| new_model | object | 新模型配置 |
-| error_message | string | 错误信息（失败时） |
-
 ---
 
-#### 响应体（无重建任务）
-
-```json
-{
-  "success": true,
-  "data": {
-    "status": "none"
-  }
-}
-```
-
----
-
-### 8.4 取消重建
-
-**接口**：`POST /api/index/rebuild/cancel`
-
-**说明**：取消当前重建任务，自动回滚到原模型配置。
-
----
-
-#### 请求体
-
-```json
-{}
-```
-
----
-
-#### 响应体（取消成功）
-
-```json
-{
-  "success": true,
-  "message": "重建任务已取消，已恢复到原模型配置",
-  "data": {
-    "task_id": "rebuild_1711478400",
-    "status": "cancelled",
-    "processed_files": 4550,
-    "rollback_success": true,
-    "restored_model": "BAAI/bge-m3"
-  }
-}
-```
-
----
-
-#### 响应体（无重建任务）
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "NO_REBUILD_JOB",
-    "message": "当前无重建任务"
-  }
-}
-```
-
----
-
-### 8.5 更新AI模型配置（扩展响应）
-
-**接口**：`PUT /api/config/ai-model`
-
-**变更说明**：当检测到嵌入模型变更时，响应中增加 `need_rebuild` 字段。
-
----
-
-#### 响应体（需要重建索引）
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": 2,
-    "model_type": "embedding",
-    "provider": "cloud",
-    "model_name": "text-embedding-3-small",
-    "is_active": true,
-    "need_rebuild": true,
-    "rebuild_info": {
-      "new_model": "text-embedding-3-small",
-      "new_provider": "cloud",
-      "file_count": 10000,
-      "estimated_time_minutes": 10,
-      "cloud_api_required": true,
-      "previous_model": "BAAI/bge-m3"
-    }
-  }
-}
-```
-
-**rebuild_info 字段说明**：
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| new_model | string | 新模型名称 |
-| new_provider | string | 新提供商类型：local/cloud |
-| file_count | integer | 需要重建的文件数量 |
-| estimated_time_minutes | integer | 预计耗时（分钟） |
-| cloud_api_required | boolean | 是否需要调用云端API |
-| previous_model | string | 原模型名称 |
-
----
-
-#### 响应体（无需重建）
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "model_type": "embedding",
-    "provider": "local",
-    "model_name": "BAAI/bge-m3",
-    "is_active": true,
-    "need_rebuild": false
-  }
-}
-```
-
----
-
-### 8.6 接口对照表
-
-| 功能 | 索引任务系统 | 索引重建系统 | 说明 |
-|------|-------------|-------------|------|
-| 开始任务 | `POST /api/index/create` | `POST /api/index/rebuild/start` | 完全独立 |
-| 查询状态 | `GET /api/index/status/{id}` | `GET /api/index/rebuild/status` | 独立端点 |
-| 取消任务 | `DELETE /api/index/{id}` | `POST /api/index/rebuild/cancel` | 独立端点 |
-| 任务列表 | `GET /api/index/list` | - | 重建无列表 |
-| 数据来源 | 扫描文件夹 | 当前索引元数据 | 不同来源 |
-| 状态存储 | 数据库表 | 内存（不持久化） | 不同存储 |
-
----
-
-### 8.7 前端调用示例
+### 9.4 前端调用示例
 
 ```typescript
-// 1. 保存嵌入模型配置，检测是否需要重建
-const saveConfig = async (config: AIModelConfig) => {
-  const response = await api.put('/api/config/ai-model', config);
-  const result = await response.json();
-
-  if (result.data.need_rebuild) {
-    // 显示确认对话框
-    showRebuildConfirm(result.data.rebuild_info);
-  }
-};
-
-// 2. 确认后开始重建
-const startRebuild = async () => {
-  const response = await api.post('/api/index/rebuild/start', {
-    model_config: newConfig,
-    force: false
+// 1. 切换模型后显示引导
+const handleModelChanged = () => {
+  Modal.info({
+    title: t('embedding.modelChanged'),
+    content: (
+      <div>
+        <p>{t('embedding.rebuildTip')}</p>
+        <Space>
+          <Button onClick={restartApp}>{t('common.restartApp')}</Button>
+          <Button onClick={goToIndexManagement}>{t('embedding.goToIndex')}</Button>
+        </Space>
+      </div>
+    )
   });
-  const result = await response.json();
-  const taskId = result.data.task_id;
-
-  // 开始轮询状态
-  pollRebuildStatus();
 };
 
-// 3. 轮询重建状态
-const pollRebuildStatus = async () => {
-  const interval = setInterval(async () => {
-    const response = await api.get('/api/index/rebuild/status');
-    const result = await response.json();
+// 2. 在索引管理页点击全量重建
+const handleRebuildAll = async () => {
+  Modal.confirm({
+    title: t('index.rebuildAllConfirm'),
+    content: t('index.rebuildAllWarning'),
+    okButtonProps: { danger: true },
+    onOk: async () => {
+      const response = await fetch('/api/index/rebuild-all', {
+        method: 'POST'
+      });
+      const result = await response.json();
 
-    updateProgress(result.data);
-
-    if (result.data.status === 'completed') {
-      clearInterval(interval);
-      showSuccess('索引重建完成');
-    } else if (result.data.status === 'failed') {
-      clearInterval(interval);
-      showError(result.data.error_message);
+      if (result.success) {
+        message.success(t('index.rebuildAllStarted', { count: result.data.length }));
+        rebuildJobs.value = result.data;
+        startPolling();
+      }
     }
-  }, 1000);
-};
-
-// 4. 取消重建
-const cancelRebuild = async () => {
-  const response = await api.post('/api/index/rebuild/cancel');
-  const result = await response.json();
-
-  if (result.success) {
-    showInfo('已取消，已恢复到原模型配置');
-  }
-};
-
-// 注意：索引任务系统的接口保持不变
-const createIndex = async (folderPath: string) => {
-  // 这是创建新索引，与重建完全独立
-  const response = await api.post('/api/index/create', {
-    folder_path: folderPath
   });
-  // ... 返回 index_id
 };
 
-const getIndexStatus = async (indexId: number) => {
-  // 查询索引任务状态，与重建状态完全独立
-  const response = await api.get(`/api/index/status/${indexId}`);
-  // ...
+// 3. 轮询所有任务进度（复用现有接口）
+const startPolling = () => {
+  const timer = setInterval(async () => {
+    const promises = rebuildJobs.value.map(job =>
+      fetch(`/api/index/status/${job.index_id}`).then(res => res.json())
+    );
+    const results = await Promise.all(promises);
+
+    rebuildJobs.value = results.map(r => r.data);
+
+    // 检查是否全部完成
+    const allDone = rebuildJobs.value.every(
+      job => job.status === 'completed' || job.status === 'failed'
+    );
+
+    if (allDone) {
+      clearInterval(timer);
+      const completed = rebuildJobs.value.filter(j => j.status === 'completed').length;
+      const failed = rebuildJobs.value.filter(j => j.status === 'failed').length;
+
+      if (failed > 0) {
+        message.warning(t('index.rebuildAllPartial', { completed, failed }));
+      } else {
+        message.success(t('index.rebuildAllComplete', { count: completed }));
+      }
+    }
+  }, 2000);
 };
 ```
 
 ---
 
-## 9. 附录
+## 10. 附录
 
-### 9.1 相关文档
-    "task_type": "rebuild",
-    "message": "索引重建任务已创建",
-    "rebuild_info": {
-      "new_model": "text-embedding-3-small",
-      "new_provider": "cloud",
-      "total_files": 10000,
-      "estimated_time_minutes": 10,
-      "cloud_api_required": true,
-      "previous_backup": "index.backup/"
-    }
-  }
-}
-```
-
-**响应字段说明**：
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| task_type | string | 任务类型：create（新建）/rebuild（重建） |
-| rebuild_info | object | 重建相关信息（仅在重建模式下返回） |
-| rebuild_info.new_model | string | 新嵌入模型名称 |
-| rebuild_info.new_provider | string | 新提供商类型：local/cloud |
-| rebuild_info.total_files | integer | 需要重建的文件数量 |
-| rebuild_info.estimated_time_minutes | integer | 预计耗时（分钟） |
-| rebuild_info.cloud_api_required | boolean | 是否需要调用云端API |
-| rebuild_info.previous_backup | string | 备份路径 |
-
----
-
-#### 响应体（已有任务进行中）
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "INDEX_JOB_RUNNING",
-    "message": "索引任务正在运行",
-    "details": {
-      "index_id": 1,
-      "status": "processing",
-      "progress": 35,
-      "task_type": "rebuild"
-    }
-  }
-}
-```
-
----
-
-## 9. 附录
-
-### 9.1 相关文档
+### 10.1 相关文档
 
 - [主接口文档](../../接口文档.md)
 - [数据库设计文档](../../数据库设计文档.md)
 - [云端嵌入模型 PRD](./embedding-openai-01-prd.md)
 - [云端嵌入模型技术方案](./embedding-openai-03-技术方案.md)
+- [全量重建索引实施方案](./embedding-openai-全量重建索引-实施方案.md)
 
 ---
 
-**文档版本**：v1.0
+**文档版本**：v2.0（简化方案）
 **维护者**：AI 助手
 **最后更新**：2026-03-26
