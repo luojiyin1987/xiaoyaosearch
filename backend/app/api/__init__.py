@@ -8,13 +8,11 @@ from app.api.index import router as index_router
 from app.api.config import router as config_router
 from app.api.system import router as system_router
 from app.api.settings import router as settings_router
-from app.api.index_rebuild import router as rebuild_router
 
 __all__ = [
     "search_router",
     "index_router",
     "config_router",
     "system_router",
-    "settings_router",
-    "rebuild_router"
+    "settings_router"
 ]

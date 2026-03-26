@@ -1315,6 +1315,82 @@ class FileIndexService:
                 'error': str(e)
             }
 
+    def clear_index(self) -> Dict[str, Any]:
+        """清空所有索引文件
+
+        删除 Faiss 索引文件和 Whoosh 索引目录，用于全量重建索引前清空
+
+        Returns:
+            Dict[str, Any]: 清空结果
+        """
+        try:
+            import glob
+            import shutil
+
+            logger.info("开始清空索引文件")
+
+            # 1. 删除所有 Faiss 索引文件
+            faiss_dir = os.path.dirname(self.traditional_faiss_path)
+            if os.path.exists(faiss_dir):
+                faiss_files = glob.glob(os.path.join(faiss_dir, "*.index"))
+                deleted_faiss = 0
+                for faiss_file in faiss_files:
+                    try:
+                        os.remove(faiss_file)
+                        deleted_faiss += 1
+                        logger.info(f"已删除 Faiss 索引: {faiss_file}")
+                    except Exception as e:
+                        logger.warning(f"删除 Faiss 索引失败: {faiss_file}, {e}")
+            else:
+                deleted_faiss = 0
+
+            # 2. 删除 Whoosh 索引目录
+            deleted_whoosh = False
+            if os.path.exists(self.traditional_whoosh_path):
+                try:
+                    shutil.rmtree(self.traditional_whoosh_path)
+                    deleted_whoosh = True
+                    logger.info(f"已删除 Whoosh 索引: {self.traditional_whoosh_path}")
+                except Exception as e:
+                    logger.warning(f"删除 Whoosh 索引失败: {e}")
+                # 重新创建目录
+                try:
+                    os.makedirs(self.traditional_whoosh_path, exist_ok=True)
+                except Exception as e:
+                    logger.warning(f"重新创建 Whoosh 索引目录失败: {e}")
+
+            # 3. 调用分块索引服务的清理方法
+            deleted_chunk = 0
+            try:
+                from app.services.chunk_index_service import get_chunk_index_service
+                chunk_service = get_chunk_index_service()
+                chunk_service.cleanup_indexes()
+                deleted_chunk = 1  # 分块索引清理没有详细计数，标记为已执行
+                logger.info("分块索引清理完成")
+            except Exception as e:
+                logger.warning(f"分块索引清理失败: {e}")
+
+            # 4. 重置内存状态
+            self._indexed_files_cache.clear()
+            logger.info("已清空索引缓存")
+
+            logger.info(f"索引清空完成: Faiss={deleted_faiss}, Whoosh={deleted_whoosh}, 分块={deleted_chunk}")
+
+            return {
+                'success': True,
+                'deleted_faiss_count': deleted_faiss,
+                'deleted_whoosh': deleted_whoosh,
+                'deleted_chunk': deleted_chunk,
+                'message': '索引文件已清空'
+            }
+
+        except Exception as e:
+            logger.error(f"清空索引失败: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
     def get_supported_formats(self) -> Dict[str, List[str]]:
         """获取支持的文件格式"""
         return {

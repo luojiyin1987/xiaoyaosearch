@@ -917,5 +917,107 @@ async def run_incremental_index_task(
         if index_job:
             index_job.fail_job(str(e))
             db.commit()
+
+
+@router.post("/rebuild-all", response_model=IndexListResponse, summary="全量重建所有索引")
+async def rebuild_all_indexes(
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
+):
+    """
+    全量重建所有索引
+
+    清空现有索引后，为所有已完成的索引任务路径重新创建索引任务
+
+    流程：
+    1. 清空所有索引文件（Faiss + Whoosh + 分块索引）
+    2. 查询历史已完成的索引任务
+    3. 按 folder_path 去重
+    4. 为每个路径创建新的重建任务
+    5. 加入后台任务队列（自动排队处理）
+    """
+    logger.info("开始全量重建所有索引")
+
+    try:
+        # 1. 清空索引
+        index_service = get_file_index_service()
+        clear_result = index_service.clear_index()
+
+        if not clear_result.get('success'):
+            raise HTTPException(
+                status_code=500,
+                detail=i18n.t('index.clear_failed', locale) + f": {clear_result.get('error', '')}"
+            )
+
+        logger.info(f"索引清空成功: {clear_result}")
+
+        # 2. 查询已完成的索引任务
+        completed_jobs = db.query(IndexJobModel).filter(
+            IndexJobModel.status == get_enum_value(JobStatus.COMPLETED)
+        ).all()
+
+        if not completed_jobs:
+            raise ValidationException(i18n.t('index.no_completed_jobs', locale))
+
+        # 3. 按 folder_path 去重
+        unique_paths = {}
+        for job in completed_jobs:
+            if job.folder_path not in unique_paths:
+                unique_paths[job.folder_path] = job
+
+        folder_paths = list(unique_paths.keys())
+        logger.info(f"找到 {len(folder_paths)} 个唯一路径需要重建")
+
+        # 4. 为每个 folder_path 创建新的索引任务
+        created_jobs = []
+        for folder_path in folder_paths:
+            index_job = IndexJobModel(
+                folder_path=folder_path,
+                job_type=JobType.CREATE,
+                status=get_enum_value(JobStatus.PENDING)
+            )
+            db.add(index_job)
+            db.commit()
+            db.refresh(index_job)
+
+            created_jobs.append(index_job)
+
+            # 5. 添加到后台任务队列（自动排队）
+            background_tasks.add_task(
+                run_full_index_task,
+                index_job.id,
+                folder_path,
+                recursive=True,
+                file_types=None
+            )
+
+            logger.info(f"重建任务已创建: id={index_job.id}, path={folder_path}")
+
+        # 6. 返回创建的任务列表
+        job_list = [
+            IndexJobInfo(**job.to_dict())
+            for job in created_jobs
+        ]
+
+        return IndexListResponse(
+            data={
+                "indexes": [job.dict() for job in job_list],
+                "total": len(created_jobs),
+                "limit": len(created_jobs),
+                "offset": 0
+            },
+            message=i18n.t('index.rebuild_all_started', locale, count=len(created_jobs))
+        )
+
+    except ValidationException:
+        raise
+    except Exception as e:
+        logger.error(f"全量重建失败: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=i18n.t('index.rebuild_all_failed', locale) + f": {str(e)}"
+        )
+
     finally:
         db.close()

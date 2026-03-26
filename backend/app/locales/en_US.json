@@ -85,7 +85,11 @@
     "incremental_created": "Incremental index task created and started",
     "incremental_failed": "Failed to create incremental index",
     "task_stopped_manually": "Task stopped manually",
-    "task_stopped_manually_delete": "Task deleted manually"
+    "task_stopped_manually_delete": "Task deleted manually",
+    "clear_failed": "Failed to clear index",
+    "no_completed_jobs": "No completed index jobs found, cannot rebuild",
+    "rebuild_all_started": "Started index rebuild, created {count} rebuild tasks",
+    "rebuild_all_failed": "Failed to rebuild all indexes"
   },
 
   "file": {
@@ -164,52 +168,7 @@
     "cloud_rate_limit_exceeded": "Cloud API rate limit exceeded, please try again later",
     "cloud_api_error": "Cloud API call error: {error}",
     "cloud_invalid_response": "Cloud API returned invalid response",
-    "provider_not_supported": "Unsupported provider type: {provider}",
-    "rebuild_not_started": "No rebuild task in progress",
-    "rebuild_already_running": "Rebuild task is in progress, progress: {progress}%",
-    "rebuild_no_current_model": "No current embedding model configuration, cannot start rebuild",
-    "rebuild_backup_failed": "Index backup failed: {error}",
-    "rebuild_no_index_files": "No index files found",
-    "rebuild_started": "Index rebuild started, task ID: {task_id}",
-    "rebuild_start_failed": "Failed to start rebuild: {error}",
-    "rebuild_cancelled": "Rebuild task cancelled, restored to original model configuration",
-    "rebuild_cancel_failed": "Failed to cancel rebuild: {error}",
-    "rebuild_completed": "Index rebuild completed",
-    "rebuild_failed": "Index rebuild failed: {error}",
-    "rebuild_progress": "Rebuild progress: {progress}%",
-    "rebuild_current_file": "Current file: {file}",
-    "rebuild_statistics": "Rebuild statistics: success {success}, failed {failed}, total {total}"
-  },
-
-  "index_rebuild": {
-    "title": "Index Rebuild",
-    "status_none": "No rebuild task",
-    "status_running": "Rebuilding",
-    "status_pending": "Pending",
-    "status_completed": "Completed",
-    "status_failed": "Failed",
-    "status_cancelled": "Cancelled",
-    "task_id": "Task ID",
-    "total_files": "Total Files",
-    "processed_files": "Processed Files",
-    "failed_files": "Failed Files",
-    "current_file": "Current File",
-    "progress": "Progress",
-    "elapsed_seconds": "Elapsed Time (seconds)",
-    "estimated_remaining_seconds": "Estimated Remaining Time (seconds)",
-    "previous_model": "Previous Model",
-    "new_model": "New Model",
-    "backup_path": "Backup Path",
-    "switching_warning": "Switching embedding model requires index rebuild",
-    "switching_description": "Switching embedding models changes the vector space and requires index rebuild",
-    "estimated_time": "Estimated time: {minutes} minutes",
-    "rebuild_warning": "Search functionality may be affected during rebuild, continue?",
-    "cloud_api_required": "Cloud API calls required",
-    "success": "Index rebuild successful",
-    "failed": "Index rebuild failed",
-    "cancelled": "Index rebuild cancelled",
-    "rollback_success": "Restored to original model configuration",
-    "rollback_failed": "Failed to restore original model configuration"
+    "provider_not_supported": "Unsupported provider type: {provider}"
   },
 
   "system": {
