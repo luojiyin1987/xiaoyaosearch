@@ -93,9 +93,11 @@ async def search_files(
                 if enhancement_result.get('success', False) and enhancement_result.get('enhanced', False):
                     # 根据搜索类型选择最佳查询
                     if is_semantic_search(request.search_type):
+                        # 语义搜索使用扩展查询（包含同义词，有助于向量匹配）
                         enhanced_query = enhancement_result.get('expanded_query', request.query)
                     elif request.search_type == SearchType.FULLTEXT:
-                        enhanced_query = enhancement_result.get('rewritten_query', request.query)
+                        # 全文搜索使用扩展查询（关键词形式），而不是重写后的问句
+                        enhanced_query = enhancement_result.get('expanded_query', request.query)
                     else:  # HYBRID
                         # 混合搜索使用扩展查询
                         enhanced_query = enhancement_result.get('expanded_query', request.query)
