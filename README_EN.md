@@ -48,10 +48,14 @@ XiaoyaoSearch is a cross-platform local desktop application (Windows/MacOS/Linux
 - **🎤 Multimodal Input**: Supports voice recording, text input, and image upload
 - **🔍 Deep Retrieval**: Supports content and filename search for videos (mp4, avi), audio (mp3, wav), and documents (txt, markdown, office, pdf)
 - **🧠 AI-Enhanced**: Integrates advanced AI models including BGE-M3, FasterWhisper, CN-CLIP, and OLLAMA
+  - **☁️ Cloud LLM Support**: OpenAI/DeepSeek/Alibaba Cloud compatible APIs with flexible local/cloud switching (v1.3.0)
+  - **☁️ Cloud Embedding Models**: OpenAI/DeepSeek/Alibaba Cloud embedding APIs for enhanced search quality (v1.6.0)
 - **⚡ High Performance**: Hybrid retrieval architecture based on Faiss vector search and Whoosh full-text search
-- **🔒 Privacy & Security**: Runs locally, data is not uploaded to the cloud, supports privacy mode
+- **🔒 Privacy Control**: Local-first with optional cloud APIs - you choose the balance between performance and privacy
 - **🎨 Modern Interface**: Modern desktop application based on Electron + Vue 3 + TypeScript
-- **🤖 MCP Server Support**: Supports Model Context Protocol, can be connected by Claude Desktop for intelligent local file search
+- **🤖 AI Ecosystem Integration**:
+  - **MCP Server Support**: Model Context Protocol support for Claude Desktop integration (v1.4.0)
+  - **Agent Skills Support**: Standardized tool calling for Claude Code, VS Code, Cursor, and more (v1.5.0)
 
 ## 📖 Core Interfaces
 

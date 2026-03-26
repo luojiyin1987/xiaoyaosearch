@@ -48,10 +48,14 @@
 - **🎤 多模态输入**：支持语音录音、文本输入、图片上传
 - **🔍 深度检索**：支持视频（mp4、avi）、音频（mp3、wav）、文档（txt、markdown、office、pdf）的内容和文件名搜索
 - **🧠 AI增强**：集成BGE-M3、FasterWhisper、CN-CLIP、OLLAMA等先进AI模型
+  - **☁️ 云端大模型**：支持OpenAI/DeepSeek/阿里云等兼容API，与本地模型自由切换（v1.3.0）
+  - **☁️ 云端嵌入模型**：支持OpenAI/DeepSeek/阿里云等嵌入API，提升搜索质量（v1.6.0）
 - **⚡ 高性能**：基于Faiss向量搜索和Whoosh全文搜索的混合检索架构
-- **🔒 隐私安全**：本地运行，数据不上传云端，支持隐私模式
+- **🔒 隐私可控**：本地运行默认数据不上传，支持云端API选项，性能与隐私权衡由您选择
 - **🎨 现代界面**：基于Electron + Vue 3 + TypeScript的现代化桌面应用
-- **🤖 MCP 服务器支持**：支持 Model Context Protocol，可被 Claude Desktop 连接进行本地文件智能搜索
+- **🤖 AI生态集成**：
+  - **MCP 服务器支持**：支持 Model Context Protocol，可被 Claude Desktop 连接进行本地文件智能搜索（v1.4.0）
+  - **Agent Skills 支持**：为 Claude Code、VS Code、Cursor 等 AI 助手提供标准化工具调用能力（v1.5.0）
 
 ## 📖 核心界面
 
