@@ -311,6 +311,12 @@ class AIModelService:
         if not model:
             raise AIModelException("文本嵌入模型不可用")
 
+        # 添加日志显示当前使用的嵌入模型信息
+        provider = getattr(model, 'provider', 'unknown')
+        model_name = getattr(model, 'model_name', 'unknown')
+        endpoint = model.config.get('endpoint', 'N/A') if hasattr(model, 'config') else 'N/A'
+        logger.info(f"[嵌入模型] provider={provider}, model={model_name}, endpoint={endpoint}")
+
         return await model.predict(texts, **kwargs)
 
     async def batch_text_embedding(self, texts: List[str], batch_size: int = 32, **kwargs) -> List[List[float]]:
