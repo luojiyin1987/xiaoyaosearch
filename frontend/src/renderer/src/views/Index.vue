@@ -1,12 +1,26 @@
 <template>
   <div class="index-container">
     <div class="index-header">
-      <h2>{{ t('index.title') }}</h2>
-      <p>{{ t('index.subtitle') }}</p>
-      <a-button type="primary" @click="showAddFolderModal = true">
-        <PlusOutlined />
-        {{ t('index.addPath') }}
-      </a-button>
+      <div class="header-title">
+        <h2>{{ t('index.title') }}</h2>
+        <p>{{ t('index.subtitle') }}</p>
+      </div>
+      <a-space>
+        <a-button
+          type="default"
+          danger
+          @click="confirmRebuildAll"
+          :loading="isRebuilding"
+          :disabled="indexList.length === 0"
+        >
+          <ReloadOutlined />
+          {{ t('index.rebuildAll') }}
+        </a-button>
+        <a-button type="primary" @click="showAddFolderModal = true">
+          <PlusOutlined />
+          {{ t('index.addPath') }}
+        </a-button>
+      </a-space>
     </div>
 
     <!-- 统计信息 -->
@@ -229,7 +243,8 @@ import {
   DownOutlined,
   EyeOutlined,
   StopOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  ReloadOutlined
 } from '@ant-design/icons-vue'
 import { IndexService } from '@/api/index'
 import { getIndexStatusInfo, formatIndexSize } from '@/utils/indexUtils'
@@ -277,6 +292,7 @@ const newFolder = reactive({
 // 索引列表 - 从API加载
 const indexList = ref([])
 const loading = ref(false)
+const isRebuilding = ref(false)
 
 
 // 表格配置
@@ -550,6 +566,41 @@ const handleTableChange = async (pag: any) => {
   await loadIndexList()
 }
 
+// 重建所有索引
+const confirmRebuildAll = () => {
+  Modal.confirm({
+    title: t('index.rebuildAllConfirm'),
+    content: t('index.rebuildAllWarning'),
+    okText: t('common.confirm'),
+    okType: 'danger',
+    okButtonProps: { danger: true },
+    cancelText: t('common.cancel'),
+    onOk() {
+      handleRebuildAll()
+    }
+  })
+}
+
+const handleRebuildAll = async () => {
+  try {
+    isRebuilding.value = true
+    const response = await IndexService.rebuildAll()
+
+    if (response.success) {
+      message.success(response.message || t('index.rebuildAllSuccess'))
+      // 刷新系统状态和索引列表
+      await refreshData()
+    } else {
+      message.error(response.message || t('index.rebuildAllFailed'))
+    }
+  } catch (error) {
+    console.error('重建索引失败:', error)
+    message.error(t('index.rebuildAllFailed'))
+  } finally {
+    isRebuilding.value = false
+  }
+}
+
 // 组件挂载时加载数据
 onMounted(() => {
   refreshData()
@@ -580,12 +631,12 @@ onMounted(() => {
   margin-bottom: var(--space-6);
 }
 
-.index-header h2 {
+.header-title h2 {
   margin: 0;
   color: var(--text-primary);
 }
 
-.index-header p {
+.header-title p {
   margin: var(--space-1) 0 0;
   color: var(--text-secondary);
 }

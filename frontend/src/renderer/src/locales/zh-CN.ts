@@ -277,7 +277,12 @@ export default {
     autoUpdate: '自动更新',
     updateInterval: '更新间隔',
     realtime: '实时更新',
-    durationMinutes: '{minutes}分{seconds}秒'
+    durationMinutes: '{minutes}分{seconds}秒',
+    rebuildAll: '重建索引',
+    rebuildAllConfirm: '重建索引',
+    rebuildAllWarning: '此操作将删除所有现有索引并重新创建，重建期间搜索功能可能受影响，是否继续？',
+    rebuildAllSuccess: '重建索引任务已创建',
+    rebuildAllFailed: '重建索引失败'
   },
 
   // 系统信息
@@ -574,7 +579,13 @@ export default {
     testConnection: '测试连接',
     saveSuccessRestart: '嵌入模型配置保存成功，重启应用后生效',
     pleaseSaveFirst: '请先保存嵌入模型配置',
-    testData: '这是一个测试文本，用于验证文本嵌入模型的功能。'
+    testData: '这是一个测试文本，用于验证文本嵌入模型的功能。',
+    modelChanged: '嵌入模型已更改，需要重建索引',
+    rebuildTip: '新模型的向量空间与现有索引不兼容，请重建索引以获得最佳搜索效果。',
+    restartApp: '重启应用',
+    goToIndexManagement: '前往索引管理',
+    manualRestart: '请手动关闭并重新打开应用',
+    manualNavigate: '请从侧边栏导航到索引管理页面'
   },
 
   // 设置页面 - 通用设置

@@ -231,6 +231,33 @@
 
       <!-- 内嵌模型设置 -->
       <a-tab-pane key="embedding" :tab="t('settingsEmbedding.title')">
+        <!-- 模型变化提示 -->
+        <a-alert
+          v-if="embeddingModelChanged"
+          type="warning"
+          show-icon
+          closable
+          class="model-change-alert"
+          @close="embeddingModelChanged = false"
+        >
+          <template #message>
+            <div class="alert-content">
+              <span>{{ t('settingsEmbedding.modelChanged') }}</span>
+              <div class="alert-actions">
+                <a-button type="primary" size="small" @click="restartApp">
+                  {{ t('settingsEmbedding.restartApp') }}
+                </a-button>
+                <a-button size="small" @click="goToIndexManagement">
+                  {{ t('settingsEmbedding.goToIndexManagement') }}
+                </a-button>
+              </div>
+            </div>
+          </template>
+          <template #description>
+            <p>{{ t('settingsEmbedding.rebuildTip') }}</p>
+          </template>
+        </a-alert>
+
         <div class="settings-section">
           <h3>{{ t('settingsEmbedding.title') }}</h3>
           <a-form layout="vertical">
@@ -449,6 +476,11 @@ const embeddingConfig = reactive({
   isTesting: false
 })
 
+// 模型切换状态追踪
+const embeddingModelChanged = ref(false)
+const originalEmbeddingProvider = ref('local')
+const originalEmbeddingModel = ref('')
+
 // 存储所有AI模型配置
 const aiModels = ref<AIModelInfo[]>([])
 
@@ -500,9 +532,15 @@ const loadAIModels = async () => {
               embeddingConfig.model_name_cloud = model.model_name
               embeddingConfig.api_key = config.api_key || ''
               embeddingConfig.endpoint = config.endpoint || 'https://api.openai.com/v1'
+              // 保存原始配置用于变化检测
+              originalEmbeddingProvider.value = model.provider || 'local'
+              originalEmbeddingModel.value = model.model_name
             } else {
               embeddingConfig.model_name_local = model.model_name
               embeddingConfig.device = config.device || 'cpu'
+              // 保存原始配置用于变化检测
+              originalEmbeddingProvider.value = model.provider || 'local'
+              originalEmbeddingModel.value = model.model_name
             }
             break
         }
@@ -721,6 +759,13 @@ const saveEmbeddingConfig = async () => {
 
     if (response.success) {
       message.success(t('settingsEmbedding.saveSuccessRestart'))
+
+      // 检测模型是否发生变化
+      const currentModelName = embeddingConfig.provider === 'cloud' ? embeddingConfig.model_name_cloud : embeddingConfig.model_name_local
+      if (originalEmbeddingProvider.value !== embeddingConfig.provider || originalEmbeddingModel.value !== currentModelName) {
+        embeddingModelChanged.value = true
+      }
+
       // 重新加载模型配置
       await loadAIModels()
     } else {
@@ -760,6 +805,27 @@ const testEmbeddingModel = async () => {
     message.error(t('error.embeddingModelTestFailed'))
   } finally {
     embeddingConfig.isTesting = false
+  }
+}
+
+// 重启应用
+const restartApp = () => {
+  const api = (window as any).api
+  if (api && typeof api.restartApp === 'function') {
+    api.restartApp()
+  } else {
+    message.info(t('settingsEmbedding.manualRestart'))
+  }
+}
+
+// 前往索引管理页面
+const goToIndexManagement = () => {
+  // 使用路由跳转到索引页面
+  const router = (window as any).$router
+  if (router) {
+    router.push('/index')
+  } else {
+    message.info(t('settingsEmbedding.manualNavigate'))
   }
 }
 
@@ -817,6 +883,23 @@ onMounted(() => {
   margin-left: var(--space-2);
   color: var(--text-tertiary);
   font-size: 0.875rem;
+}
+
+/* 模型变化警告框样式 */
+.model-change-alert {
+  margin-bottom: var(--space-4);
+}
+
+.model-change-alert .alert-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.model-change-alert .alert-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 /* 云端服务说明卡片样式 */

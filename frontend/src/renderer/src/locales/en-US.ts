@@ -277,7 +277,12 @@ export default {
     autoUpdate: 'Auto Update',
     updateInterval: 'Update Interval',
     realtime: 'Real-time Update',
-    durationMinutes: '{minutes}m {seconds}s'
+    durationMinutes: '{minutes}m {seconds}s',
+    rebuildAll: 'Rebuild All',
+    rebuildAllConfirm: 'Rebuild All Indexes',
+    rebuildAllWarning: 'This will delete all existing indexes and recreate them. Search functionality may be affected during rebuild. Continue?',
+    rebuildAllSuccess: 'Rebuild tasks created',
+    rebuildAllFailed: 'Failed to rebuild indexes'
   },
 
   // System Information
@@ -568,7 +573,13 @@ export default {
     testConnection: 'Test Connection',
     saveSuccessRestart: 'Embedding model configuration saved successfully, restart application to take effect',
     pleaseSaveFirst: 'Please save embedding model configuration first',
-    testData: 'This is a test text used to verify the functionality of the text embedding model.'
+    testData: 'This is a test text used to verify the functionality of the text embedding model.',
+    modelChanged: 'Embedding model changed, index rebuild required',
+    rebuildTip: 'The new model has a different vector space incompatible with existing indexes. Please rebuild indexes for optimal search results.',
+    restartApp: 'Restart App',
+    goToIndexManagement: 'Go to Index Management',
+    manualRestart: 'Please manually close and reopen the application',
+    manualNavigate: 'Please navigate to Index Management from the sidebar'
   },
 
   // Settings Page - General Settings

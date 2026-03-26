@@ -126,4 +126,9 @@ export class IndexService {
       message: response.message
     }
   }
+
+  // 全量重建所有索引
+  static async rebuildAll() {
+    return await httpClient.post('/api/index/rebuild-all')
+  }
 }
