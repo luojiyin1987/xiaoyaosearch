@@ -60,6 +60,16 @@
 - **[OpenAI增量接口文档](docs/特性开发/openai/openai-增量-接口文档.md)** - API接口增量设计
 - **[OpenAI增量数据库设计](docs/特性开发/openai/openai-增量-数据库设计文档.md)** - 数据库表结构增量设计
 
+### 云端嵌入模型调用能力 🔥 开发中（第一优先级）
+- **[云端嵌入PRD](docs/特性开发/embedding-openai/embedding-openai-01-prd.md)** - 云端嵌入模型调用能力产品需求（774行）
+- **[云端嵌入原型](docs/特性开发/embedding-openai/embedding-openai-02-原型.md)** - 原型设计和UI规范
+- **[云端嵌入技术方案](docs/特性开发/embedding-openai/embedding-openai-03-技术方案.md)** - aiohttp + OpenAI API技术实现
+- **[云端嵌入任务清单](docs/特性开发/embedding-openai/embedding-openai-04-开发任务清单.md)** - 开发任务分解
+- **[云端嵌入排期表](docs/特性开发/embedding-openai/embedding-openai-05-开发排期表.md)** - 时间规划和里程碑
+- **[云端嵌入实施步骤](docs/特性开发/embedding-openai/embedding-openai-06-实施步骤.md)** - 完整实施步骤
+- **[云端嵌入增量接口文档](docs/特性开发/embedding-openai/embedding-openai-增量-接口文档.md)** - API接口增量设计
+- **[云端嵌入增量数据库设计](docs/特性开发/embedding-openai/embedding-openai-增量-数据库设计文档.md)** - 数据库表结构增量设计
+
 ### 插件化架构与语雀数据源 🚧
 - **[插件化PRD](docs/特性开发/plugins+yuque/plugins+yuque-01-prd.md)** - 插件化架构与语雀数据源产品需求（663行）
 - **[插件化原型](docs/特性开发/plugins+yuque/plugins+yuque-02-原型.md)** - 原型设计和UI规范
@@ -67,7 +77,7 @@
 - **[插件化任务清单](docs/特性开发/plugins+yuque/plugins+yuque-04-开发任务清单.md)** - 开发任务分解
 - **[插件化排期表](docs/特性开发/plugins+yuque/plugins+yuque-05-开发排期表.md)** - 时间规划和里程碑
 
-### Agent Skill：小遥搜索 MCP 能力 🔥 开发中
+### Agent Skill：小遥搜索 MCP 能力 🚧 规划中
 - **[Agent Skill PRD](docs/特性开发/agent-skills/agent-skills-01-prd.md)** - Agent Skill 产品需求
 - **[Agent Skill 技术方案](docs/特性开发/agent-skills/agent-skills-03-技术方案.md)** - Agent Skill 技术实现
 - **[Agent Skill 实施步骤](docs/特性开发/agent-skills/agent-skills-06-实施步骤.md)** - 开发任务分解
@@ -219,6 +229,9 @@ npm run dev
 | 插件化架构PRD | [插件化PRD](docs/特性开发/plugins+yuque/plugins+yuque-01-prd.md) |
 | 插件化架构技术方案 | [插件化技术方案](docs/特性开发/plugins+yuque/plugins+yuque-03-技术方案.md) |
 | 视频画面搜索PRD | [视频搜索PRD](docs/特性开发/videosearch/videosearch-01-prd.md) |
+| **云端嵌入PRD** | **[云端嵌入模型PRD](docs/特性开发/embedding-openai/embedding-openai-01-prd.md)** |
+| **云端嵌入技术方案** | **[云端嵌入技术方案](docs/特性开发/embedding-openai/embedding-openai-03-技术方案.md)** |
+| **云端嵌入实施步骤** | **[云端嵌入实施步骤](docs/特性开发/embedding-openai/embedding-openai-06-实施步骤.md)** |
 | **Agent Skill PRD** | **[Agent Skill PRD](docs/特性开发/agent-skills/agent-skills-01-prd.md)** |
 | **Agent Skill技术方案** | **[Agent Skill技术方案](docs/特性开发/agent-skills/agent-skills-03-技术方案.md)** |
 | **MCP服务器支持PRD** | **[MCP PRD](docs/特性开发/mcp/mcp-01-prd.md)** |
@@ -239,6 +252,9 @@ npm run dev
 - 🗄️ OpenAI数据库设计 → [OpenAI兼容大模型服务数据库设计](docs/特性开发/openai/openai-增量-数据库设计文档.md)
 - 🔌 插件化架构 → [插件化架构PRD](docs/特性开发/plugins+yuque/plugins+yuque-01-prd.md)
 - 🎬 视频搜索 → [视频画面搜索PRD](docs/特性开发/videosearch/videosearch-01-prd.md)
+- 🔥 云端嵌入模型PRD → [云端嵌入模型调用能力PRD](docs/特性开发/embedding-openai/embedding-openai-01-prd.md)
+- ⚙️ 云端嵌入技术方案 → [云端嵌入技术方案](docs/特性开发/embedding-openai/embedding-openai-03-技术方案.md)
+- 📋 云端嵌入实施步骤 → [云端嵌入实施步骤](docs/特性开发/embedding-openai/embedding-openai-06-实施步骤.md)
 - 🔥 Agent Skill PRD → [Agent Skill PRD](docs/特性开发/agent-skills/agent-skills-01-prd.md)
 - ⚙️ Agent Skill技术方案 → [Agent Skill技术方案](docs/特性开发/agent-skills/agent-skills-03-技术方案.md)
 - ✅ MCP服务器支持PRD → [MCP服务器支持PRD](docs/特性开发/mcp/mcp-01-prd.md)
@@ -247,13 +263,21 @@ npm run dev
 
 ---
 
-**文档版本**：v12.0 (Agent Skill 开发版)
+**文档版本**：v14.0 (云端嵌入模型开发版)
 **维护者**：AI助手
 **重要提醒**：所有AI回复、文档编写、代码注释必须使用中文
 
-**当前开发重点**：🔥 Agent Skill：小遥搜索 MCP 能力（第一优先级）
+**当前开发重点**：🔥 云端嵌入模型调用能力（第一优先级）
 
 **特性开发说明**：
+- 🔥 **云端嵌入模型调用能力** 🔥 开发中（第一优先级）
+  - **技术栈**：aiohttp + OpenAI API + Pydantic + tenacity
+  - **核心能力**：云端嵌入模型集成、本地/云端互斥切换、批量文本嵌入、API调用重试
+  - **配置参数**：provider（local/cloud）、api_key、endpoint、model、维度处理模式
+  - **开发状态**：需求分析、原型设计、技术方案、项目排期完成，PRD文档完成（774行），原型文档完成，技术方案完成，任务清单完成，排期表完成，实施方案完成，增量接口文档完成，增量数据库设计完成
+  - **全局文档**：已同步到PRD、原型、技术方案
+  - **特性文档**：PRD、原型、技术方案、任务清单、排期表、实施方案、增量接口文档、增量数据库设计文档
+  - **开发进度**：20% 开发中
 - 🤖 **OpenAI兼容大模型服务** 🚧 规划中
   - **技术栈**：aiohttp + Pydantic + OpenAI API标准
   - **核心能力**：云端大模型集成、动态表单、API密钥加密
@@ -286,6 +310,49 @@ npm run dev
   - **开发状态**：需求分析和设计完成
   - **全局文档**：待同步
   - **特性文档**：PRD、技术方案、实施步骤
+
+---
+
+## 📌 当前开发特性说明
+
+#### 云端嵌入模型调用能力 🔥 开发中（第一优先级）
+
+**功能定位**：
+为小遥搜索添加云端嵌入模型调用能力，用户可在"嵌入模型"配置选项卡中选择使用本地或云端API（OpenAI/DeepSeek/阿里云等），两者互斥。
+
+**核心价值**：
+- 降低使用门槛：低配设备用户可通过云端API获得高质量搜索体验
+- 提升搜索质量：云端模型（如OpenAI text-embedding-3）在语义理解上更优
+- 扩展用户群体：吸引对搜索质量有高要求的专业用户
+- 建立商业模式：为未来推出云服务订阅制奠定基础
+
+**技术实现**：
+- **云端嵌入服务**：实现OpenAIEmbeddingService服务类，支持OpenAI兼容API
+- **本地/云端互斥**：provider='local'时使用BGE-M3，provider='cloud'时使用云端API
+- **批处理优化**：支持批量文本嵌入，提升API调用效率
+- **错误重试**：使用tenacity实现API调用失败自动重试
+- **索引重建**：切换模型时自动重建Faiss索引（方案B：独立端点）
+
+**配置管理**：
+- `EMBEDDING_PROVIDER`: 嵌入模型提供商（local/cloud）
+- `EMBEDDING_API_KEY`: 云端API密钥（加密存储）
+- `EMBEDDING_ENDPOINT`: 云端API端点地址
+- `EMBEDDING_MODEL`: 云端模型名称
+- `EMBEDDING_DIM_MODE`: 维度处理模式（截断/投影/原生）
+
+**设计完成度**：
+- ✅ 全局PRD文档同步
+- ✅ 全局技术方案同步
+- ✅ 云端嵌入PRD文档完成（774行）
+- ✅ 云端嵌入原型文档完成
+- ✅ 云端嵌入技术方案完成
+- ✅ 云端嵌入任务清单完成
+- ✅ 云端嵌入排期表完成
+- ✅ 云端嵌入实施方案完成
+- ✅ 云端嵌入增量接口文档完成
+- ✅ 云端嵌入增量数据库设计完成
+- 🚧 云端嵌入开发中（20%）
+
 
 - ✅ **MCP 服务器支持** 已完成
   - **技术栈**：mcp-python-sdk + SSE + FastAPI 集成 + 适配器模式

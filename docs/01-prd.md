@@ -33,10 +33,11 @@
 - [ ] 本地文件索引：支持对指定文件夹建立文件索引，包含文件名和内容
 - [ ] 多格式文件搜索：支持视频（mp4、avi）、音频（mp3、wav）、文档（txt、markdown、office、pdf）
 - [ ] 搜索结果展示：按相关度排序，支持预览和快速定位
-- [ ] AI模型配置：支持云端API和本地Ollama模型切换
+- [ ] AI模型配置：支持云端API和本地Ollama模型切换；嵌入模型支持本地BGE-M3和云端API切换（互斥，切换需重建索引） 🚧 规划中
 
 ### P1功能（最好有）
 - [x] **国际化支持（i18n）**：中英文双语界面，语言切换器，720+翻译键全覆盖 ✅ 已完成
+- [ ] **云端嵌入模型调用能力** 🚧 规划中 - 支持OpenAI兼容的云端嵌入模型服务，用户可选择使用云端嵌入模型（如OpenAI、DeepSeek、阿里云通义千问、Moonshot等）替代本地BGE-M3模型，两者互斥，切换时需要重建索引（详见[特性PRD](特性开发/embedding-openai/embedding-openai-01-prd.md)）
 - [ ] **OpenAI兼容大模型服务** 🚧 规划中 - 支持OpenAI兼容的云端大语言模型服务，用户可选择使用云端大模型（如阿里云通义千问、DeepSeek、Moonshot等）替代或补充本地Ollama模型（详见[特性PRD](特性开发/openai/openai-01-prd.md)）
 - [ ] **插件化架构与语雀数据源** 🚧 规划中 - 建立插件化框架支持多数据源扩展，优先实现语雀知识库数据源（详见[特性PRD](特性开发/plugins+yuque/plugins+yuque-01-prd.md)）
 - [ ] **MCP服务器支持** 🚧 规划中 - 为小遥搜索添加 Model Context Protocol (MCP) 服务器能力，使 Claude Desktop 等 AI 应用能够连接小遥搜索进行本地文件智能搜索（详见[特性PRD](特性开发/mcp/mcp-01-prd.md)）
@@ -70,6 +71,12 @@
 - 快捷操作按钮（预览、打开位置、收藏）
 
 ### 设置页面
+- **嵌入模型设置** 🚧 规划中
+  - 模型类型选择：本地 BGE-M3 或云端API（互斥，切换时需重建索引）
+  - 本地配置：模型名称、运行设备（CPU/CUDA）
+  - 云端配置：API密钥、端点地址、模型名称、超时时间、批处理大小
+  - 支持供应商：OpenAI、DeepSeek、阿里云通义千问、Moonshot等兼容服务
+  - 详见：[云端嵌入模型PRD](特性开发/embedding-openai/embedding-openai-01-prd.md)
 - **LLM模型设置**
   - 模型类型选择：Ollama（本地）或 OpenAI 兼容（云端） 🚧 规划中
   - 本地Ollama配置：模型名称、服务地址
@@ -117,7 +124,19 @@
 | language_switch | 用户切换语言 | from_lang, to_lang |
 | language_init | 应用初始化语言 | current_lang, device_lang |
 
-### 6.2 插件化架构增量埋点
+### 6.2 云端嵌入模型增量埋点
+
+| 事件 | 触发时机 | 关键参数 | 业务价值 |
+|------|---------|---------|---------|
+| cloud_embedding_configured | 用户配置云端嵌入模型 | provider, model_name | 了解用户偏好 |
+| cloud_embedding_test | 测试云端嵌入连接 | provider, success | 监控配置成功率 |
+| cloud_embedding_used | 使用云端嵌入搜索 | provider, model_name, query_length | 统计使用频率 |
+| cloud_embedding_failed | 云端嵌入调用失败 | provider, error_code | 监控服务质量 |
+| embedding_model_switched | 切换嵌入模型 | old_provider, new_provider, index_rebuilt | 监控模型切换行为 |
+| index_rebuild_started | 开始索引重建 | total_files, estimated_time | 监控重建性能 |
+| index_rebuild_completed | 索引重建完成 | total_files, duration, failed_files | 监控重建质量 |
+
+### 6.3 插件化架构增量埋点
 
 | 事件 | 触发时机 | 关键参数 | 业务价值 |
 |------|---------|---------|---------|
@@ -137,6 +156,9 @@
 - 插件加载时间 < 500ms（插件化架构）
 - 数据源同步速度 > 30篇/秒（语雀数据源）
 - 多数据源搜索延迟 < 200ms（插件化架构）
+- 云端嵌入API响应时间 < 2s（单次）（云端嵌入模型）
+- 批量嵌入吞吐量 > 100 texts/min（云端嵌入模型）
+- 索引重建速度 > 10 files/min（云端嵌入模型）
 
 ### 兼容性要求
 - Windows 10/11 x64
@@ -147,10 +169,14 @@
 
 ### 安全要求
 - 本地数据加密存储
-- API密钥安全保存
-- 用户数据不上传云端
+- API密钥安全保存（AES加密存储，日志脱敏显示）
+- 用户数据不上传云端（仅上传搜索查询用于云端嵌入，索引数据本地存储）
 - 支持隐私模式（不记录搜索历史）
 - API Token加密存储（使用系统密钥库）（插件化架构）
+- API密钥加密存储（云端嵌入模型）（云端嵌入模型）
+- 插件代码沙箱隔离（限制文件系统访问）（插件化架构）
+- 插件上传包验证（文件类型、大小限制）（插件化架构）
+- API调用频率限制（防止滥用）（插件化架构）
 - 插件代码沙箱隔离（限制文件系统访问）（插件化架构）
 - 插件上传包验证（文件类型、大小限制）（插件化架构）
 - API调用频率限制（防止滥用）（插件化架构）
@@ -171,6 +197,14 @@
   - 配置管理：前端动态表单根据类型显示不同配置项，API密钥加密存储
   - 供应商支持：OpenAI、阿里云通义千问、DeepSeek、Moonshot等兼容供应商
   - 详见：[OpenAI兼容大模型服务PRD](特性开发/openai/openai-01-prd.md)
+- **云端嵌入模型调用能力** 🚧 规划中
+  - 核心能力：支持OpenAI兼容的云端嵌入模型服务，用户可选择使用云端嵌入模型（如OpenAI、DeepSeek、阿里云通义千问、Moonshot等）替代本地BGE-M3模型
+  - 技术基础：OpenAI Embeddings API标准兼容，aiohttp异步HTTP客户端，BaseAIModel统一接口
+  - 模型支持：本地BGE-M3（已有，1024维）、云端嵌入模型（P0，使用模型原始维度）
+  - 配置管理：前端动态表单根据类型显示不同配置项，本地/云端互斥选择，API密钥加密存储
+  - 索引重建：切换嵌入模型时需重建索引（不同模型的向量空间不兼容），采用独立端点+内存状态管理方案
+  - 供应商支持：OpenAI、DeepSeek、阿里云通义千问、Moonshot等兼容Embeddings API的服务
+  - 详见：[云端嵌入模型PRD](特性开发/embedding-openai/embedding-openai-01-prd.md)
 - **插件化架构与数据源扩展** 🚧 规划中
   - 核心能力：建立插件化框架，支持多数据源扩展，优先实现语雀知识库数据源
   - 技术基础：Python importlib动态加载 + ABC接口抽象 + Pydantic配置验证
