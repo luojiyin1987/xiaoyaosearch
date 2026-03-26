@@ -234,6 +234,9 @@ class ChunkIndexService:
                 # 6. 更新索引元数据中的chunk_ids
                 if self.use_ai_models and faiss_success:
                     await self._update_faiss_metadata_chunk_ids(saved_chunk_ids)
+                # 7. 更新Whoosh索引中的chunk_ids
+                if whoosh_success:
+                    await self._update_whoosh_chunk_ids(all_chunks, saved_chunk_ids)
 
             return faiss_success and whoosh_success and db_success
 
@@ -908,7 +911,14 @@ class ChunkIndexService:
                         new_whoosh_ids.append(whoosh_id)
 
                     # 保存到数据库
-                    db_success = await self._save_chunks_to_database(all_chunks, new_faiss_ids, new_whoosh_ids)
+                    saved_chunk_ids = await self._save_chunks_to_database(all_chunks, new_faiss_ids, new_whoosh_ids)
+                    if saved_chunk_ids:
+                        # 更新Whoosh索引中的chunk_ids为数据库真实ID
+                        if whoosh_success:
+                            await self._update_whoosh_chunk_ids(all_chunks, saved_chunk_ids)
+                        db_success = True
+                    else:
+                        db_success = False
                     text_success = faiss_success and whoosh_success and db_success
 
             # 3. 更新CLIP图像索引
@@ -1835,6 +1845,99 @@ class ChunkIndexService:
 
         except Exception as e:
             logger.error(f"更新Faiss元数据chunk_ids失败: {e}")
+
+    async def _update_whoosh_chunk_ids(self, chunks: List[Dict[str, Any]], saved_chunk_ids: List[int]) -> bool:
+        """更新Whoosh索引中的chunk_id为数据库真实ID
+
+        Args:
+            chunks: 分块列表
+            saved_chunk_ids: 数据库中的真实chunk_id列表（与chunks顺序一致）
+        """
+        try:
+            from whoosh import index as whoosh_index
+            from whoosh.query import And, Term
+
+            if not os.path.exists(self.chunk_whoosh_index_path):
+                logger.warning("Whoosh索引不存在，跳过chunk_id更新")
+                return True
+
+            ix = whoosh_index.open_dir(self.chunk_whoosh_index_path)
+
+            # 第一步：收集所有需要更新的文档信息
+            updates = []
+            searcher = ix.searcher()
+            try:
+                for i, chunk in enumerate(chunks):
+                    if i >= len(saved_chunk_ids):
+                        break
+
+                    real_chunk_id = str(saved_chunk_ids[i])
+                    file_id = str(chunk.get('file_id', ''))
+                    chunk_index = chunk.get('chunk_index', i)
+
+                    # 构建查询条件：根据file_id和chunk_index查找文档
+                    query = And([
+                        Term('file_id', file_id),
+                        Term('chunk_index', str(chunk_index))
+                    ])
+
+                    results = searcher.search(query, limit=1)
+                    if results:
+                        old_doc = results[0]
+                        updates.append({
+                            'old_id': old_doc.get('id'),
+                            'real_chunk_id': real_chunk_id,
+                            'doc_fields': dict(old_doc)
+                        })
+            finally:
+                searcher.close()
+
+            # 第二步：使用writer更新文档
+            if updates:
+                writer = ix.writer()
+                try:
+                    for update in updates:
+                        # 删除旧文档（通过id）
+                        writer.delete_by_term('id', update['old_id'])
+
+                        # 用新的chunk_id重新添加文档
+                        fields = update['doc_fields']
+                        writer.add_document(
+                            id=fields.get('id'),
+                            chunk_id=update['real_chunk_id'],  # 使用数据库真实ID
+                            file_id=fields.get('file_id'),
+                            file_name=fields.get('file_name'),
+                            file_path=fields.get('file_path'),
+                            file_type=fields.get('file_type'),
+                            file_size=fields.get('file_size'),
+                            content=fields.get('content'),
+                            content_stored=fields.get('content_stored'),
+                            chunk_index=fields.get('chunk_index'),
+                            start_position=fields.get('start_position'),
+                            end_position=fields.get('end_position'),
+                            content_length=fields.get('content_length'),
+                            modified_time=fields.get('modified_time'),
+                            created_at=fields.get('created_at'),
+                            source_type=fields.get('source_type'),
+                            source_url=fields.get('source_url')
+                        )
+
+                    writer.commit()
+                    logger.info(f"成功更新Whoosh索引中的chunk_ids，数量: {len(updates)}")
+                    return True
+
+                except Exception as e:
+                    writer.cancel()
+                    raise e
+            else:
+                logger.info("没有需要更新的Whoosh文档")
+                return True
+
+        except Exception as e:
+            logger.error(f"更新Whoosh索引chunk_ids失败: {e}")
+            import traceback
+            logger.error(f"详细错误信息: {traceback.format_exc()}")
+            return False
 
     def delete_files_by_folder(self, folder_path: str) -> Dict[str, Any]:
         """删除指定文件夹下的所有文件分块索引
