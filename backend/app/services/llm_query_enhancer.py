@@ -1,6 +1,5 @@
 """
-LLM查询增强服务 - 简化版
-使用Ollama本地大语言模型进行查询扩展和重写
+LLM查询增强服务 - 使用云端大语言模型进行查询扩展和重写
 """
 
 import json
@@ -14,19 +13,40 @@ logger = get_logger(__name__)
 
 
 class LLMQueryEnhancer:
-    """LLM查询增强器 - 简化版
+    """LLM查询增强器
 
-    专注于查询扩展和重写功能，不包含复杂缓存机制
+    使用 ai_model_service 当前激活的 LLM 模型进行查询扩展和重写
     """
 
-    def __init__(self, model_name: str = "qwen2.5:1.5b"):
-        """初始化LLM查询增强器
+    def __init__(self):
+        """初始化LLM查询增强器"""
+        # 从 ai_model_service 获取当前激活的 LLM 模型信息
+        self.model_info = self._get_active_llm_info()
+        logger.info(f"LLM查询增强器初始化完成，使用模型: {self.model_info}")
 
-        Args:
-            model_name: Ollama模型名称
-        """
-        self.model_name = model_name
-        logger.info(f"LLM查询增强器初始化完成，使用模型: {model_name}")
+    def _get_active_llm_info(self) -> str:
+        """获取当前激活的 LLM 模型信息"""
+        try:
+            # 获取 LLM 模型配置
+            from app.models.ai_model import AIModelModel
+            from app.core.database import get_db
+
+            with next(get_db()) as db:
+                # 查询激活的 LLM 模型
+                llm_model = db.query(AIModelModel).filter(
+                    AIModelModel.model_type == 'llm',
+                    AIModelModel.is_active == True
+                ).first()
+
+                if llm_model:
+                    provider = llm_model.provider
+                    model_name = llm_model.model_name
+                    return f"{provider}:{model_name}"
+                else:
+                    return "未配置LLM模型"
+        except Exception as e:
+            logger.warning(f"获取LLM模型信息失败: {e}")
+            return "未知模型"
 
     async def enhance_query(self, query: str) -> Dict[str, any]:
         """增强搜索查询

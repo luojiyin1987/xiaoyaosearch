@@ -319,7 +319,7 @@
                 />
               </a-form-item>
 
-              <a-form-item :label="t('settingsEmbedding.endpoint')">
+              <a-form-item :label="t('settingsEmbedding.endpoint')" required>
                 <a-input
                   v-model:value="embeddingConfig.endpoint"
                   :placeholder="t('settingsEmbedding.endpointPlaceholder')"
@@ -333,24 +333,6 @@
                   :placeholder="t('settingsEmbedding.modelPlaceholderCloud')"
                 />
                 <div class="form-help">{{ t('settingsEmbedding.modelHelpCloud') }}</div>
-              </a-form-item>
-
-              <a-form-item :label="t('settingsEmbedding.timeout')">
-                <a-input-number
-                  v-model:value="embeddingConfig.timeout"
-                  :min="1"
-                  :max="120"
-                  style="width: 200px"
-                />
-              </a-form-item>
-
-              <a-form-item :label="t('settingsEmbedding.batchSize')">
-                <a-input-number
-                  v-model:value="embeddingConfig.batch_size"
-                  :min="1"
-                  :max="1000"
-                  style="width: 200px"
-                />
               </a-form-item>
             </template>
           </a-form>
@@ -463,8 +445,6 @@ const embeddingConfig = reactive({
   device: 'cpu',
   api_key: '',
   endpoint: 'https://api.openai.com/v1',
-  timeout: 30,
-  batch_size: 100,
   isLoading: false,
   isTesting: false
 })
@@ -520,8 +500,6 @@ const loadAIModels = async () => {
               embeddingConfig.model_name_cloud = model.model_name
               embeddingConfig.api_key = config.api_key || ''
               embeddingConfig.endpoint = config.endpoint || 'https://api.openai.com/v1'
-              embeddingConfig.timeout = config.timeout || 30
-              embeddingConfig.batch_size = config.batch_size || 100
             } else {
               embeddingConfig.model_name_local = model.model_name
               embeddingConfig.device = config.device || 'cpu'
@@ -735,9 +713,7 @@ const saveEmbeddingConfig = async () => {
     } else {
       config.config = {
         api_key: embeddingConfig.api_key,
-        endpoint: embeddingConfig.endpoint,
-        timeout: embeddingConfig.timeout,
-        batch_size: embeddingConfig.batch_size
+        endpoint: embeddingConfig.endpoint
       }
     }
 
