@@ -362,6 +362,8 @@ class ChunkSearchService:
                             chunk_info['match_type'] = 'semantic'
                             results.append(chunk_info)
 
+            logger.info(f"搜索完成: 结果数={len(results)}")
+
             return results[:limit * 2]  # 返回更多结果用于后续处理
 
         except Exception as e:
@@ -484,8 +486,13 @@ class ChunkSearchService:
     
     
     def _merge_chunk_search_results(self, semantic_results: List[Dict], fulltext_results: List[Dict]) -> List[Dict]:
-        """合并分块搜索结果"""
-        # 使用分块ID去重
+        """合并分块搜索结果
+
+        合并策略：
+        1. 语义搜索结果：优先添加，轻微提升权重
+        2. 全文搜索结果：补充添加，轻微降权避免"伪100%"
+        3. 使用chunk_id去重
+        """
         seen_ids = set()
         merged = []
 
@@ -495,7 +502,8 @@ class ChunkSearchService:
             if chunk_id and chunk_id not in seen_ids:
                 seen_ids.add(chunk_id)
                 result['match_type'] = 'hybrid'
-                result['relevance_score'] = min(result['relevance_score'] * 1.2, 1.0)
+                # 语义搜索轻微提升10%权重
+                result['relevance_score'] = min(result['relevance_score'] * 1.1, 1.0)
                 merged.append(result)
 
         # 添加全文搜索结果（去重）
@@ -503,6 +511,8 @@ class ChunkSearchService:
             chunk_id = result.get('chunk_id')
             if chunk_id and chunk_id not in seen_ids:
                 seen_ids.add(chunk_id)
+                # 全文搜索轻微降权5%
+                result['relevance_score'] = result['relevance_score'] * 0.95
                 merged.append(result)
 
         # 按相关性得分排序
