@@ -576,6 +576,8 @@ export default {
     timeout: '超时时间（秒）',
     batchSize: '批处理大小',
     batchSizeHelp: '每次API调用的文本数量限制，不同云服务限制不同（阿里云：10，OpenAI：100+）',
+    concurrentRequests: '并发请求数',
+    concurrentRequestsHelp: '同时发送的API请求数量，提高处理速度但会增加API调用消耗',
     // 操作
     testConnection: '测试连接',
     saveSuccessRestart: '嵌入模型配置保存成功，重启应用后生效',

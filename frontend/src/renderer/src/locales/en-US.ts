@@ -570,6 +570,8 @@ export default {
     timeout: 'Timeout (seconds)',
     batchSize: 'Batch Size',
     batchSizeHelp: 'Text count limit per API call. Different cloud services have different limits (Alibaba Cloud: 10, OpenAI: 100+)',
+    concurrentRequests: 'Concurrent Requests',
+    concurrentRequestsHelp: 'Number of API requests sent simultaneously. Increases processing speed but consumes more API quota',
     // Actions
     testConnection: 'Test Connection',
     saveSuccessRestart: 'Embedding model configuration saved successfully, restart application to take effect',

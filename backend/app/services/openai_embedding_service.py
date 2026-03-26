@@ -65,6 +65,7 @@ class OpenAIEmbeddingService(BaseAIModel):
             "model": model,
             "timeout": 30,
             "batch_size": 10,  # 修改：降低批处理大小以兼容更多云端 API（阿里云限制为 10）
+            "concurrent_requests": 4,  # 并发请求数量
             "embedding_dim": None,  # 将从 API 自动检测
             "max_retries": 3,
             "retry_min_wait": 2,
@@ -268,37 +269,73 @@ class OpenAIEmbeddingService(BaseAIModel):
             if not texts:
                 raise AIModelException("输入文本不能为空", model_name=self.model_name)
 
-            # 获取批处理大小
+            # 获取批处理大小和并发数
             batch_size = kwargs.get("batch_size", self.config.get("batch_size", 10))
+            concurrent_limit = kwargs.get("concurrent_requests", self.config.get("concurrent_requests", 4))
 
-            logger.info(f"开始云端嵌入预测，文本数量: {len(texts)}，批大小: {batch_size}")
+            logger.info(f"开始云端嵌入预测，文本数量: {len(texts)}，批大小: {batch_size}，并发数: {concurrent_limit}")
 
-            # 批处理
-            all_embeddings = []
-
+            # 准备所有批次
+            batches = []
             for i in range(0, len(texts), batch_size):
-                batch_texts = texts[i:i + batch_size]
-                batch_num = i // batch_size + 1
-                total_batches = (len(texts) + batch_size - 1) // batch_size
+                batches.append({
+                    "index": i,
+                    "texts": texts[i:i + batch_size],
+                    "batch_num": i // batch_size + 1
+                })
+            total_batches = len(batches)
 
-                try:
-                    logger.debug(f"处理批次 {batch_num}/{total_batches}: {len(batch_texts)} 个文本")
-                    result = await self._call_embeddings_api(batch_texts)
+            # 创建信号量控制并发
+            semaphore = asyncio.Semaphore(concurrent_limit)
 
-                    # 提取 embeddings（按索引排序）
-                    embeddings_data = result.get("data", [])
-                    embeddings_data_sorted = sorted(embeddings_data, key=lambda x: x["index"])
+            async def process_batch(batch_info: dict) -> tuple:
+                """处理单个批次"""
+                async with semaphore:
+                    batch_index = batch_info["index"]
+                    batch_texts = batch_info["texts"]
+                    batch_num = batch_info["batch_num"]
 
-                    embeddings = [item["embedding"] for item in embeddings_data_sorted]
+                    try:
+                        logger.debug(f"处理批次 {batch_num}/{total_batches}: {len(batch_texts)} 个文本")
+                        result = await self._call_embeddings_api(batch_texts)
+
+                        # 提取 embeddings（按索引排序）
+                        embeddings_data = result.get("data", [])
+                        embeddings_data_sorted = sorted(embeddings_data, key=lambda x: x["index"])
+
+                        embeddings = [item["embedding"] for item in embeddings_data_sorted]
+                        return (batch_index, embeddings, None)
+
+                    except Exception as e:
+                        logger.error(f"批次 {batch_num} 嵌入失败: {str(e)}")
+                        error_msg = str(e)
+                        # 返回空向量（保持批次对齐）
+                        if self._embedding_dim:
+                            empty_embeddings = [[0.0] * self._embedding_dim] * len(batch_texts)
+                            return (batch_index, empty_embeddings, error_msg)
+                        else:
+                            return (batch_index, None, error_msg)
+
+            # 并发处理所有批次
+            tasks = [process_batch(batch_info) for batch_info in batches]
+            results = await asyncio.gather(*tasks)
+
+            # 按原始顺序排序结果
+            results.sort(key=lambda x: x[0])
+
+            # 收集所有嵌入向量
+            all_embeddings = []
+            errors = []
+            for batch_index, embeddings, error in results:
+                if embeddings is not None:
                     all_embeddings.extend(embeddings)
+                if error:
+                    errors.append(f"批次 {batch_index // batch_size + 1}: {error}")
 
-                except Exception as e:
-                    logger.error(f"批次 {batch_num} 嵌入失败: {str(e)}")
-                    # 返回空向量（保持批次对齐）
-                    if self._embedding_dim:
-                        all_embeddings.extend([[0.0] * self._embedding_dim] * len(batch_texts))
-                    else:
-                        raise AIModelException(f"批次 {batch_num} 嵌入失败且未知向量维度", error_code="EMBEDDING_FAILED")
+            if errors and not all_embeddings:
+                raise AIModelException(f"所有批次嵌入失败: {'; '.join(errors)}", error_code="EMBEDDING_FAILED")
+            elif errors:
+                logger.warning(f"部分批次嵌入失败: {'; '.join(errors)}")
 
             # 转换为 numpy 数组
             embeddings_array = np.array(all_embeddings, dtype=np.float32)

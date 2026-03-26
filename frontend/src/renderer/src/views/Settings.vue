@@ -372,6 +372,17 @@
                 />
                 <div class="form-help">{{ t('settingsEmbedding.batchSizeHelp') }}</div>
               </a-form-item>
+
+              <a-form-item :label="t('settingsEmbedding.concurrentRequests')">
+                <a-input-number
+                  v-model:value="embeddingConfig.concurrent_requests"
+                  :min="1"
+                  :max="10"
+                  :step="1"
+                  style="width: 200px"
+                />
+                <div class="form-help">{{ t('settingsEmbedding.concurrentRequestsHelp') }}</div>
+              </a-form-item>
             </template>
           </a-form>
         </div>
@@ -484,6 +495,7 @@ const embeddingConfig = reactive({
   api_key: '',
   endpoint: 'https://api.openai.com/v1',
   batch_size: 10,           // 云端API批处理大小
+  concurrent_requests: 4,   // 并发请求数量
   isLoading: false,
   isTesting: false
 })
@@ -545,6 +557,7 @@ const loadAIModels = async () => {
               embeddingConfig.api_key = config.api_key || ''
               embeddingConfig.endpoint = config.endpoint || 'https://api.openai.com/v1'
               embeddingConfig.batch_size = config.batch_size || 10
+              embeddingConfig.concurrent_requests = config.concurrent_requests || 4
               // 保存原始配置用于变化检测
               originalEmbeddingProvider.value = model.provider || 'local'
               originalEmbeddingModel.value = model.model_name
@@ -765,7 +778,8 @@ const saveEmbeddingConfig = async () => {
       config.config = {
         api_key: embeddingConfig.api_key,
         endpoint: embeddingConfig.endpoint,
-        batch_size: embeddingConfig.batch_size
+        batch_size: embeddingConfig.batch_size,
+        concurrent_requests: embeddingConfig.concurrent_requests
       }
     }
 
