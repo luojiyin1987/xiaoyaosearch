@@ -575,6 +575,7 @@ export default {
     modelHelpCloud: '如 text-embedding-3-small、bge-large-zh 等',
     timeout: '超时时间（秒）',
     batchSize: '批处理大小',
+    batchSizeHelp: '每次API调用的文本数量限制，不同云服务限制不同（阿里云：10，OpenAI：100+）',
     // 操作
     testConnection: '测试连接',
     saveSuccessRestart: '嵌入模型配置保存成功，重启应用后生效',

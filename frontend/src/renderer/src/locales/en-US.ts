@@ -569,6 +569,7 @@ export default {
     modelHelpCloud: 'e.g. text-embedding-3-small, bge-large-zh, etc.',
     timeout: 'Timeout (seconds)',
     batchSize: 'Batch Size',
+    batchSizeHelp: 'Text count limit per API call. Different cloud services have different limits (Alibaba Cloud: 10, OpenAI: 100+)',
     // Actions
     testConnection: 'Test Connection',
     saveSuccessRestart: 'Embedding model configuration saved successfully, restart application to take effect',

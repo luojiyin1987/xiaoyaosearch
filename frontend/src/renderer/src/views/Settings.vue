@@ -361,6 +361,17 @@
                 />
                 <div class="form-help">{{ t('settingsEmbedding.modelHelpCloud') }}</div>
               </a-form-item>
+
+              <a-form-item :label="t('settingsEmbedding.batchSize')">
+                <a-input-number
+                  v-model:value="embeddingConfig.batch_size"
+                  :min="1"
+                  :max="100"
+                  :step="1"
+                  style="width: 200px"
+                />
+                <div class="form-help">{{ t('settingsEmbedding.batchSizeHelp') }}</div>
+              </a-form-item>
             </template>
           </a-form>
         </div>
@@ -472,6 +483,7 @@ const embeddingConfig = reactive({
   device: 'cpu',
   api_key: '',
   endpoint: 'https://api.openai.com/v1',
+  batch_size: 10,           // 云端API批处理大小
   isLoading: false,
   isTesting: false
 })
@@ -532,6 +544,7 @@ const loadAIModels = async () => {
               embeddingConfig.model_name_cloud = model.model_name
               embeddingConfig.api_key = config.api_key || ''
               embeddingConfig.endpoint = config.endpoint || 'https://api.openai.com/v1'
+              embeddingConfig.batch_size = config.batch_size || 10
               // 保存原始配置用于变化检测
               originalEmbeddingProvider.value = model.provider || 'local'
               originalEmbeddingModel.value = model.model_name
@@ -751,7 +764,8 @@ const saveEmbeddingConfig = async () => {
     } else {
       config.config = {
         api_key: embeddingConfig.api_key,
-        endpoint: embeddingConfig.endpoint
+        endpoint: embeddingConfig.endpoint,
+        batch_size: embeddingConfig.batch_size
       }
     }
 

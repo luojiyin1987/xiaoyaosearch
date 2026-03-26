@@ -64,7 +64,7 @@ class OpenAIEmbeddingService(BaseAIModel):
             "endpoint": "https://api.openai.com/v1",
             "model": model,
             "timeout": 30,
-            "batch_size": 100,
+            "batch_size": 10,  # 修改：降低批处理大小以兼容更多云端 API（阿里云限制为 10）
             "embedding_dim": None,  # 将从 API 自动检测
             "max_retries": 3,
             "retry_min_wait": 2,
@@ -269,7 +269,7 @@ class OpenAIEmbeddingService(BaseAIModel):
                 raise AIModelException("输入文本不能为空", model_name=self.model_name)
 
             # 获取批处理大小
-            batch_size = kwargs.get("batch_size", self.config.get("batch_size", 100))
+            batch_size = kwargs.get("batch_size", self.config.get("batch_size", 10))
 
             logger.info(f"开始云端嵌入预测，文本数量: {len(texts)}，批大小: {batch_size}")
 
