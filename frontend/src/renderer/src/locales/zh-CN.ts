@@ -413,11 +413,11 @@ export default {
     speechConfigSaveFailed: '保存语音识别配置失败',
     llmConfigSaveFailed: '保存大语言模型配置失败',
     visionConfigSaveFailed: '保存视觉模型配置失败',
-    embeddingConfigSaveFailed: '保存内嵌模型配置失败',
+    embeddingConfigSaveFailed: '保存嵌入模型配置失败',
     speechModelTestFailed: '测试语音识别模型失败',
     llmModelTestFailed: '测试大语言模型失败',
     visionModelTestFailed: '测试视觉模型失败',
-    embeddingModelTestFailed: '测试内嵌模型失败'
+    embeddingModelTestFailed: '测试嵌入模型失败'
   },
 
   // HTTP 错误消息
@@ -536,11 +536,11 @@ export default {
     pleaseSaveFirst: '请先保存视觉模型配置'
   },
 
-  // 设置页面 - 内嵌模型
+  // 设置页面 - 嵌入模型
   settingsEmbedding: {
-    title: '内嵌模型',
+    title: '嵌入模型',
     subtitle: '配置文本嵌入模型',
-    textEmbeddingModel: '文本内嵌模型',
+    textEmbeddingModel: '文本嵌入模型',
     localBgeM3Service: '本地BGE-M3模型',
     localBgeM3Desc: '使用本地部署的BGE-M3模型生成文本向量嵌入',
     modelVersion: '模型版本',
@@ -549,8 +549,8 @@ export default {
     deviceCpu: 'CPU',
     deviceCuda: 'CUDA (GPU)',
     testConnection: '测试连接',
-    saveSuccessRestart: '内嵌模型配置保存成功，重启应用后生效',
-    pleaseSaveFirst: '请先保存内嵌模型配置',
+    saveSuccessRestart: '嵌入模型配置保存成功，重启应用后生效',
+    pleaseSaveFirst: '请先保存嵌入模型配置',
     testData: '这是一个测试文本，用于验证文本嵌入模型的功能。'
   },
 
@@ -642,7 +642,7 @@ export default {
           step1: { label: '语音识别模型：', text: '设置 → 语音设置 → 选择FastWhisper模型版本（本地）' },
           step2: { label: '大语言模型：', text: '设置 → 大语言模型 → 选择本地Ollama或OpenAI兼容云端服务' },
           step3: { label: '视觉理解模型：', text: '设置 → 视觉模型 → 选择CN-CLIP模型（本地）' },
-          step4: { label: '文本内嵌模型：', text: '设置 → 内嵌模型 → 选择BGE-M3模型（本地）' },
+          step4: { label: '文本嵌入模型：', text: '设置 → 嵌入模型 → 选择BGE-M3模型（本地）' },
           step5: { label: '云端服务配置：', text: '如需使用云端大模型，配置API密钥和端点地址' },
           tip: '建议：本地模型隐私更好，云端模型理解能力更强。可根据需求灵活选择'
         }
@@ -704,7 +704,7 @@ export default {
           choice2: '追求更好的理解能力 → 使用云端大模型',
           choice3: '硬件配置有限 → 使用云端大模型',
           choice4: '需要离线使用 → 使用本地Ollama模型',
-          note: '注意：文本内嵌、语音识别、图像理解模型目前仅支持本地运行，不会上传数据'
+          note: '注意：文本嵌入、语音识别、图像理解模型目前仅支持本地运行，不会上传数据'
         }
       },
       panel1: {
