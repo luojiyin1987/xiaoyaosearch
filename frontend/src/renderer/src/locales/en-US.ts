@@ -192,7 +192,7 @@ export default {
   // AI Model Configuration
   aiModel: {
     title: 'AI Model Configuration',
-    subtitle: 'Configure cloud APIs and local models',
+    subtitle: 'Configure local Ollama and OpenAI compatible cloud LLMs',
     provider: 'Provider',
     model: 'Model',
     apiKey: 'API Key',
@@ -308,7 +308,7 @@ export default {
   about: {
     title: 'About Author',
     subtitle: 'XiaoyaoSearch Developer Information',
-    description: 'XiaoyaoSearch is a local desktop application designed for knowledge workers, content creators, and technical developers. Through integrated AI models, it supports multiple input methods such as voice, text, and images to convert user queries into semantic intelligence for deep retrieval of local files.',
+    description: 'XiaoyaoSearch is a local desktop application designed for knowledge workers, content creators, and technical developers. Through integrated AI models, it supports multiple input methods such as voice, text, and images to convert user queries into semantic intelligence for deep retrieval of local files. Supports both local Ollama and OpenAI-compatible cloud LLMs for flexible switching to meet different usage scenarios.',
     version: 'Version',
     license: 'License',
     authorName: 'Author',
@@ -625,20 +625,20 @@ export default {
       },
       semantic: {
         title: 'Semantic Understanding',
-        description: 'BGE-M3 vector embedding + Ollama LLM understanding'
+        description: 'BGE-M3 vector embedding + Ollama/OpenAI compatible LLM'
       }
     },
     tutorial: {
       panel1: {
-        header: 'How to configure local AI models?',
+        header: 'How to configure AI models?',
         content: {
-          stepsTitle: 'Local Model Configuration Steps:',
-          step1: { label: 'Speech Recognition Model:', text: 'Settings → Speech Settings → Select FastWhisper model version' },
-          step2: { label: 'Large Language Model:', text: 'Settings → LLM Settings → Configure Ollama service address' },
-          step3: { label: 'Vision Understanding Model:', text: 'Settings → Vision Model → Select CN-CLIP model' },
-          step4: { label: 'Text Embedding Model:', text: 'Settings → Embedding Model → Select BGE-M3 model' },
-          step5: { label: 'Device Selection:', text: 'Choose CPU or CUDA acceleration based on your hardware' },
-          tip: 'Tip: For first-time use, it is recommended to use CPU mode first, ensure functionality works before enabling GPU acceleration'
+          stepsTitle: 'AI Model Configuration Steps:',
+          step1: { label: 'Speech Recognition Model:', text: 'Settings → Speech Settings → Select FastWhisper model version (local)' },
+          step2: { label: 'Large Language Model:', text: 'Settings → LLM Settings → Choose local Ollama or OpenAI compatible cloud service' },
+          step3: { label: 'Vision Understanding Model:', text: 'Settings → Vision Model → Select CN-CLIP model (local)' },
+          step4: { label: 'Text Embedding Model:', text: 'Settings → Embedding Model → Select BGE-M3 model (local)' },
+          step5: { label: 'Cloud Service Config:', text: 'To use cloud LLM, configure API key and endpoint' },
+          tip: 'Tip: Local models offer better privacy, cloud models provide stronger understanding. Choose based on your needs'
         }
       },
       panel2: {
@@ -687,6 +687,20 @@ export default {
       }
     },
     faq: {
+      panel0: {
+        header: 'What\'s the difference between local and cloud models?',
+        content: {
+          comparisonTitle: 'Comparison:',
+          comparison1: { label: 'Local Models (Ollama):', text: 'Run completely offline, data never leaves device, best privacy, requires higher hardware specs' },
+          comparison2: { label: 'Cloud Models (OpenAI Compatible):', text: 'Search queries sent to cloud, better understanding, no local hardware resources needed' },
+          choiceTitle: 'How to Choose:',
+          choice1: 'High privacy requirements → Use local Ollama models',
+          choice2: 'Pursue better understanding → Use cloud LLMs',
+          choice3: 'Limited hardware config → Use cloud LLMs',
+          choice4: 'Need offline use → Use local Ollama models',
+          note: 'Note: Text embedding, speech recognition, image understanding models currently only support local, no data uploaded'
+        }
+      },
       panel1: {
         header: 'Voice recognition not working?',
         content: {
@@ -703,17 +717,23 @@ export default {
         }
       },
       panel2: {
-        header: 'Ollama connection failed?',
+        header: 'Model service connection failed?',
         content: {
-          checkTitle: 'Check Steps:',
-          check1: 'Confirm Ollama service started: http://localhost:11434',
-          check2: 'Check if model installed: ollama list',
-          check3: 'Verify service address configuration is correct',
-          check4: 'Test network connection and firewall settings',
-          commandsTitle: 'Common Commands:',
-          command1: 'Install model:',
-          command2: 'View models:',
-          command3: 'Run model:'
+          ollamaTitle: 'Local Ollama Service:',
+          ollama1: 'Confirm Ollama service started: http://localhost:11434',
+          ollama2: 'Check if model installed: ollama list',
+          ollama3: 'Verify service address configuration is correct',
+          ollama4: 'Test network connection and firewall settings',
+          ollamaCommandsTitle: 'Common Commands:',
+          ollamaCommand1: 'Install model:',
+          ollamaCommand2: 'View models:',
+          ollamaCommand3: 'Run model:',
+          cloudTitle: 'Cloud OpenAI Compatible Service:',
+          cloud1: 'Check if API key is properly configured',
+          cloud2: 'Verify endpoint URL is accessible',
+          cloud3: 'Check network connection and proxy settings',
+          cloud4: 'Confirm API service is normal (check provider announcements)',
+          cloud5: 'Check account balance (some services charge by usage)'
         }
       },
       panel3: {
@@ -763,8 +783,8 @@ export default {
       }
     },
     about: {
-      appDescription: 'Cross-platform local desktop application (Windows/MacOS/Linux) supporting multimodal AI intelligent search. Provides smarter file retrieval experience for knowledge workers through voice, text, and image inputs.',
-      tagline: 'Local First · AI Enhanced · Privacy Secure',
+      appDescription: 'Cross-platform local desktop application (Windows/MacOS/Linux) supporting multimodal AI intelligent search. Provides smarter file retrieval experience for knowledge workers through voice, text, and image inputs. Supports both local Ollama and OpenAI-compatible cloud LLMs for flexible deployment.',
+      tagline: 'Local First · Cloud Optional · Privacy Secure',
       features: {
         voice: {
           title: 'Voice Search',
@@ -776,12 +796,12 @@ export default {
         },
         semantic: {
           title: 'Semantic Search',
-          description: 'BGE-M3 vector embedding, understands query intent'
+          description: 'BGE-M3 vector embedding + Ollama/Cloud LLM understanding'
         }
       },
       techHighlight: {
-        title: 'Fully Local, Privacy Worry-Free',
-        description: 'All AI models deployed locally, your data never leaves your device. Supports offline use, ensuring information security and privacy protection.'
+        title: 'Local First, Cloud Optional',
+        description: 'Supports both local Ollama and OpenAI-compatible cloud LLMs, flexible switching. Local files and index data always stored locally, only search queries sent to cloud (when using cloud models).'
       }
     }
   }

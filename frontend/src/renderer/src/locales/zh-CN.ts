@@ -192,7 +192,7 @@ export default {
   // AI模型配置
   aiModel: {
     title: 'AI模型配置',
-    subtitle: '配置云端API和本地模型',
+    subtitle: '配置本地Ollama和OpenAI兼容云端大模型',
     provider: '提供商',
     model: '模型',
     apiKey: 'API密钥',
@@ -308,7 +308,7 @@ export default {
   about: {
     title: '关于作者',
     subtitle: '小遥搜索开发者信息',
-    description: '小遥搜索是一款专为知识工作者、内容创作者和技术开发者设计的本地桌面应用。通过集成的AI模型，支持语音输入、文本输入、图片输入等多种方式，将用户的查询转换为语义进行智能搜索，实现对本地文件的深度检索。',
+    description: '小遥搜索是一款专为知识工作者、内容创作者和技术开发者设计的本地桌面应用。通过集成的AI模型，支持语音输入、文本输入、图片输入等多种方式，将用户的查询转换为语义进行智能搜索，实现对本地文件的深度检索。支持本地Ollama和OpenAI兼容云端大模型，灵活切换以满足不同使用场景。',
     version: '版本',
     license: '许可证',
     authorName: '作者',
@@ -631,20 +631,20 @@ export default {
       },
       semantic: {
         title: '语义理解',
-        description: 'BGE-M3向量嵌入 + Ollama大语言模型理解'
+        description: 'BGE-M3向量嵌入 + Ollama/OpenAI兼容大模型'
       }
     },
     tutorial: {
       panel1: {
-        header: '如何配置本地AI模型？',
+        header: '如何配置AI模型？',
         content: {
-          stepsTitle: '本地模型配置步骤：',
-          step1: { label: '语音识别模型：', text: '设置 → 语音设置 → 选择FastWhisper模型版本' },
-          step2: { label: '大语言模型：', text: '设置 → 大语言模型 → 配置Ollama服务地址' },
-          step3: { label: '视觉理解模型：', text: '设置 → 视觉模型 → 选择CN-CLIP模型' },
-          step4: { label: '文本内嵌模型：', text: '设置 → 内嵌模型 → 选择BGE-M3模型' },
-          step5: { label: '设备选择：', text: '根据硬件选择CPU或CUDA加速' },
-          tip: '建议：首次使用时建议先用CPU模式，确保功能正常后再启用GPU加速'
+          stepsTitle: 'AI模型配置步骤：',
+          step1: { label: '语音识别模型：', text: '设置 → 语音设置 → 选择FastWhisper模型版本（本地）' },
+          step2: { label: '大语言模型：', text: '设置 → 大语言模型 → 选择本地Ollama或OpenAI兼容云端服务' },
+          step3: { label: '视觉理解模型：', text: '设置 → 视觉模型 → 选择CN-CLIP模型（本地）' },
+          step4: { label: '文本内嵌模型：', text: '设置 → 内嵌模型 → 选择BGE-M3模型（本地）' },
+          step5: { label: '云端服务配置：', text: '如需使用云端大模型，配置API密钥和端点地址' },
+          tip: '建议：本地模型隐私更好，云端模型理解能力更强。可根据需求灵活选择'
         }
       },
       panel2: {
@@ -693,6 +693,20 @@ export default {
       }
     },
     faq: {
+      panel0: {
+        header: '本地模型和云端模型有什么区别？',
+        content: {
+          comparisonTitle: '对比说明：',
+          comparison1: { label: '本地模型（Ollama）：', text: '完全离线运行，数据不离开设备，隐私性最佳，需要较高硬件配置' },
+          comparison2: { label: '云端模型（OpenAI兼容）：', text: '搜索查询会发送到云端，理解能力更强，无需本地硬件资源' },
+          choiceTitle: '如何选择：',
+          choice1: '对隐私要求高 → 使用本地Ollama模型',
+          choice2: '追求更好的理解能力 → 使用云端大模型',
+          choice3: '硬件配置有限 → 使用云端大模型',
+          choice4: '需要离线使用 → 使用本地Ollama模型',
+          note: '注意：文本内嵌、语音识别、图像理解模型目前仅支持本地运行，不会上传数据'
+        }
+      },
       panel1: {
         header: '语音识别不工作怎么办？',
         content: {
@@ -709,17 +723,23 @@ export default {
         }
       },
       panel2: {
-        header: 'Ollama连接失败？',
+        header: '模型服务连接失败怎么办？',
         content: {
-          checkTitle: '检查步骤：',
-          check1: '确认Ollama服务已启动：http://localhost:11434',
-          check2: '检查模型是否已安装：ollama list',
-          check3: '验证服务地址配置是否正确',
-          check4: '测试网络连接和防火墙设置',
-          commandsTitle: '常用命令：',
-          command1: '安装模型：',
-          command2: '查看模型：',
-          command3: '运行模型：'
+          ollamaTitle: '本地Ollama服务：',
+          ollama1: '确认Ollama服务已启动：http://localhost:11434',
+          ollama2: '检查模型是否已安装：ollama list',
+          ollama3: '验证服务地址配置是否正确',
+          ollama4: '测试网络连接和防火墙设置',
+          ollamaCommandsTitle: '常用命令：',
+          ollamaCommand1: '安装模型：',
+          ollamaCommand2: '查看模型：',
+          ollamaCommand3: '运行模型：',
+          cloudTitle: '云端OpenAI兼容服务：',
+          cloud1: '检查API密钥是否正确配置',
+          cloud2: '验证端点地址是否可访问',
+          cloud3: '检查网络连接和代理设置',
+          cloud4: '确认API服务是否正常（查看服务商公告）',
+          cloud5: '检查账户余额是否充足（部分服务按量计费）'
         }
       },
       panel3: {
@@ -769,8 +789,8 @@ export default {
       }
     },
     about: {
-      appDescription: '支持多模态AI智能搜索的跨平台本地桌面应用（Windows/MacOS/Linux），通过语音、文本、图像多种输入方式，为知识工作者提供更智能的文件检索体验。',
-      tagline: '本地优先 · AI增强 · 隐私安全',
+      appDescription: '支持多模态AI智能搜索的跨平台本地桌面应用（Windows/MacOS/Linux），通过语音、文本、图像多种输入方式，支持本地Ollama和云端OpenAI兼容大模型，为知识工作者提供更智能的文件检索体验。',
+      tagline: '本地优先 · 云端可选 · 隐私安全',
       features: {
         voice: {
           title: '语音搜索',
@@ -782,12 +802,12 @@ export default {
         },
         semantic: {
           title: '语义搜索',
-          description: 'BGE-M3向量嵌入，理解查询意图'
+          description: 'BGE-M3向量嵌入 + Ollama/云端大模型理解'
         }
       },
       techHighlight: {
-        title: '完全本地化，隐私无忧',
-        description: '所有AI模型均本地部署，您的数据永远不会离开您的设备。支持离线使用，确保信息安全和隐私保护。'
+        title: '本地优先，云端可选',
+        description: '支持本地Ollama和OpenAI兼容云端大模型，灵活切换。本地文件和索引数据始终存储在本地，只有搜索查询会发送到云端服务（使用云端模型时）。'
       }
     }
   }

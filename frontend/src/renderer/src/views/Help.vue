@@ -318,6 +318,7 @@
                 <a-tag color="green">Ollama</a-tag>
                 <a-tag color="orange">CN-CLIP</a-tag>
                 <a-tag color="purple">BGE-M3</a-tag>
+                <a-tag color="cyan">OpenAI API</a-tag>
               </div>
             </a-card>
           </div>
