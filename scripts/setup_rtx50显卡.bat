@@ -402,6 +402,63 @@ if %MODELS_OK%==1 (
 )
 
 echo.
+
+REM ============================================
+REM 8. 激活 pywin32 (Windows MCP 支持)
+REM ============================================
+echo [8/8] 激活 pywin32 (MCP 支持)...
+echo.
+
+REM Step 1: 重新安装 pywin32
+echo [1/4] 重新安装 pywin32...
+"%PYTHON_EXE%" -m pip install --force-reinstall pywin32 -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
+
+if %errorlevel% neq 0 (
+    echo   [!] pywin32 安装失败
+    echo     MCP 功能可能无法使用
+) else (
+    echo   [OK] pywin32 已安装
+)
+echo.
+
+REM Step 2: 运行 postinstall 脚本
+echo [2/4] 运行 pywin32 后安装脚本...
+"%PYTHON_EXE%" "%RUNTIME_DIR%\python\python-embed\Scripts\pywin32_postinstall.py" -install
+
+if %errorlevel% neq 0 (
+    echo   [!] 后安装脚本执行失败
+    echo     将尝试使用备用方案...
+) else (
+    echo   [OK] 后安装脚本执行成功
+)
+echo.
+
+REM Step 3: 复制 python310._pth 配置文件
+echo [3/4] 复制 Python 路径配置文件...
+set "PTH_SOURCE=%PROJECT_ROOT%\scripts\win32\python310._pth"
+set "PTH_TARGET=%RUNTIME_DIR%\python\python-embed\python310._pth"
+
+if exist "%PTH_SOURCE%" (
+    copy /Y "%PTH_SOURCE%" "%PTH_TARGET%" >nul
+    echo   [OK] python310._pth 已复制
+) else (
+    echo   [!] 未找到 %PTH_SOURCE%
+)
+echo.
+
+REM Step 4: 验证 pywintypes 模块
+echo [4/4] 验证 pywintypes 模块...
+"%PYTHON_EXE%" -c "import pywintypes; print('成功!')" 2>nul
+
+if %errorlevel% equ 0 (
+    echo   [OK] pywin32 激活成功
+) else (
+    echo   [!] pywin32 激活失败
+    echo     MCP 功能可能无法使用
+)
+
+echo.
+
 echo ========================================
 echo   环境准备完成！
 echo ========================================
