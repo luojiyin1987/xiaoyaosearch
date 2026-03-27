@@ -43,8 +43,7 @@ REM ============================================
 echo [1/2] 启动后端服务...
 
 REM 从 backend 目录启动后端，与本地开发方式一致
-REM config.py 会使用绝对路径查找 backend/.env 配置文件
-start "小遥搜索-后端" /d "%BACKEND_DIR%" cmd /k ""%RUNTIME_DIR%\python\python-embed\python.exe" main.py && pause"
+start "XiaoyaoSearch-Backend" /d "%BACKEND_DIR%" cmd /k ""%RUNTIME_DIR%\python\python-embed\python.exe" main.py && pause"
 
 echo   [OK] 后端服务已启动
 echo.
@@ -103,7 +102,7 @@ REM 4. 启动前端
 REM ============================================
 echo [2/2] 启动前端服务...
 
-start "小遥搜索-前端" /d "%FRONTEND_DIR%" cmd /k "npm run dev"
+start "XiaoyaoSearch-Frontend" /d "%FRONTEND_DIR%" cmd /k "npm run dev"
 
 echo   [OK] 前端服务已启动
 echo.
@@ -120,7 +119,7 @@ echo   应用已启动！
 echo ========================================
 echo.
 echo 停止方法：
-echo   关闭"小遥搜索-后端"和"小遥搜索-前端"窗口
+echo   关闭"XiaoyaoSearch-Backend"和"XiaoyaoSearch-Frontend"窗口
 echo.
 pause
 exit /b 0

@@ -353,7 +353,7 @@ if %errorlevel% equ 0 (
     )
     echo     版本: !OLLAMA_VERSION!
 ) else (
-    echo   [X] 未安装 Ollama (必需)
+    echo   [X] 未安装 Ollama
     echo.
     echo     Ollama 是 AI 聊天功能的必需组件
     echo.
@@ -390,7 +390,7 @@ if %MODELS_OK%==1 (
 ) else (
     echo [!] AI 模型未下载或不完整
     echo.
-    echo     百度网盘链接 (包含所有默认模型):
+    echo     百度网盘链接 【包含所有默认模型】:
     echo       链接: https://pan.baidu.com/s/1jRcTztvjf8aiExUh6oayVg
     echo       提取码: ycr5
     echo.
