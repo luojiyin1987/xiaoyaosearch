@@ -469,7 +469,7 @@ XiaoyaoSearch supports a **plugin-based architecture** that can be extended with
 |------|-------------|--------|
 | 📁 Local File | Built-in system, no configuration required | ✅ Implemented |
 | ☁️ Yuque | Alibaba Yuque Knowledge Base | ✅ Implemented |
-| ☁️ Feishu | Feishu/Lark Documents | 📋 Planned |
+| ☁️ Feishu | Feishu/Lark Documents (Zero-config) | ✅ Implemented |
 | ☁️ Notion | Notion Notes | 📋 Planned |
 | 🔗 GitHub | Code repositories and Wiki | 📋 Planned |
 | 🔗 GitLab | GitLab repositories | 📋 Planned |

@@ -180,6 +180,41 @@ datasource:
 
 ---
 
+### ✅ Feishu (feishu)
+
+**Status**: Built-in (Enabled by Default) | **Priority**: High | **Version**: v1.0
+
+**Description**:
+- Built-in plugin, no additional installation required
+- Enabled by default
+- Zero-config design, automatically recognizes Feishu export format
+- Supports Markdown documents exported from Feishu
+
+**Features**:
+- ✨ Zero-config: Automatically recognizes Feishu export format
+- 🏷️ Metadata extraction: Extracts source link from document end
+- ⚡ Performance optimized: Only parses last 500 characters
+- 🔗 Supports source link navigation
+
+**Usage Instructions**:
+1. Export document from Feishu as Markdown format
+2. Place exported file in scan directory
+3. Build index
+4. Search results will display "Feishu" identifier
+
+**Feishu Export Format**:
+```markdown
+---
+> Updated: 2026-03-30 02:52:46
+> Source: feishu
+> URL: <https://feishu.cn/wiki/MZKMwqpljiod1ak38Cscnr8hnkh>
+---
+```
+
+**Plugin Location**: `backend/data/plugins/datasource/feishu/`
+
+---
+
 ## 4. Planned Plugins
 
 The following plugins are in planning. Contributions are welcome!
@@ -204,7 +239,6 @@ The following plugins are in planning. Contributions are welcome!
 
 | Plugin | Status | Description |
 |--------|--------|-------------|
-| **Feishu** | 📋 Planned | Feishu documents and knowledge base |
 | **GitLab** | 📋 Planned | GitLab code repositories |
 | **WordPress** | 📋 Planned | WordPress blog posts |
 | **Dropbox** | 📋 Planned | Dropbox cloud files |
@@ -223,8 +257,9 @@ Want to contribute a new data source plugin?
 
 ---
 
-**Document Version**: v1.0
+**Document Version**: v1.1
 **Created**: 2026-02-24
 **Maintainer**: XiaoyaoSearch Team
 **Changelog**:
+- v1.1 (2026-03-31): Feishu plugin implemented
 - v1.0 (2026-02-24): Initial version, defined 13 data source types

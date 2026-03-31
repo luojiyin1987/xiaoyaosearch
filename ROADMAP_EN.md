@@ -1,8 +1,10 @@
 # XiaoyaoSearch - Product Roadmap
 
-> **Current Version**: v1.0
+> **Current Version**: v1.7
 > **Product Positioning**: Evolving from local AI search tool to intelligent knowledge work platform
 > This roadmap showcases possible directions for XiaoyaoSearch to evolve from a local search tool to an intelligent knowledge work platform. Specific feature priorities and implementation details will be adjusted based on user feedback and technological developments.
+
+---
 
 ## 📊 Current Achievements
 
@@ -12,6 +14,20 @@
 - **Local File Indexing**: Supports content retrieval for documents, audio/video, images, etc.
 - **AI Model Integration**: BGE-M3 text embedding + FasterWhisper speech recognition + CN-CLIP image understanding + Ollama LLM
 - **Desktop Application**: Electron + Vue3 cross-platform support
+
+### Implemented Features (v1.0 - v1.7)
+
+| Version | Feature | Status | Description |
+|---------|--------|--------|-------------|
+| v1.0 | MVP Core Features | ✅ | Multimodal search, local file indexing |
+| v1.1 | i18n Internationalization | ✅ | Chinese-English bilingual, 720+ translation keys |
+| v1.3 | OpenAI Compatible LLM | ✅ | Cloud API integration (OpenAI/DeepSeek/Alibaba Cloud) |
+| v1.6 | Cloud Embedding Models | ✅ | OpenAI/DeepSeek/Alibaba Cloud embedding APIs |
+| v1.4 | MCP Server Support | ✅ | Model Context Protocol, Claude Desktop integration |
+| v1.5 | Agent Skills | ✅ | MCP tools for Claude Code/VS Code/Cursor |
+| **v1.7** | **Plugin Architecture** | **✅** | Extensible data source plugin system |
+| **v1.7** | **Yuque Knowledge Base** | **✅** | Alibaba Yuque data source (yuque-dl CLI) |
+| **v1.7** | **Feishu Documents** | **✅** | Zero-config Feishu exported document support |
 
 ## 🚀 Product Evolution Directions
 
@@ -58,18 +74,22 @@
 ### 2. Multi-DataSource Expansion
 
 #### Current Capabilities
-Only supports local file system indexing and search
+- **Local File System**: Built-in system support
+- **Plugin Architecture**: Supports data source plugin extensions
+- **Implemented Data Sources**:
+  - ✅ Yuque Knowledge Base (yuque-dl CLI)
+  - ✅ Feishu Documents (Zero-config metadata parsing)
 
 #### Expansion Directions
 
 **📝 Document Collaboration Platforms**
 ```mermaid
 graph LR
-    A[Yuque] --> B[XiaoyaoSearch]
-    C[Feishu] --> B
-    D[DingTalk] --> B
-    E[Notion] --> B
-    F[Shimo Docs] --> B
+    A[Yuque] -->|✅ Implemented| B[XiaoyaoSearch]
+    C[Feishu] -->|✅ Implemented| B
+    D[DingTalk] -->|📋 Planned| B
+    E[Notion] -->|📋 Planned| B
+    F[Shimo Docs] -->|📋 Planned| B
     B --> G[Unified Search Experience]
 ```
 

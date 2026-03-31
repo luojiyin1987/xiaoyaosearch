@@ -214,7 +214,7 @@ onUnmounted(() => {
       <div class="header-content">
         <div class="logo">
           <span class="logo-text">{{ t('app.name') }}</span>
-          <span class="version">v1.6</span>
+          <span class="version">v1.7</span>
         </div>
 
         <a-menu
