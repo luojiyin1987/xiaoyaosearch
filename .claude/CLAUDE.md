@@ -7,7 +7,7 @@
 - **多模态智能搜索**：语音输入（30秒内）、文本输入、图片输入，AI转换为语义搜索
 - **本地文件深度检索**：视频、音频、文档的内容和文件名搜索
 - **灵活AI模型配置**：云端API（OpenAI、Claude、阿里云）和本地模型（Ollama、FastWhisper、CN-CLIP）自由切换
-- **插件化架构与语雀数据源** 🚧：建立插件化框架支持多数据源扩展，优先实现语雀知识库数据源（规划中）
+- **插件化架构与数据源扩展（语雀+飞书）** 🚧：建立插件化框架支持多数据源扩展，优先实现语雀知识库数据源和飞书文档数据源（规划中）
 - **视频画面搜索** ⏸️：通过图片检索视频内容，快速定位视频中的关键画面（已暂停）
 
 ## 💻 开发环境
@@ -70,12 +70,13 @@
 - **[云端嵌入增量接口文档](docs/特性开发/embedding-openai/embedding-openai-增量-接口文档.md)** - API接口增量设计
 - **[云端嵌入增量数据库设计](docs/特性开发/embedding-openai/embedding-openai-增量-数据库设计文档.md)** - 数据库表结构增量设计
 
-### 插件化架构与语雀数据源 🚧
+### 插件化架构与数据源扩展（语雀+飞书）🚧
 - **[插件化PRD](docs/特性开发/plugins+yuque/plugins+yuque-01-prd.md)** - 插件化架构与语雀数据源产品需求（663行）
 - **[插件化原型](docs/特性开发/plugins+yuque/plugins+yuque-02-原型.md)** - 原型设计和UI规范
 - **[插件化技术方案](docs/特性开发/plugins+yuque/plugins+yuque-03-技术方案.md)** - Python ABC + importlib插件架构实现
 - **[插件化任务清单](docs/特性开发/plugins+yuque/plugins+yuque-04-开发任务清单.md)** - 开发任务分解
 - **[插件化排期表](docs/特性开发/plugins+yuque/plugins+yuque-05-开发排期表.md)** - 时间规划和里程碑
+- **[飞书数据源PRD](docs/特性开发/plugins+feishu/plugins+feishu-01-prd.md)** - 飞书文档数据源产品需求（568行）
 
 ### Agent Skill：小遥搜索 MCP 能力 🚧 规划中
 - **[Agent Skill PRD](docs/特性开发/agent-skills/agent-skills-01-prd.md)** - Agent Skill 产品需求
@@ -162,8 +163,8 @@ npm run dev
 - **i18n国际化**：100%完成，720+翻译键
 - **API接口**：36个接口全部实现
 - **OpenAI兼容大模型服务**：🚧 规划中，需求分析和原型设计完成
-- **插件化架构与语雀数据源**：🚧 规划中，需求分析完成
-- **视频画面搜索**：⏸️ 已暂停，优先开发插件化架构
+- **插件化架构与数据源扩展（语雀+飞书）**：🚧 规划中，需求分析完成
+- **视频画面搜索**：⏸️ 已暂停，优先开发插件化架构与数据源扩展
 - **MCP服务器支持**：✅ 已完成
 - **Agent Skill**：🔥 开发中
 
@@ -228,6 +229,7 @@ npm run dev
 | OpenAI数据库设计 | [OpenAI增量数据库设计](docs/特性开发/openai/openai-增量-数据库设计文档.md) |
 | 插件化架构PRD | [插件化PRD](docs/特性开发/plugins+yuque/plugins+yuque-01-prd.md) |
 | 插件化架构技术方案 | [插件化技术方案](docs/特性开发/plugins+yuque/plugins+yuque-03-技术方案.md) |
+| 飞书数据源PRD | [飞书数据源PRD](docs/特性开发/plugins+feishu/plugins+feishu-01-prd.md) |
 | 视频画面搜索PRD | [视频搜索PRD](docs/特性开发/videosearch/videosearch-01-prd.md) |
 | **云端嵌入PRD** | **[云端嵌入模型PRD](docs/特性开发/embedding-openai/embedding-openai-01-prd.md)** |
 | **云端嵌入技术方案** | **[云端嵌入技术方案](docs/特性开发/embedding-openai/embedding-openai-03-技术方案.md)** |
@@ -251,6 +253,7 @@ npm run dev
 - 🔌 OpenAI接口文档 → [OpenAI兼容大模型服务接口文档](docs/特性开发/openai/openai-增量-接口文档.md)
 - 🗄️ OpenAI数据库设计 → [OpenAI兼容大模型服务数据库设计](docs/特性开发/openai/openai-增量-数据库设计文档.md)
 - 🔌 插件化架构 → [插件化架构PRD](docs/特性开发/plugins+yuque/plugins+yuque-01-prd.md)
+- 📄 飞书数据源 → [飞书数据源PRD](docs/特性开发/plugins+feishu/plugins+feishu-01-prd.md)
 - 🎬 视频搜索 → [视频画面搜索PRD](docs/特性开发/videosearch/videosearch-01-prd.md)
 - 🔥 云端嵌入模型PRD → [云端嵌入模型调用能力PRD](docs/特性开发/embedding-openai/embedding-openai-01-prd.md)
 - ⚙️ 云端嵌入技术方案 → [云端嵌入技术方案](docs/特性开发/embedding-openai/embedding-openai-03-技术方案.md)
@@ -286,13 +289,14 @@ npm run dev
   - **全局文档**：已同步到PRD、原型、技术方案
   - **特性文档**：PRD、原型、技术方案、任务清单、排期表、增量接口文档、增量数据库设计文档
 
-- 🔌 **插件化架构与语雀数据源** 🚧 规划中
+- 🔌 **插件化架构与数据源扩展（语雀+飞书）** 🚧 规划中
   - **技术栈**：Python ABC + importlib + Pydantic + httpx + PyYAML
   - **核心能力**：插件化框架、数据源抽象、热插拔、API管理
+  - **数据源支持**：语雀知识库、飞书文档
   - **配置参数**：PLUGIN_DIR、PLUGIN_AUTO_DISCOVER
   - **开发状态**：需求分析完成，文档100%同步
   - **全局文档**：已同步到PRD、技术方案
-  - **特性文档**：PRD、原型、技术方案、任务清单、排期表
+  - **特性文档**：PRD、原型、技术方案、任务清单、排期表、飞书PRD
 
 - 🎬 **视频画面搜索** ⏸️ 已暂停
   - **暂停原因**：优先开发插件化架构与语雀数据源特性

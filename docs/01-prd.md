@@ -39,7 +39,7 @@
 - [x] **国际化支持（i18n）**：中英文双语界面，语言切换器，720+翻译键全覆盖 ✅ 已完成
 - [ ] **云端嵌入模型调用能力** 🚧 规划中 - 支持OpenAI兼容的云端嵌入模型服务，用户可选择使用云端嵌入模型（如OpenAI、DeepSeek、阿里云通义千问、Moonshot等）替代本地BGE-M3模型，两者互斥，切换时需要重建索引（详见[特性PRD](特性开发/embedding-openai/embedding-openai-01-prd.md)）
 - [ ] **OpenAI兼容大模型服务** 🚧 规划中 - 支持OpenAI兼容的云端大语言模型服务，用户可选择使用云端大模型（如阿里云通义千问、DeepSeek、Moonshot等）替代或补充本地Ollama模型（详见[特性PRD](特性开发/openai/openai-01-prd.md)）
-- [ ] **插件化架构与语雀数据源** 🚧 规划中 - 建立插件化框架支持多数据源扩展，优先实现语雀知识库数据源（详见[特性PRD](特性开发/plugins+yuque/plugins+yuque-01-prd.md)）
+- [ ] **插件化架构与数据源扩展（语雀+飞书）** 🚧 规划中 - 建立插件化框架支持多数据源扩展，优先实现语雀知识库数据源和飞书文档数据源（详见[语雀PRD](特性开发/plugins+yuque/plugins+yuque-01-prd.md) | [飞书PRD](特性开发/plugins+feishu/plugins+feishu-01-prd.md)）
 - [ ] **MCP服务器支持** 🚧 规划中 - 为小遥搜索添加 Model Context Protocol (MCP) 服务器能力，使 Claude Desktop 等 AI 应用能够连接小遥搜索进行本地文件智能搜索（详见[特性PRD](特性开发/mcp/mcp-01-prd.md)）
 - [ ] **Agent Skill工具规范** 🚧 规划中 - 为 Claude Code 提供小遥搜索 MCP 工具调用能力的 Agent Skill 规范定义（详见[特性PRD](特性开发/agent-skills/agent-skills-01-prd.md)）
 - [ ] **视频画面搜索** ⏸️ 已暂停 - 通过图片搜索视频内容，快速定位视频中的关键画面（详见[特性PRD](特性开发/videosearch/videosearch-01-prd.md)）
@@ -90,6 +90,7 @@
 - **数据源配置** 🚧 规划中
   - 插件管理：插件列表、上传、启用、禁用
   - 语雀数据源：API Token、知识库ID配置
+  - 飞书数据源：本地文件路径配置，支持飞书导出Markdown自动识别
   - 同步状态：同步进度、文档数量统计
   - 多源配置：支持同时启用多个数据源
 
@@ -206,13 +207,13 @@
   - 供应商支持：OpenAI、DeepSeek、阿里云通义千问、Moonshot等兼容Embeddings API的服务
   - 详见：[云端嵌入模型PRD](特性开发/embedding-openai/embedding-openai-01-prd.md)
 - **插件化架构与数据源扩展** 🚧 规划中
-  - 核心能力：建立插件化框架，支持多数据源扩展，优先实现语雀知识库数据源
+  - 核心能力：建立插件化框架，支持多数据源扩展，优先实现语雀知识库数据源和飞书文档数据源
   - 技术基础：Python importlib动态加载 + ABC接口抽象 + Pydantic配置验证
-  - 数据源支持：本地文件系统（已有）、语雀知识库（P0）、飞书/钉钉（P1）
+  - 数据源支持：本地文件系统（已有）、语雀知识库（P0）、飞书文档（P0）
   - 配置管理：通过API接口完成插件上传、启用、配置和管理
   - 多源搜索：统一索引服务，支持跨数据源语义搜索
   - 插件安全：沙箱隔离、API Token加密存储、插件包验证
-  - 详见：[插件化架构与语雀数据源PRD](特性开发/plugins+yuque/plugins+yuque-01-prd.md)
+  - 详见：[插件化架构PRD](特性开发/plugins+yuque/plugins+yuque-01-prd.md) | [飞书数据源PRD](特性开发/plugins+feishu/plugins+feishu-01-prd.md)
 - **MCP服务器支持** 🚧 规划中
   - 核心能力：为小遥搜索添加 Model Context Protocol (MCP) 服务器能力，使 Claude Desktop 等 AI 应用能够连接小遥搜索进行本地文件智能搜索
   - 技术基础：mcp-python-sdk + FastAPI SSE 端点 + 适配器模式
@@ -228,7 +229,7 @@
   - 详见：[Agent Skill特性PRD](特性开发/agent-skills/agent-skills-01-prd.md)
 - **视频画面搜索** ⏸️ 已暂停
   - 核心能力：通过图片检索视频内容，快速定位视频中的关键画面
-  - 暂停原因：优先开发插件化架构与语雀数据源特性
+  - 暂停原因：优先开发插件化架构与语雀+飞书数据源特性
   - 技术基础：复用现有CN-CLIP图像搜索能力
   - 搜索范围：支持常见视频格式（mp4、avi、mkv、mov、wmv、flv、webm）
   - 搜索精度：按可配置间隔提取关键帧（默认10秒），可设置提取时长上限

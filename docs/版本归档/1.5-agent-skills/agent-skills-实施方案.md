@@ -1,7 +1,7 @@
 # Agent Skill：小遥搜索 MCP 能力 - 实施方案
 
 > **文档类型**：实施方案
-> **特性状态**：规划中
+> **特性状态**：已完成
 > **创建时间**：2026-03-18
 > **决策时间**：待定
 > **关联文档**：[Agent Skill PRD](./agent-skills-01-prd.md) | [Agent Skill 技术方案](./agent-skills-03-技术方案.md)
