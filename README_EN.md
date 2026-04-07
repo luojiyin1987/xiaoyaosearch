@@ -626,5 +626,21 @@ MCP_VOICE_ENABLED=true            # Whether to enable voice search
 ---
 
 ## Project Contributors
+
 Thanks to the following people for their contributions to this project:
-- [@jidingliu](https://github.com/jidingliu) - Code submission and project promotion
+
+<p align="center">
+  <a href="https://github.com/luojiyin1987">
+    <img src="https://avatars.githubusercontent.com/u/6524977?v=4" width="80" height="80" style="border-radius: 50%;">
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/jidingliu">
+    <img src="https://avatars.githubusercontent.com/u/26623206?v=4" width="80" height="80" style="border-radius: 50%;">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/luojiyin1987">@luojiyin1987</a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/jidingliu">@jidingliu</a>
+</p>

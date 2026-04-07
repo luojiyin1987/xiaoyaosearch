@@ -626,5 +626,21 @@ MCP_VOICE_ENABLED=true            # 是否启用语音搜索
 ---
 
 ## 项目贡献者
+
 感谢以下人员为本项目做出的贡献：
-- [@jidingliu](https://github.com/jidingliu) - 提交代码及项目宣传
+
+<p align="center">
+  <a href="https://github.com/luojiyin1987">
+    <img src="https://avatars.githubusercontent.com/u/6524977?v=4" width="80" height="80" style="border-radius: 50%;">
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/jidingliu">
+    <img src="https://avatars.githubusercontent.com/u/26623206?v=4" width="80" height="80" style="border-radius: 50%;">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/luojiyin1987">@luojiyin1987</a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/jidingliu">@jidingliu</a>
+</p>
