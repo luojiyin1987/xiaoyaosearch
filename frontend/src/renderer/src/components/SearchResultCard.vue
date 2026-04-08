@@ -152,6 +152,7 @@ const getSourceTypeLabel = (sourceType: string | null) => {
     filesystem: t('searchResult.sourceFilesystem'),
     yuque: t('searchResult.sourceYuque'),
     feishu: t('searchResult.sourceFeishu'),
+    dingding: t('searchResult.sourceDingding'),
     notion: t('searchResult.sourceNotion'),
     github: t('searchResult.sourceGithub'),
     confluence: t('searchResult.sourceConfluence'),
@@ -177,6 +178,7 @@ const getSourceIcon = (sourceType: string | null) => {
     filesystem: DatabaseOutlined,
     yuque: CloudOutlined,
     feishu: CloudOutlined,
+    dingding: CloudOutlined,
     notion: CloudOutlined,
     github: LinkOutlined,
     confluence: CloudOutlined,
@@ -461,6 +463,11 @@ const openSourceUrl = async () => {
 .source-type.source-feishu {
   color: #722ed1;
   background: rgba(114, 46, 209, 0.1);
+}
+
+.source-type.source-dingding {
+  color: #0089FF;
+  background: rgba(0, 137, 255, 0.1);
 }
 
 .source-type.source-notion {

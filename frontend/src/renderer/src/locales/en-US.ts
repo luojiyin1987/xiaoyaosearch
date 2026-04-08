@@ -136,6 +136,7 @@ export default {
     sourceFilesystem: 'Local File',
     sourceYuque: 'Yuque',
     sourceFeishu: 'Feishu',
+    sourceDingding: 'DingTalk',
     sourceNotion: 'Notion',
     sourceGithub: 'GitHub',
     sourceConfluence: 'Confluence',

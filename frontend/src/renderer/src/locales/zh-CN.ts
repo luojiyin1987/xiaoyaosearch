@@ -136,6 +136,7 @@ export default {
     sourceFilesystem: '本地文件',
     sourceYuque: '语雀',
     sourceFeishu: '飞书',
+    sourceDingding: '钉钉',
     sourceNotion: 'Notion',
     sourceGithub: 'GitHub',
     sourceConfluence: 'Confluence',
